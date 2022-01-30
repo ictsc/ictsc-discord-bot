@@ -8,6 +8,7 @@ use clap::Parser;
 
 use serenity::async_trait;
 
+use serenity::model::interactions::application_command::ApplicationCommand;
 use serenity::model::prelude::*;
 use serenity::prelude::*;
 
@@ -49,15 +50,32 @@ impl Bot {
 #[async_trait]
 impl EventHandler for Bot {
     async fn ready(&self, ctx: Context, _: Ready) {
-        self.guild
+        let commands = self.guild
             .set_application_commands(&ctx.http, |commands| {
                 commands
                     .create_application_command(|command| {
                         commands::ping::Command.create(command)
                     })
+                    .create_application_command(|command| {
+                        commands::join::Command.create(command)
+                    })
             })
-            .await
-            .unwrap();
+            .await;
+
+        match commands {
+            Ok(commands) => log::debug!("created application commands: {:?}", commands),
+            Err(reason) => log::error!("failed to create application commands: {:?}", reason),
+        };
+
+        // let command = ApplicationCommand::create_global_application_command(&ctx.http, |command| {
+        //         commands::join::Command.create(command)
+        //     })
+        //     .await;
+
+        // match command {
+        //     Ok(command) => log::debug!("created global application command: {:?}", command),
+        //     Err(reason) => log::error!("failed to create global application command: {:?}", reason),
+        // };
 
         log::info!("bot is ready");
     }
@@ -67,6 +85,7 @@ impl EventHandler for Bot {
             log::info!("command executed: {:?}", command);
 
             let result = match command.data.name.as_str() {
+                "join" => commands::join::Command.run(ctx, command).await,
                 "ping" => commands::ping::Command.run(ctx, command).await,
                 _ => Ok(()),
             };
