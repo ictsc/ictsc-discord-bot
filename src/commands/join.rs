@@ -1,12 +1,19 @@
 use anyhow::Result;
 use serenity::builder::CreateApplicationCommand;
+use serenity::model::guild::Guild;
 use serenity::model::prelude::application_command::*;
 use serenity::model::prelude::InteractionResponseType;
 use serenity::prelude::*;
 
-pub struct Command;
+pub struct Command {
+    guild: Guild,
+}
 
 impl Command {
+    pub fn new(guild: Guild) -> Self {
+        Self { guild }
+    }
+
     pub fn create<'a>(
         &self,
         command: &'a mut CreateApplicationCommand,

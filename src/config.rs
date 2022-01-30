@@ -23,6 +23,15 @@ impl Configuration {
     }
 }
 
+impl From<Configuration> for bot::Configuration {
+    fn from(config: Configuration) -> Self {
+        Self {
+            token: config.discord.token,
+            application_id: config.discord.application_id,
+        }
+    }
+}
+
 #[derive(Debug, Deserialize)]
 pub struct DiscordConfiguration {
     pub token: String,
@@ -36,7 +45,6 @@ pub struct SlackConfiguration {
     pub icon_emoji: String,
     pub webhook_url: String,
 }
-
 
 #[derive(Debug, Deserialize)]
 pub struct TeamConfiguration {
