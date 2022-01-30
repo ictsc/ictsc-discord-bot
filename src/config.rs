@@ -27,6 +27,7 @@ impl From<Configuration> for bot::Configuration {
     fn from(config: Configuration) -> Self {
         Self {
             token: config.discord.token,
+            guild_id: config.discord.guild_id,
             application_id: config.discord.application_id,
         }
     }

@@ -5,10 +5,11 @@ use serenity::model::prelude::application_command::*;
 use serenity::model::prelude::*;
 use serenity::prelude::*;
 use std::collections::HashMap;
+use serenity::http::Http;
 
 #[async_trait]
 pub trait InteractionResponder {
-    async fn send<D>(ctx: &Context, command: ApplicationCommandInteraction, msg: D) -> Result<()>
+    async fn send<D>(http: &Http, command: ApplicationCommandInteraction, msg: D) -> Result<()>
     where
         D: ToString + Send;
 }
@@ -16,7 +17,7 @@ pub trait InteractionResponder {
 #[async_trait]
 pub trait InteractionEphemeralResponder {
     async fn send_ephemeral<D>(
-        ctx: &Context,
+        http: &Http,
         command: ApplicationCommandInteraction,
         msg: D,
     ) -> Result<()>
@@ -27,7 +28,7 @@ pub trait InteractionEphemeralResponder {
 #[async_trait]
 pub trait InteractionTableResponder {
     async fn send_table(
-        ctx: &Context,
+        http: &Http,
         command: ApplicationCommandInteraction,
         table: HashMap<&str, String>,
     ) -> Result<()>;
@@ -44,12 +45,12 @@ pub struct InteractionHelper;
 
 #[async_trait]
 impl InteractionResponder for InteractionHelper {
-    async fn send<D>(ctx: &Context, command: ApplicationCommandInteraction, msg: D) -> Result<()>
+    async fn send<D>(http: &Http, command: ApplicationCommandInteraction, msg: D) -> Result<()>
     where
         D: ToString + Send,
     {
         command
-            .create_interaction_response(&ctx.http, |response| {
+            .create_interaction_response(http, |response| {
                 response
                     .kind(InteractionResponseType::ChannelMessageWithSource)
                     .interaction_response_data(|data| data.content(msg))
@@ -62,7 +63,7 @@ impl InteractionResponder for InteractionHelper {
 #[async_trait]
 impl InteractionEphemeralResponder for InteractionHelper {
     async fn send_ephemeral<D>(
-        ctx: &Context,
+        http: &Http,
         command: ApplicationCommandInteraction,
         msg: D,
     ) -> Result<()>
@@ -70,7 +71,7 @@ impl InteractionEphemeralResponder for InteractionHelper {
         D: ToString + Send,
     {
         command
-            .create_interaction_response(&ctx.http, |response| {
+            .create_interaction_response(http, |response| {
                 response
                     .kind(InteractionResponseType::ChannelMessageWithSource)
                     .interaction_response_data(|data| {
@@ -86,12 +87,12 @@ impl InteractionEphemeralResponder for InteractionHelper {
 #[async_trait]
 impl InteractionTableResponder for InteractionHelper {
     async fn send_table(
-        ctx: &Context,
+        http: &Http,
         command: ApplicationCommandInteraction,
         table: HashMap<&str, String>,
     ) -> Result<()> {
         command
-            .create_interaction_response(&ctx.http, |response| {
+            .create_interaction_response(http, |response| {
                 response
                     .kind(InteractionResponseType::ChannelMessageWithSource)
                     .interaction_response_data(|data| {

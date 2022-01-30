@@ -2,13 +2,22 @@ mod config;
 
 use config::*;
 
-use clap::Parser;
+use clap::{Parser, Subcommand};
 
 #[derive(Debug, Parser)]
 #[clap(author, version)]
 struct Arguments {
     #[clap(short = 'f', long = "filename")]
     config: String,
+
+    #[clap(subcommand)]
+    command: Commands,
+}
+
+#[derive(Debug, Subcommand)]
+enum Commands {
+    Start,
+    CreateAdminRole,
 }
 
 #[tokio::main]
@@ -25,7 +34,15 @@ async fn main() {
     };
 
     let bot = bot::Bot::new(config.into());
-    if let Err(reason) = bot.start().await {
-        log::error!("finished unsuccessfully: {:?}", reason);
+
+    match args.command {
+        Commands::Start => {
+            if let Err(reason) = bot.start().await {
+                log::error!("finished unsuccessfully: {:?}", reason);
+            }
+        },
+        Commands::CreateAdminRole => {
+            bot.create_admin_role().await;
+        }
     }
 }

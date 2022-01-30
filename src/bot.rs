@@ -7,6 +7,7 @@ use crate::commands::whoami::WhoAmICommand;
 use anyhow::Result;
 use serenity::async_trait;
 use serenity::builder::*;
+use serenity::http::Http;
 use serenity::model::prelude::application_command::*;
 use serenity::model::prelude::*;
 use serenity::prelude::*;
@@ -22,6 +23,7 @@ pub struct Bot {
 
 pub struct Configuration {
     pub token: String,
+    pub guild_id: u64,
     pub application_id: u64,
 }
 
@@ -116,6 +118,24 @@ impl Bot {
         Ok(client.start().await?)
     }
 
+    pub async fn create_admin_role(&self) -> Result<()> {
+        let token = &self.config.token;
+        let guild_id = GuildId::from(self.config.guild_id);
+        let application_id = self.config.application_id;
+
+        let http = &Http::new_with_token_application_id(token, application_id);
+
+        RoleManager.sync(http, guild_id, CreateRoleInput {
+            name: String::from("ICTSC2021 Staff"),
+            color: 14942278,
+            hoist: true,
+            mentionable: true,
+            permissions: Permissions::all(),
+        }).await;
+
+        Ok(())
+    }
+
     async fn setup_global_application_command(&self, ctx: Context) {
         let definitions = setup_global_application_command_definitions();
 
@@ -175,22 +195,22 @@ impl Bot {
     }
 
     async fn handle_command_ping(&self, ctx: Context, command: ApplicationCommandInteraction) {
-        InteractionHelper::send(&ctx, command, "pong!").await;
+        InteractionHelper::send(&ctx.http, command, "pong!").await;
     }
 
     async fn handle_command_whoami(&self, ctx: Context, command: ApplicationCommandInteraction) {
         let handler = WhoAmICommand::new(UserManager);
 
         let user_id = command.user.id;
-        let result = handler.run(&ctx, user_id).await;
+        let result = handler.run(&ctx.http, user_id).await;
 
         match result {
             Ok(info) => {
-                InteractionHelper::send_table(&ctx, command, info).await;
+                InteractionHelper::send_table(&ctx.http, command, info).await;
             }
             Err(reason) => {
                 log::error!("failed to run whoami: {:?}", reason);
-                InteractionHelper::send_ephemeral(&ctx, command, "internal server error").await;
+                InteractionHelper::send_ephemeral(&ctx.http, command, "internal server error").await;
             }
         }
     }
@@ -205,15 +225,15 @@ impl Bot {
 
         let summary = InteractionHelper::value_of_as_str(&command, "summary").unwrap();
 
-        let result = handler.run(&ctx, channel_id, user_id, summary).await;
+        let result = handler.run(&ctx.http, channel_id, user_id, summary).await;
 
         match result {
             Ok(_) => {
-                InteractionHelper::send_ephemeral(&ctx, command, "質問スレッドが開始されました。").await;
+                InteractionHelper::send_ephemeral(&ctx.http, command, "質問スレッドが開始されました。").await;
             }
             Err(reason) => {
                 log::error!("failed to run ask: {:?}", reason);
-                InteractionHelper::send_ephemeral(&ctx, command, "internal server error").await;
+                InteractionHelper::send_ephemeral(&ctx.http, command, "internal server error").await;
             }
         }
     }
@@ -229,7 +249,7 @@ impl Bot {
             "ask" => self.handle_command_ask(ctx, command).await,
             _ => {
                 log::error!("received command unhandled: {:?}", command);
-                InteractionHelper::send_ephemeral(&ctx, command, "internal server error").await;
+                InteractionHelper::send_ephemeral(&ctx.http, command, "internal server error").await;
             }
         };
     }

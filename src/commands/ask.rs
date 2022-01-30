@@ -3,6 +3,7 @@ use anyhow::Result;
 use serenity::model::prelude::*;
 use serenity::prelude::*;
 use std::collections::HashMap;
+use serenity::http::Http;
 
 pub struct AskCommand<F, C>
 where
@@ -22,10 +23,10 @@ where
         Self { finder, creator }
     }
 
-    pub async fn run<S: ToString + Send>(&self, ctx: &Context, channel_id: ChannelId, user_id: UserId, summary: S) -> Result<()> {
-        let user = self.finder.find_by_id(ctx, user_id).await?;
+    pub async fn run<S: ToString + Send>(&self, http: &Http, channel_id: ChannelId, user_id: UserId, summary: S) -> Result<()> {
+        let user = self.finder.find_by_id(http, user_id).await?;
         let content = format!("{} 質問内容を入力してください。", user.mention());
-        let thread_id = self.creator.create(ctx, channel_id, summary, content).await?;
+        let thread_id = self.creator.create(http, channel_id, summary, content).await?;
         Ok(())
     }
 }
