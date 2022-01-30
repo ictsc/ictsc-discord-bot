@@ -2,6 +2,7 @@ use crate::*;
 
 use std::collections::HashMap;
 
+use crate::commands::whoami::WhoAmICommand;
 use anyhow::Result;
 use serenity::async_trait;
 use serenity::builder::*;
@@ -50,6 +51,15 @@ fn setup_application_command_definitions() -> CommandDefinitions<'static> {
     definitions.insert(
         "ping",
         Box::new(|command| command.name("ping").description("botの生存確認をします。")),
+    );
+
+    definitions.insert(
+        "whoami",
+        Box::new(|command| {
+            command
+                .name("whoami")
+                .description("ユーザ情報を表示します（デバッグ用）")
+        }),
     );
 
     definitions.insert(
@@ -147,7 +157,24 @@ impl Bot {
     }
 
     async fn handle_command_ping(&self, ctx: Context, command: ApplicationCommandInteraction) {
-        InteractionHelper::send(ctx, command, "pong!").await;
+        InteractionHelper::send(&ctx, command, "pong!").await;
+    }
+
+    async fn handle_command_whoami(&self, ctx: Context, command: ApplicationCommandInteraction) {
+        let handler = WhoAmICommand::new(UserManager);
+
+        let user_id = command.user.id;
+        let result = handler.run(&ctx, user_id).await;
+
+        match result {
+            Ok(info) => {
+                InteractionHelper::send_table(&ctx, command, info).await;
+            }
+            Err(reason) => {
+                log::error!("failed to run whoami: {:?}", reason);
+                InteractionHelper::send_followup(&ctx, command, "internal server error").await;
+            }
+        }
     }
 
     async fn handle_application_command(
@@ -157,9 +184,10 @@ impl Bot {
     ) {
         match command.data.name.as_str() {
             "ping" => self.handle_command_ping(ctx, command).await,
+            "whoami" => self.handle_command_whoami(ctx, command).await,
             _ => {
                 log::error!("received command unhandled: {:?}", command);
-                InteractionHelper::send_followup(ctx, command, "internal server error").await;
+                InteractionHelper::send_followup(&ctx, command, "internal server error").await;
             }
         };
     }
