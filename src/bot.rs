@@ -1,3 +1,4 @@
+use std::any::{Any, TypeId};
 use crate::*;
 
 use std::collections::HashMap;
@@ -9,6 +10,7 @@ use serenity::builder::*;
 use serenity::model::prelude::application_command::*;
 use serenity::model::prelude::*;
 use serenity::prelude::*;
+use crate::commands::ask::AskCommand;
 
 type CommandCreator =
     Box<dyn FnOnce(&mut CreateApplicationCommand) -> &mut CreateApplicationCommand + Send>;
@@ -72,6 +74,22 @@ fn setup_application_command_definitions() -> CommandDefinitions<'static> {
                     option
                         .name("invitation_code")
                         .description("招待コード")
+                        .kind(ApplicationCommandOptionType::String)
+                        .required(true)
+                })
+        }),
+    );
+
+    definitions.insert(
+        "ask",
+        Box::new(|command| {
+            command
+                .name("ask")
+                .description("運営への質問スレッドを開始します")
+                .create_option(|option| {
+                    option
+                        .name("summary")
+                        .description("質問内容の簡潔な説明（例：問題〇〇について, ...）")
                         .kind(ApplicationCommandOptionType::String)
                         .required(true)
                 })
@@ -177,6 +195,29 @@ impl Bot {
         }
     }
 
+    async fn handle_command_ask(&self, ctx: Context, command: ApplicationCommandInteraction) {
+        let handler = AskCommand::new(UserManager, ThreadManager);
+
+        let channel_id = command.channel_id;
+        // TODO: validate channel type
+
+        let user_id = command.user.id;
+
+        let summary = InteractionHelper::value_of_as_str(&command, "summary").unwrap();
+
+        let result = handler.run(&ctx, channel_id, user_id, summary).await;
+
+        match result {
+            Ok(_) => {
+                InteractionHelper::send_ephemeral(&ctx, command, "質問スレッドが開始されました。").await;
+            }
+            Err(reason) => {
+                log::error!("failed to run ask: {:?}", reason);
+                InteractionHelper::send_ephemeral(&ctx, command, "internal server error").await;
+            }
+        }
+    }
+
     async fn handle_application_command(
         &self,
         ctx: Context,
@@ -185,6 +226,7 @@ impl Bot {
         match command.data.name.as_str() {
             "ping" => self.handle_command_ping(ctx, command).await,
             "whoami" => self.handle_command_whoami(ctx, command).await,
+            "ask" => self.handle_command_ask(ctx, command).await,
             _ => {
                 log::error!("received command unhandled: {:?}", command);
                 InteractionHelper::send_ephemeral(&ctx, command, "internal server error").await;

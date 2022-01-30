@@ -33,6 +33,13 @@ pub trait InteractionTableResponder {
     ) -> Result<()>;
 }
 
+pub trait InteractionArgumentExtractor {
+    fn value_of_as_str<S: AsRef<str>>(
+        command: &ApplicationCommandInteraction,
+        key: S,
+    ) -> Option<&str>;
+}
+
 pub struct InteractionHelper;
 
 #[async_trait]
@@ -98,5 +105,16 @@ impl InteractionTableResponder for InteractionHelper {
             })
             .await?;
         Ok(())
+    }
+}
+
+impl InteractionArgumentExtractor for InteractionHelper {
+    fn value_of_as_str<S: AsRef<str>>(command: &ApplicationCommandInteraction, key: S) -> Option<&str> {
+        for option in &command.data.options {
+            if key.as_ref() == option.name {
+                return option.value.as_ref().and_then(|v| v.as_str());
+            }
+        }
+        None
     }
 }
