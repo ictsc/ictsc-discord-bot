@@ -172,7 +172,7 @@ impl Bot {
             }
             Err(reason) => {
                 log::error!("failed to run whoami: {:?}", reason);
-                InteractionHelper::send_followup(&ctx, command, "internal server error").await;
+                InteractionHelper::send_ephemeral(&ctx, command, "internal server error").await;
             }
         }
     }
@@ -187,7 +187,7 @@ impl Bot {
             "whoami" => self.handle_command_whoami(ctx, command).await,
             _ => {
                 log::error!("received command unhandled: {:?}", command);
-                InteractionHelper::send_followup(&ctx, command, "internal server error").await;
+                InteractionHelper::send_ephemeral(&ctx, command, "internal server error").await;
             }
         };
     }

@@ -14,8 +14,8 @@ pub trait InteractionResponder {
 }
 
 #[async_trait]
-pub trait InteractionFollowUpper {
-    async fn send_followup<D>(
+pub trait InteractionEphemeralResponder {
+    async fn send_ephemeral<D>(
         ctx: &Context,
         command: ApplicationCommandInteraction,
         msg: D,
@@ -53,8 +53,8 @@ impl InteractionResponder for InteractionHelper {
 }
 
 #[async_trait]
-impl InteractionFollowUpper for InteractionHelper {
-    async fn send_followup<D>(
+impl InteractionEphemeralResponder for InteractionHelper {
+    async fn send_ephemeral<D>(
         ctx: &Context,
         command: ApplicationCommandInteraction,
         msg: D,
@@ -63,7 +63,14 @@ impl InteractionFollowUpper for InteractionHelper {
         D: ToString + Send,
     {
         command
-            .create_followup_message(&ctx.http, |response| response.content(msg))
+            .create_interaction_response(&ctx.http, |response| {
+                response
+                    .kind(InteractionResponseType::ChannelMessageWithSource)
+                    .interaction_response_data(|data| {
+                        data.content(msg)
+                            .flags(InteractionApplicationCommandCallbackDataFlags::EPHEMERAL)
+                    })
+            })
             .await?;
         Ok(())
     }
