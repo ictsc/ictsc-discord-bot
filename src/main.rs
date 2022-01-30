@@ -2,7 +2,6 @@ mod config;
 
 use config::*;
 
-
 use clap::Parser;
 
 #[derive(Debug, Parser)]
@@ -28,6 +27,5 @@ async fn main() {
     let bot = bot::Bot::new(config.into());
     if let Err(reason) = bot.start().await {
         log::error!("finished unsuccessfully: {:?}", reason);
-        
     }
 }
