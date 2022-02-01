@@ -16,14 +16,20 @@ type CommandCreator =
     Box<dyn FnOnce(&mut CreateApplicationCommand) -> &mut CreateApplicationCommand + Send>;
 type CommandDefinitions<'a> = HashMap<&'a str, CommandCreator>;
 
-pub struct Bot {
-    config: Configuration,
-}
-
 pub struct Configuration {
     pub token: String,
     pub guild_id: u64,
     pub application_id: u64,
+}
+
+pub struct Bot {
+    config: Configuration,
+}
+
+impl Bot {
+    pub fn new(config: Configuration) -> Self {
+        Bot { config }
+    }
 }
 
 fn setup_global_application_command_definitions() -> CommandDefinitions<'static> {
@@ -100,11 +106,32 @@ fn setup_application_command_definitions() -> CommandDefinitions<'static> {
     definitions
 }
 
-impl Bot {
-    pub fn new(config: Configuration) -> Self {
-        Bot { config }
+#[async_trait]
+impl EventHandler for Bot {
+    async fn guild_create(&self, ctx: Context, guild: Guild) {
+        log::debug!("called guild_create: {:?}", guild);
+
+        self.setup_application_command(ctx, guild).await;
     }
 
+    async fn ready(&self, _ctx: Context, _: Ready) {
+        log::debug!("called ready");
+        log::info!("started bot");
+    }
+
+    async fn interaction_create(&self, ctx: Context, interaction: Interaction) {
+        log::debug!("called interaction_create: {:?}", interaction);
+
+        match interaction {
+            Interaction::ApplicationCommand(command) => {
+                self.handle_application_command(ctx, command).await
+            }
+            _ => {}
+        };
+    }
+}
+
+impl Bot {
     pub async fn start(self) -> Result<()> {
         let token = &self.config.token;
         let application_id = self.config.application_id;
@@ -140,7 +167,9 @@ impl Bot {
 
         Ok(())
     }
+}
 
+impl Bot {
     async fn setup_global_application_command(&self, ctx: Context) {
         let definitions = setup_global_application_command_definitions();
 
@@ -198,7 +227,9 @@ impl Bot {
                 .unwrap();
         }
     }
+}
 
+impl Bot {
     async fn handle_command_ping(
         &self,
         ctx: Context,
@@ -285,30 +316,5 @@ impl Bot {
                 );
             }
         }
-    }
-}
-
-#[async_trait]
-impl EventHandler for Bot {
-    async fn guild_create(&self, ctx: Context, guild: Guild) {
-        log::debug!("called guild_create: {:?}", guild);
-
-        self.setup_application_command(ctx, guild).await;
-    }
-
-    async fn ready(&self, _ctx: Context, _: Ready) {
-        log::debug!("called ready");
-        log::info!("started bot");
-    }
-
-    async fn interaction_create(&self, ctx: Context, interaction: Interaction) {
-        log::debug!("called interaction_create: {:?}", interaction);
-
-        match interaction {
-            Interaction::ApplicationCommand(command) => {
-                self.handle_application_command(ctx, command).await
-            }
-            _ => {}
-        };
     }
 }
