@@ -131,7 +131,7 @@ impl Bot {
             hoist: true,
             mentionable: true,
             permissions: Permissions::all(),
-        }).await;
+        }).await?;
 
         Ok(())
     }
