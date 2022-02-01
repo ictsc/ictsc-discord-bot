@@ -1,8 +1,9 @@
-use std::any::{Any, TypeId};
 use crate::*;
+
 
 use std::collections::HashMap;
 
+use crate::commands::ask::AskCommand;
 use crate::commands::whoami::WhoAmICommand;
 use anyhow::Result;
 use serenity::async_trait;
@@ -11,7 +12,6 @@ use serenity::http::Http;
 use serenity::model::prelude::application_command::*;
 use serenity::model::prelude::*;
 use serenity::prelude::*;
-use crate::commands::ask::AskCommand;
 
 type CommandCreator =
     Box<dyn FnOnce(&mut CreateApplicationCommand) -> &mut CreateApplicationCommand + Send>;
@@ -125,13 +125,19 @@ impl Bot {
 
         let http = &Http::new_with_token_application_id(token, application_id);
 
-        RoleManager.sync(http, guild_id, CreateRoleInput {
-            name: String::from("ICTSC2021 Staff"),
-            color: 14942278,
-            hoist: true,
-            mentionable: true,
-            permissions: Permissions::all(),
-        }).await?;
+        RoleManager
+            .sync(
+                http,
+                guild_id,
+                CreateRoleInput {
+                    name: String::from("ICTSC2021 Staff"),
+                    color: 14942278,
+                    hoist: true,
+                    mentionable: true,
+                    permissions: Permissions::all(),
+                },
+            )
+            .await?;
 
         Ok(())
     }
@@ -194,20 +200,26 @@ impl Bot {
         }
     }
 
-    async fn handle_command_ping(&self, ctx: Context, command: ApplicationCommandInteraction) -> Result<()> {
+    async fn handle_command_ping(
+        &self,
+        ctx: Context,
+        command: ApplicationCommandInteraction,
+    ) -> Result<()> {
         InteractionHelper::send(&ctx.http, command, "pong!").await
     }
 
-    async fn handle_command_whoami(&self, ctx: Context, command: ApplicationCommandInteraction) -> Result<()> {
+    async fn handle_command_whoami(
+        &self,
+        ctx: Context,
+        command: ApplicationCommandInteraction,
+    ) -> Result<()> {
         let handler = WhoAmICommand::new(UserManager);
 
         let user_id = command.user.id;
         let result = handler.run(&ctx.http, user_id).await;
 
         match result {
-            Ok(info) => {
-                InteractionHelper::send_table(&ctx.http, command, info).await
-            }
+            Ok(info) => InteractionHelper::send_table(&ctx.http, command, info).await,
             Err(reason) => {
                 log::error!("failed to run whoami: {:?}", reason);
                 InteractionHelper::send_ephemeral(&ctx.http, command, "internal server error").await
@@ -215,7 +227,11 @@ impl Bot {
         }
     }
 
-    async fn handle_command_ask(&self, ctx: Context, command: ApplicationCommandInteraction) -> Result<()> {
+    async fn handle_command_ask(
+        &self,
+        ctx: Context,
+        command: ApplicationCommandInteraction,
+    ) -> Result<()> {
         let handler = AskCommand::new(UserManager, ThreadManager);
 
         let channel_id = command.channel_id;
@@ -229,7 +245,12 @@ impl Bot {
 
         match result {
             Ok(_) => {
-                InteractionHelper::send_ephemeral(&ctx.http, command, "質問スレッドが開始されました。").await
+                InteractionHelper::send_ephemeral(
+                    &ctx.http,
+                    command,
+                    "質問スレッドが開始されました。",
+                )
+                .await
             }
             Err(reason) => {
                 log::error!("failed to run ask: {:?}", reason);
@@ -258,7 +279,11 @@ impl Bot {
         match result {
             Ok(_) => (),
             Err(reason) => {
-                log::error!("failed to handle application command: (name: {}, reason: {:?})", name, reason);
+                log::error!(
+                    "failed to handle application command: (name: {}, reason: {:?})",
+                    name,
+                    reason
+                );
             }
         }
     }

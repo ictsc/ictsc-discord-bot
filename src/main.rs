@@ -35,14 +35,12 @@ async fn main() {
 
     let bot = bot::Bot::new(config.into());
 
-    match args.command {
-        Commands::Start => {
-            if let Err(reason) = bot.start().await {
-                log::error!("finished unsuccessfully: {:?}", reason);
-            }
-        },
-        Commands::CreateAdminRole => {
-            bot.create_admin_role().await;
-        }
+    let result = match args.command {
+        Commands::Start => bot.start().await,
+        Commands::CreateAdminRole => bot.create_admin_role().await,
+    };
+
+    if let Err(reason) = result {
+        log::error!("finished unsuccessfully: {:?}", reason);
     }
 }

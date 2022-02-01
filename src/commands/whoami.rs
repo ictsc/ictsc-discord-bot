@@ -1,9 +1,8 @@
 use crate::*;
 use anyhow::Result;
-use serenity::model::prelude::*;
-use serenity::prelude::*;
-use std::collections::HashMap;
 use serenity::http::Http;
+use serenity::model::prelude::*;
+use std::collections::HashMap;
 
 pub struct WhoAmICommand<F>
 where

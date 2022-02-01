@@ -1,11 +1,11 @@
 use anyhow::Result;
 use async_trait::async_trait;
 
+use serenity::http::Http;
 use serenity::model::prelude::application_command::*;
 use serenity::model::prelude::*;
-use serenity::prelude::*;
+
 use std::collections::HashMap;
-use serenity::http::Http;
 
 #[async_trait]
 pub trait InteractionResponder {
@@ -110,7 +110,10 @@ impl InteractionTableResponder for InteractionHelper {
 }
 
 impl InteractionArgumentExtractor for InteractionHelper {
-    fn value_of_as_str<S: AsRef<str>>(command: &ApplicationCommandInteraction, key: S) -> Option<&str> {
+    fn value_of_as_str<S: AsRef<str>>(
+        command: &ApplicationCommandInteraction,
+        key: S,
+    ) -> Option<&str> {
         for option in &command.data.options {
             if key.as_ref() == option.name {
                 return option.value.as_ref().and_then(|v| v.as_str());
