@@ -3,7 +3,6 @@ use async_trait::async_trait;
 use serenity::http::Http;
 use serenity::model::prelude::*;
 
-
 #[derive(Default)]
 pub struct CreateRoleInput {
     pub name: String,

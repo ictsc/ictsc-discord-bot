@@ -5,8 +5,6 @@ use serenity::http::Http;
 
 use serenity::model::prelude::*;
 
-
-
 #[async_trait]
 pub trait ThreadCreator {
     async fn create<St, Sc>(

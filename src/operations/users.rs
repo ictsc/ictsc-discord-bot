@@ -3,7 +3,6 @@ use async_trait::async_trait;
 use serenity::http::Http;
 use serenity::model::prelude::*;
 
-
 #[async_trait]
 pub trait UserFinder {
     async fn find_by_id(&self, http: &Http, id: UserId) -> Result<User>;

@@ -3,8 +3,6 @@ use anyhow::Result;
 use serenity::http::Http;
 use serenity::model::prelude::*;
 
-
-
 pub struct AskCommand<F, C>
 where
     F: UserFinder + Send,
