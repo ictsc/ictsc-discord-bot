@@ -194,11 +194,11 @@ impl Bot {
         }
     }
 
-    async fn handle_command_ping(&self, ctx: Context, command: ApplicationCommandInteraction) {
-        InteractionHelper::send(&ctx.http, command, "pong!").await;
+    async fn handle_command_ping(&self, ctx: Context, command: ApplicationCommandInteraction) -> Result<()> {
+        InteractionHelper::send(&ctx.http, command, "pong!").await
     }
 
-    async fn handle_command_whoami(&self, ctx: Context, command: ApplicationCommandInteraction) {
+    async fn handle_command_whoami(&self, ctx: Context, command: ApplicationCommandInteraction) -> Result<()> {
         let handler = WhoAmICommand::new(UserManager);
 
         let user_id = command.user.id;
@@ -206,16 +206,16 @@ impl Bot {
 
         match result {
             Ok(info) => {
-                InteractionHelper::send_table(&ctx.http, command, info).await;
+                InteractionHelper::send_table(&ctx.http, command, info).await
             }
             Err(reason) => {
                 log::error!("failed to run whoami: {:?}", reason);
-                InteractionHelper::send_ephemeral(&ctx.http, command, "internal server error").await;
+                InteractionHelper::send_ephemeral(&ctx.http, command, "internal server error").await
             }
         }
     }
 
-    async fn handle_command_ask(&self, ctx: Context, command: ApplicationCommandInteraction) {
+    async fn handle_command_ask(&self, ctx: Context, command: ApplicationCommandInteraction) -> Result<()> {
         let handler = AskCommand::new(UserManager, ThreadManager);
 
         let channel_id = command.channel_id;
@@ -229,11 +229,11 @@ impl Bot {
 
         match result {
             Ok(_) => {
-                InteractionHelper::send_ephemeral(&ctx.http, command, "質問スレッドが開始されました。").await;
+                InteractionHelper::send_ephemeral(&ctx.http, command, "質問スレッドが開始されました。").await
             }
             Err(reason) => {
                 log::error!("failed to run ask: {:?}", reason);
-                InteractionHelper::send_ephemeral(&ctx.http, command, "internal server error").await;
+                InteractionHelper::send_ephemeral(&ctx.http, command, "internal server error").await
             }
         }
     }
@@ -243,15 +243,24 @@ impl Bot {
         ctx: Context,
         command: ApplicationCommandInteraction,
     ) {
-        match command.data.name.as_str() {
+        let name = command.data.name.clone();
+
+        let result = match name.as_str() {
             "ping" => self.handle_command_ping(ctx, command).await,
             "whoami" => self.handle_command_whoami(ctx, command).await,
             "ask" => self.handle_command_ask(ctx, command).await,
             _ => {
                 log::error!("received command unhandled: {:?}", command);
-                InteractionHelper::send_ephemeral(&ctx.http, command, "internal server error").await;
+                InteractionHelper::send_ephemeral(&ctx.http, command, "internal server error").await
             }
         };
+
+        match result {
+            Ok(_) => (),
+            Err(reason) => {
+                log::error!("failed to handle application command: (name: {}, reason: {:?})", name, reason);
+            }
+        }
     }
 }
 
