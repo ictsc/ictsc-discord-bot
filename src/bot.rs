@@ -178,6 +178,37 @@ impl Bot {
         Ok(())
     }
 
+    pub async fn create_admin_channels(&self) -> Result<()> {
+        let token = &self.config.token;
+        let guild_id = GuildId::from(self.config.guild_id);
+        let application_id = self.config.application_id;
+
+        let http = &Http::new_with_token_application_id(token, application_id);
+
+        let category = CategoryChannelManager
+            .sync(
+                http,
+                guild_id,
+                CreateCategoryChannelInput {
+                    name: String::from("admin"),
+                },
+            )
+            .await?;
+
+        TextChannelManager
+            .sync(
+                http,
+                guild_id,
+                CreateTextChannelInput {
+                    name: String::from("admin"),
+                    category_id: Some(category.id),
+                }
+            )
+            .await?;
+
+        Ok(())
+    }
+
     pub async fn create_team_role(&self) -> Result<()> {
         let token = &self.config.token;
         let guild_id = GuildId::from(self.config.guild_id);
@@ -197,6 +228,39 @@ impl Bot {
                         mentionable: true,
                         permissions: Permissions::empty(),
                     },
+                )
+                .await?;
+        }
+
+        Ok(())
+    }
+
+    pub async fn create_team_channels(&self) -> Result<()> {
+        let token = &self.config.token;
+        let guild_id = GuildId::from(self.config.guild_id);
+        let application_id = self.config.application_id;
+
+        let http = &Http::new_with_token_application_id(token, application_id);
+
+        for team in &self.config.teams {
+            let category = CategoryChannelManager
+                .sync(
+                    http,
+                    guild_id,
+                    CreateCategoryChannelInput {
+                        name: team.channel_name.clone(),
+                    },
+                )
+                .await?;
+
+            TextChannelManager
+                .sync(
+                    http,
+                    guild_id,
+                    CreateTextChannelInput {
+                        name: team.channel_name.clone(),
+                        category_id: Some(category.id),
+                    }
                 )
                 .await?;
         }

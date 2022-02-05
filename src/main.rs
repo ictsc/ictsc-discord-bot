@@ -18,7 +18,9 @@ struct Arguments {
 enum Commands {
     Start,
     CreateAdminRole,
+    CreateAdminChannels,
     CreateTeamRole,
+    CreateTeamChannels,
 }
 
 #[tokio::main]
@@ -39,7 +41,9 @@ async fn main() {
     let result = match args.command {
         Commands::Start => bot.start().await,
         Commands::CreateAdminRole => bot.create_admin_role().await,
+        Commands::CreateAdminChannels => bot.create_admin_channels().await,
         Commands::CreateTeamRole => bot.create_team_role().await,
+        Commands::CreateTeamChannels => bot.create_team_channels().await,
     };
 
     if let Err(reason) = result {
