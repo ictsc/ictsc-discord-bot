@@ -20,6 +20,16 @@ pub struct Configuration {
     pub token: String,
     pub guild_id: u64,
     pub application_id: u64,
+    pub teams: Vec<TeamConfiguration>,
+}
+
+pub struct TeamConfiguration {
+    pub id: String,
+    pub name: String,
+    pub organization: String,
+    pub channel_name: String,
+    pub role_name: String,
+    pub invitation_code: String,
 }
 
 pub struct Bot {
@@ -164,6 +174,32 @@ impl Bot {
                 },
             )
             .await?;
+
+        Ok(())
+    }
+
+    pub async fn create_team_role(&self) -> Result<()> {
+        let token = &self.config.token;
+        let guild_id = GuildId::from(self.config.guild_id);
+        let application_id = self.config.application_id;
+
+        let http = &Http::new_with_token_application_id(token, application_id);
+
+        for team in &self.config.teams {
+            RoleManager
+                .sync(
+                    http,
+                    guild_id,
+                    CreateRoleInput {
+                        name: team.role_name.clone(),
+                        color: 0,
+                        hoist: true,
+                        mentionable: true,
+                        permissions: Permissions::empty(),
+                    },
+                )
+                .await?;
+        }
 
         Ok(())
     }
