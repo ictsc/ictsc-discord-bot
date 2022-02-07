@@ -125,7 +125,7 @@ impl TextChannelFinder for TextChannelManager {
 
 #[async_trait]
 impl TextChannelDeleter for TextChannelManager {
-    async fn delete(&self, http: &Http, guild_id: GuildId, channel_id: ChannelId) -> Result<()> {
+    async fn delete(&self, http: &Http, _guild_id: GuildId, channel_id: ChannelId) -> Result<()> {
         channel_id.delete(http).await?;
         Ok(())
     }

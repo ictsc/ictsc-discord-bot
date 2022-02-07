@@ -1,6 +1,6 @@
 use crate::commands::ApplicationCommandContext;
 use crate::*;
-use serenity::http::Http;
+
 use serenity::model::prelude::*;
 use std::collections::HashMap;
 
@@ -80,7 +80,7 @@ where
             .get(&invitation_code)
             .ok_or(UserError::InvalidInvitationCode)?;
 
-        let guild_id = self.guild_id;
+        let _guild_id = self.guild_id;
         let user_id = ctx.command.user.id;
 
         InteractionHelper::defer(http, command).await;

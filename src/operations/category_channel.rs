@@ -60,7 +60,7 @@ pub trait CategoryChannelSyncer:
                 for channel in channels {
                     self.delete(http, guild_id, channel.id).await?;
                 }
-                return Ok(self.create(http, guild_id, input).await?);
+                return self.create(http, guild_id, input).await;
             }
         };
     }
@@ -118,7 +118,7 @@ impl CategoryChannelFinder for CategoryChannelManager {
 
 #[async_trait]
 impl CategoryChannelDeleter for CategoryChannelManager {
-    async fn delete(&self, http: &Http, guild_id: GuildId, channel_id: ChannelId) -> Result<()> {
+    async fn delete(&self, http: &Http, _guild_id: GuildId, channel_id: ChannelId) -> Result<()> {
         channel_id.delete(http).await?;
         Ok(())
     }

@@ -5,6 +5,7 @@ use std::collections::HashMap;
 use crate::commands::ask::AskCommand;
 use crate::commands::join::JoinCommand;
 use crate::commands::whoami::WhoAmICommand;
+use crate::commands::ApplicationCommandContext;
 use anyhow::Result;
 use serenity::async_trait;
 use serenity::builder::*;
@@ -12,7 +13,6 @@ use serenity::http::Http;
 use serenity::model::prelude::application_command::*;
 use serenity::model::prelude::*;
 use serenity::prelude::*;
-use crate::commands::ApplicationCommandContext;
 
 type CommandCreator =
     Box<dyn FnOnce(&mut CreateApplicationCommand) -> &mut CreateApplicationCommand + Send>;
@@ -34,16 +34,14 @@ pub struct TeamConfiguration {
     pub invitation_code: String,
 }
 
-pub struct Bot
-{
+pub struct Bot {
     config: Configuration,
     ask_command: AskCommand<UserManager, ThreadManager>,
     join_command: JoinCommand<RoleManager>,
     whoami_command: WhoAmICommand<UserManager>,
 }
 
-impl Bot
-{
+impl Bot {
     pub fn new(config: Configuration) -> Self {
         let guild_id = GuildId(config.guild_id);
 
@@ -159,14 +157,15 @@ impl EventHandler for Bot {
             Interaction::ApplicationCommand(command) => {
                 self.handle_application_command(ApplicationCommandContext {
                     context: ctx,
-                    command
-                }).await;
+                    command,
+                })
+                .await;
             }
             _ => {}
         };
     }
 
-    async fn reaction_add(&self, ctx: Context, reaction: Reaction) {
+    async fn reaction_add(&self, _ctx: Context, reaction: Reaction) {
         log::debug!("called reaction_add: {:?}", reaction);
     }
 }
@@ -232,7 +231,7 @@ impl Bot {
                 CreateTextChannelInput {
                     name: String::from("admin"),
                     category_id: Some(category.id),
-                }
+                },
             )
             .await?;
 
@@ -290,7 +289,7 @@ impl Bot {
                     CreateTextChannelInput {
                         name: team.channel_name.clone(),
                         category_id: Some(category.id),
-                    }
+                    },
                 )
                 .await?;
         }
@@ -360,40 +359,26 @@ impl Bot {
 }
 
 impl Bot {
-    async fn handle_command_ping(
-        &self,
-        ctx: &ApplicationCommandContext,
-    ) -> Result<()> {
+    async fn handle_command_ping(&self, ctx: &ApplicationCommandContext) -> Result<()> {
         Ok(InteractionHelper::send(&ctx.context.http, &ctx.command, "pong!").await?)
     }
 
-    async fn handle_command_ask(
-        &self,
-        ctx: &ApplicationCommandContext,
-    ) -> Result<()> {
+    async fn handle_command_ask(&self, ctx: &ApplicationCommandContext) -> Result<()> {
         let summary = InteractionHelper::value_of_as_str(&ctx.command, "summary").unwrap();
         Ok(self.ask_command.run(ctx, summary.into()).await?)
     }
 
-    async fn handle_command_whoami(
-        &self,
-        ctx: &ApplicationCommandContext,
-    ) -> Result<()> {
-        Ok(self.whoami_command.run(&ctx).await?)
+    async fn handle_command_whoami(&self, ctx: &ApplicationCommandContext) -> Result<()> {
+        Ok(self.whoami_command.run(ctx).await?)
     }
 
-    async fn handle_command_join(
-        &self,
-        ctx: &ApplicationCommandContext,
-    ) -> Result<()> {
-        let invitation_code = InteractionHelper::value_of_as_str(&ctx.command, "invitation_code").unwrap();
-        Ok(self.join_command.run(&ctx, invitation_code.into()).await?)
+    async fn handle_command_join(&self, ctx: &ApplicationCommandContext) -> Result<()> {
+        let invitation_code =
+            InteractionHelper::value_of_as_str(&ctx.command, "invitation_code").unwrap();
+        Ok(self.join_command.run(ctx, invitation_code.into()).await?)
     }
 
-    async fn handle_application_command(
-        &self,
-        ctx: ApplicationCommandContext,
-    ) {
+    async fn handle_application_command(&self, ctx: ApplicationCommandContext) {
         let name = ctx.command.data.name.as_str();
 
         let result = match name {
@@ -403,8 +388,13 @@ impl Bot {
             "join" => self.handle_command_join(&ctx).await,
             _ => {
                 log::error!("received command unhandled: {:?}", ctx.command);
-                InteractionHelper::send_ephemeral(&ctx.context.http, &ctx.command, "internal server error").await
-                    .map_err(|err| err.into())
+                InteractionHelper::send_ephemeral(
+                    &ctx.context.http,
+                    &ctx.command,
+                    "internal server error",
+                )
+                .await
+                .map_err(|err| err.into())
             }
         };
 
@@ -416,7 +406,13 @@ impl Bot {
                     name,
                     reason
                 );
-                InteractionHelper::send_ephemeral(&ctx.context.http, &ctx.command, "internal server error").await.unwrap();
+                InteractionHelper::send_ephemeral(
+                    &ctx.context.http,
+                    &ctx.command,
+                    "internal server error",
+                )
+                .await
+                .unwrap();
             }
         }
     }

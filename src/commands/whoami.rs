@@ -1,8 +1,7 @@
 use crate::commands::ApplicationCommandContext;
 use crate::*;
 use anyhow::Result;
-use serenity::http::Http;
-use serenity::model::prelude::*;
+
 use std::collections::HashMap;
 
 pub struct WhoAmICommand<F>

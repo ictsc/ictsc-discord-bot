@@ -1,7 +1,7 @@
 use crate::commands::ApplicationCommandContext;
 use crate::*;
 use anyhow::Result;
-use serenity::http::{CacheHttp, Http};
+use serenity::http::CacheHttp;
 use serenity::model::prelude::*;
 
 pub struct AskCommand<F, C>

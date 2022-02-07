@@ -148,7 +148,7 @@ impl RoleFinder for RoleManager {
             .roles(http)
             .await?
             .into_iter()
-            .map(|(k, v)| v)
+            .map(|(_k, v)| v)
             .collect())
     }
 
