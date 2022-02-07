@@ -9,7 +9,15 @@ use std::collections::HashMap;
 
 #[async_trait]
 pub trait InteractionResponder {
-    async fn send<D>(http: &Http, command: ApplicationCommandInteraction, msg: D) -> Result<()>
+    async fn send<D>(http: &Http, command: &ApplicationCommandInteraction, msg: D) -> Result<()>
+    where
+        D: ToString + Send;
+}
+
+#[async_trait]
+pub trait InteractionDeferredResponder {
+    async fn defer(http: &Http, command: &ApplicationCommandInteraction) -> Result<()>;
+    async fn defer_respond<D>(http: &Http, command: &ApplicationCommandInteraction, msg: D) -> Result<()>
     where
         D: ToString + Send;
 }
@@ -18,7 +26,7 @@ pub trait InteractionResponder {
 pub trait InteractionEphemeralResponder {
     async fn send_ephemeral<D>(
         http: &Http,
-        command: ApplicationCommandInteraction,
+        command: &ApplicationCommandInteraction,
         msg: D,
     ) -> Result<()>
     where
@@ -29,7 +37,7 @@ pub trait InteractionEphemeralResponder {
 pub trait InteractionTableResponder {
     async fn send_table(
         http: &Http,
-        command: ApplicationCommandInteraction,
+        command: &ApplicationCommandInteraction,
         table: HashMap<&str, String>,
     ) -> Result<()>;
 }
@@ -45,7 +53,7 @@ pub struct InteractionHelper;
 
 #[async_trait]
 impl InteractionResponder for InteractionHelper {
-    async fn send<D>(http: &Http, command: ApplicationCommandInteraction, msg: D) -> Result<()>
+    async fn send<D>(http: &Http, command: &ApplicationCommandInteraction, msg: D) -> Result<()>
     where
         D: ToString + Send,
     {
@@ -61,10 +69,31 @@ impl InteractionResponder for InteractionHelper {
 }
 
 #[async_trait]
+impl InteractionDeferredResponder for InteractionHelper {
+    async fn defer(http: &Http, command: &ApplicationCommandInteraction) -> Result<()> {
+        command.defer(http).await?;
+        Ok(())
+    }
+
+    async fn defer_respond<D>(http: &Http, command: &ApplicationCommandInteraction, msg: D) -> Result<()>
+        where
+            D: ToString + Send,
+    {
+        command
+            .edit_original_interaction_response(http, |message| {
+                message.content(msg)
+            })
+            .await;
+
+        Ok(())
+    }
+}
+
+#[async_trait]
 impl InteractionEphemeralResponder for InteractionHelper {
     async fn send_ephemeral<D>(
         http: &Http,
-        command: ApplicationCommandInteraction,
+        command: &ApplicationCommandInteraction,
         msg: D,
     ) -> Result<()>
     where
@@ -88,7 +117,7 @@ impl InteractionEphemeralResponder for InteractionHelper {
 impl InteractionTableResponder for InteractionHelper {
     async fn send_table(
         http: &Http,
-        command: ApplicationCommandInteraction,
+        command: &ApplicationCommandInteraction,
         table: HashMap<&str, String>,
     ) -> Result<()> {
         command

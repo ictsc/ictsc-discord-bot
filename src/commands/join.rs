@@ -1,55 +1,54 @@
+use crate::*;
 use anyhow::Result;
-use serenity::builder::CreateApplicationCommand;
-use serenity::model::guild::Guild;
-use serenity::model::prelude::application_command::*;
-use serenity::model::prelude::InteractionResponseType;
-use serenity::prelude::*;
+use serenity::http::Http;
+use serenity::model::prelude::*;
+use std::collections::HashMap;
 
-pub struct Command {
-    guild: Guild,
+pub struct JoinCommand<Repository>
+where
+    Repository: RoleFinder + RoleGranter + RoleRevoker + Send + Sync + 'static,
+{
+    repository: Repository,
+    definitions: HashMap<String, String>,
 }
 
-impl Command {
-    pub fn new(guild: Guild) -> Self {
-        Self { guild }
+impl<Repository> JoinCommand<Repository>
+where
+    Repository: RoleFinder + RoleGranter + RoleRevoker + Send + Sync,
+{
+    pub fn new(repository: Repository, definitions: HashMap<String, String>) -> Self {
+        Self {
+            repository, definitions,
+        }
     }
 
-    pub fn create<'a>(
-        &self,
-        command: &'a mut CreateApplicationCommand,
-    ) -> &'a mut CreateApplicationCommand {
-        command
-            .name("join")
-            .description("招待コードに紐付けられたチームに参加します。")
-            .create_option(|option| {
-                option
-                    .name("invitation_code")
-                    .description("招待コード")
-                    .kind(ApplicationCommandOptionType::String)
-                    .required(true)
-            })
-    }
+    pub async fn run(&self, http: &Http, guild_id: GuildId, user_id: UserId, invitation_code: String, command: &serenity::model::prelude::application_command::ApplicationCommandInteraction) -> Result<Role> {
+        // ApplicationCommandInteractionは制限時間がシビアなので、このコマンドでは二段階構成を取る。
+        // 前半フェーズのみを同期的に行い、後半フェーズは非同期に行う。
+        // 前半フェーズ => `invitation_code` の検証, 入るべきRoleの取得
+        // 後半フェーズ => Roleへの参加とそれ以外のRoleからの除外
 
-    fn value_of<'a>(&self, command: &'a ApplicationCommandInteraction, name: &str) -> Option<&'a str> {
-        for option in &command.data.options {
-            if option.name == name {
-                return option.value.as_ref().and_then(|v| v.as_str());
+        // `invitation_code`の検証
+        let target_role_name = self.definitions.get(&invitation_code)
+            .ok_or(UserError::InvalidInvitationCode)?;
+
+        // 入るべきRoleの取得
+        // TODO: ロール名から毎回検索をかけずに、初回にRoleIdを解決する
+        let target_roles = self.repository.find_by_name(http, guild_id, target_role_name).await?;
+        let target_role = target_roles.first()
+            .ok_or(SystemError::NoSuchRole(target_role_name.clone()))?;
+
+        // TODO: layer violation!!!
+        InteractionHelper::defer(http, &command).await?;
+
+        self.repository.grant(http, guild_id, user_id, target_role.id).await?;
+        let granted_roles = self.repository.find_by_user(http, guild_id, user_id).await?;
+        for role in &granted_roles {
+            if role.id != target_role.id {
+                self.repository.revoke(http, guild_id, user_id, role.id).await?;
             }
         }
-        None
-    }
 
-    pub async fn run(&self, ctx: Context, command: ApplicationCommandInteraction) -> Result<()> {
-        let code = self.value_of(&command, "invitation_code")
-            .ok_or(anyhow::anyhow!("missing required parameter"))?;
-
-        command
-            .create_interaction_response(&ctx.http, |resp| {
-                resp.kind(InteractionResponseType::ChannelMessageWithSource)
-                    .interaction_response_data(|message| message.content(code))
-            })
-            .await?;
-
-        Ok(())
+        Ok(target_role.clone())
     }
 }

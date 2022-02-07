@@ -3,6 +3,7 @@ use crate::*;
 use std::collections::HashMap;
 
 use crate::commands::ask::AskCommand;
+use crate::commands::join::JoinCommand;
 use crate::commands::whoami::WhoAmICommand;
 use anyhow::Result;
 use serenity::async_trait;
@@ -335,7 +336,7 @@ impl Bot {
         ctx: Context,
         command: ApplicationCommandInteraction,
     ) -> Result<()> {
-        InteractionHelper::send(&ctx.http, command, "pong!").await
+        InteractionHelper::send(&ctx.http, &command, "pong!").await
     }
 
     async fn handle_command_whoami(
@@ -349,10 +350,10 @@ impl Bot {
         let result = handler.run(&ctx.http, user_id).await;
 
         match result {
-            Ok(info) => InteractionHelper::send_table(&ctx.http, command, info).await,
+            Ok(info) => InteractionHelper::send_table(&ctx.http, &command, info).await,
             Err(reason) => {
                 log::error!("failed to run whoami: {:?}", reason);
-                InteractionHelper::send_ephemeral(&ctx.http, command, "internal server error").await
+                InteractionHelper::send_ephemeral(&ctx.http, &command, "internal server error").await
             }
         }
     }
@@ -377,14 +378,40 @@ impl Bot {
             Ok(_) => {
                 InteractionHelper::send_ephemeral(
                     &ctx.http,
-                    command,
+                    &command,
                     "質問スレッドが開始されました。",
                 )
                 .await
             }
             Err(reason) => {
                 log::error!("failed to run ask: {:?}", reason);
-                InteractionHelper::send_ephemeral(&ctx.http, command, "internal server error").await
+                InteractionHelper::send_ephemeral(&ctx.http, &command, "internal server error").await
+            }
+        }
+    }
+
+    async fn handle_command_join(
+        &self,
+        ctx: Context,
+        command: ApplicationCommandInteraction,
+    ) -> Result<()> {
+        let mut definitions: HashMap<String, String> = HashMap::new();
+        self.config.teams.iter().for_each(|team| {
+            definitions.insert(team.invitation_code.clone(), team.role_name.clone());
+        });
+
+        let handler = JoinCommand::new(RoleManager, definitions);
+
+        let guild_id = GuildId(self.config.guild_id);
+        let user_id = command.user.id;
+        let invitation_code = InteractionHelper::value_of_as_str(&command, "invitation_code").unwrap();
+        let result = handler.run(&ctx.http, guild_id, user_id, invitation_code.into(), &command).await;
+
+        match result {
+            Ok(_) => InteractionHelper::defer_respond(&ctx.http, &command, "チームに参加しました。").await,
+            Err(reason) => {
+                log::error!("failed to run join: {:?}", reason);
+                InteractionHelper::send_ephemeral(&ctx.http, &command, "internal server error").await
             }
         }
     }
@@ -400,9 +427,10 @@ impl Bot {
             "ping" => self.handle_command_ping(ctx, command).await,
             "whoami" => self.handle_command_whoami(ctx, command).await,
             "ask" => self.handle_command_ask(ctx, command).await,
+            "join" => self.handle_command_join(ctx, command).await,
             _ => {
                 log::error!("received command unhandled: {:?}", command);
-                InteractionHelper::send_ephemeral(&ctx.http, command, "internal server error").await
+                InteractionHelper::send_ephemeral(&ctx.http, &command, "internal server error").await
             }
         };
 
