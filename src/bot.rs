@@ -402,16 +402,22 @@ impl Bot {
 
         let handler = JoinCommand::new(RoleManager, definitions);
 
+        InteractionHelper::defer(&ctx.http, &command).await?;
+
         let guild_id = GuildId(self.config.guild_id);
         let user_id = command.user.id;
         let invitation_code = InteractionHelper::value_of_as_str(&command, "invitation_code").unwrap();
-        let result = handler.run(&ctx.http, guild_id, user_id, invitation_code.into(), &command).await;
+        let result = handler.run(&ctx.http, guild_id, user_id, invitation_code.into()).await;
 
         match result {
             Ok(_) => InteractionHelper::defer_respond(&ctx.http, &command, "チームに参加しました。").await,
-            Err(reason) => {
-                log::error!("failed to run join: {:?}", reason);
-                InteractionHelper::send_ephemeral(&ctx.http, &command, "internal server error").await
+            Err(Error::UserError(err)) => {
+                log::warn!("failed to run join: {:?}", err);
+                InteractionHelper::defer_respond(&ctx.http, &command, err).await
+            },
+            Err(err) => {
+                log::warn!("failed to run join: {:?}", err);
+                InteractionHelper::defer_respond(&ctx.http, &command, "internal server error").await
             }
         }
     }

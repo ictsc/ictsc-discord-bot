@@ -1,5 +1,4 @@
 use crate::*;
-use anyhow::Result;
 use serenity::http::Http;
 use serenity::model::prelude::*;
 use std::collections::HashMap;
@@ -22,12 +21,7 @@ where
         }
     }
 
-    pub async fn run(&self, http: &Http, guild_id: GuildId, user_id: UserId, invitation_code: String, command: &serenity::model::prelude::application_command::ApplicationCommandInteraction) -> Result<Role> {
-        // ApplicationCommandInteractionは制限時間がシビアなので、このコマンドでは二段階構成を取る。
-        // 前半フェーズのみを同期的に行い、後半フェーズは非同期に行う。
-        // 前半フェーズ => `invitation_code` の検証, 入るべきRoleの取得
-        // 後半フェーズ => Roleへの参加とそれ以外のRoleからの除外
-
+    pub async fn run(&self, http: &Http, guild_id: GuildId, user_id: UserId, invitation_code: String) -> Result<Role> {
         // `invitation_code`の検証
         let target_role_name = self.definitions.get(&invitation_code)
             .ok_or(UserError::InvalidInvitationCode)?;
@@ -37,9 +31,6 @@ where
         let target_roles = self.repository.find_by_name(http, guild_id, target_role_name).await?;
         let target_role = target_roles.first()
             .ok_or(SystemError::NoSuchRole(target_role_name.clone()))?;
-
-        // TODO: layer violation!!!
-        InteractionHelper::defer(http, &command).await?;
 
         self.repository.grant(http, guild_id, user_id, target_role.id).await?;
         let granted_roles = self.repository.find_by_user(http, guild_id, user_id).await?;
