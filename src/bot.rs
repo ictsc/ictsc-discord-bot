@@ -12,6 +12,7 @@ use serenity::http::Http;
 use serenity::model::prelude::application_command::*;
 use serenity::model::prelude::*;
 use serenity::prelude::*;
+use crate::commands::ApplicationCommandContext;
 
 type CommandCreator =
     Box<dyn FnOnce(&mut CreateApplicationCommand) -> &mut CreateApplicationCommand + Send>;
@@ -135,10 +136,17 @@ impl EventHandler for Bot {
 
         match interaction {
             Interaction::ApplicationCommand(command) => {
-                self.handle_application_command(ctx, command).await
+                self.handle_application_command(ApplicationCommandContext {
+                    context: ctx,
+                    command
+                }).await;
             }
             _ => {}
         };
+    }
+
+    async fn reaction_add(&self, ctx: Context, reaction: Reaction) {
+        log::debug!("called reaction_add: {:?}", reaction);
     }
 }
 
@@ -333,110 +341,57 @@ impl Bot {
 impl Bot {
     async fn handle_command_ping(
         &self,
-        ctx: Context,
-        command: ApplicationCommandInteraction,
+        ctx: &ApplicationCommandContext,
     ) -> Result<()> {
-        InteractionHelper::send(&ctx.http, &command, "pong!").await
+        Ok(InteractionHelper::send(&ctx.context.http, &ctx.command, "pong!").await?)
     }
 
     async fn handle_command_whoami(
         &self,
-        ctx: Context,
-        command: ApplicationCommandInteraction,
+        ctx: &ApplicationCommandContext,
     ) -> Result<()> {
         let handler = WhoAmICommand::new(UserManager);
-
-        let user_id = command.user.id;
-        let result = handler.run(&ctx.http, user_id).await;
-
-        match result {
-            Ok(info) => InteractionHelper::send_table(&ctx.http, &command, info).await,
-            Err(reason) => {
-                log::error!("failed to run whoami: {:?}", reason);
-                InteractionHelper::send_ephemeral(&ctx.http, &command, "internal server error").await
-            }
-        }
+        Ok(handler.run(&ctx).await?)
     }
 
     async fn handle_command_ask(
         &self,
-        ctx: Context,
-        command: ApplicationCommandInteraction,
+        ctx: &ApplicationCommandContext,
     ) -> Result<()> {
         let handler = AskCommand::new(UserManager, ThreadManager);
-
-        let channel_id = command.channel_id;
-        // TODO: validate channel type
-
-        let user_id = command.user.id;
-
-        let summary = InteractionHelper::value_of_as_str(&command, "summary").unwrap();
-
-        let result = handler.run(&ctx.http, channel_id, user_id, summary).await;
-
-        match result {
-            Ok(_) => {
-                InteractionHelper::send_ephemeral(
-                    &ctx.http,
-                    &command,
-                    "質問スレッドが開始されました。",
-                )
-                .await
-            }
-            Err(reason) => {
-                log::error!("failed to run ask: {:?}", reason);
-                InteractionHelper::send_ephemeral(&ctx.http, &command, "internal server error").await
-            }
-        }
+        let summary = InteractionHelper::value_of_as_str(&ctx.command, "summary").unwrap();
+        Ok(handler.run(ctx, summary.into()).await?)
     }
 
     async fn handle_command_join(
         &self,
-        ctx: Context,
-        command: ApplicationCommandInteraction,
+        ctx: &ApplicationCommandContext,
     ) -> Result<()> {
         let mut definitions: HashMap<String, String> = HashMap::new();
         self.config.teams.iter().for_each(|team| {
             definitions.insert(team.invitation_code.clone(), team.role_name.clone());
         });
 
-        let handler = JoinCommand::new(RoleManager, definitions);
-
-        InteractionHelper::defer(&ctx.http, &command).await?;
-
-        let guild_id = GuildId(self.config.guild_id);
-        let user_id = command.user.id;
-        let invitation_code = InteractionHelper::value_of_as_str(&command, "invitation_code").unwrap();
-        let result = handler.run(&ctx.http, guild_id, user_id, invitation_code.into()).await;
-
-        match result {
-            Ok(_) => InteractionHelper::defer_respond(&ctx.http, &command, "チームに参加しました。").await,
-            Err(Error::UserError(err)) => {
-                log::warn!("failed to run join: {:?}", err);
-                InteractionHelper::defer_respond(&ctx.http, &command, err).await
-            },
-            Err(err) => {
-                log::warn!("failed to run join: {:?}", err);
-                InteractionHelper::defer_respond(&ctx.http, &command, "internal server error").await
-            }
-        }
+        let handler = JoinCommand::new(RoleManager, GuildId(self.config.guild_id), definitions);
+        let invitation_code = InteractionHelper::value_of_as_str(&ctx.command, "invitation_code").unwrap();
+        Ok(handler.run(&ctx, invitation_code.into()).await?)
     }
 
     async fn handle_application_command(
         &self,
-        ctx: Context,
-        command: ApplicationCommandInteraction,
+        ctx: ApplicationCommandContext,
     ) {
-        let name = command.data.name.clone();
+        let name = ctx.command.data.name.as_str();
 
-        let result = match name.as_str() {
-            "ping" => self.handle_command_ping(ctx, command).await,
-            "whoami" => self.handle_command_whoami(ctx, command).await,
-            "ask" => self.handle_command_ask(ctx, command).await,
-            "join" => self.handle_command_join(ctx, command).await,
+        let result = match name {
+            "ping" => self.handle_command_ping(&ctx).await,
+            "whoami" => self.handle_command_whoami(&ctx).await,
+            "ask" => self.handle_command_ask(&ctx).await,
+            "join" => self.handle_command_join(&ctx).await,
             _ => {
-                log::error!("received command unhandled: {:?}", command);
-                InteractionHelper::send_ephemeral(&ctx.http, &command, "internal server error").await
+                log::error!("received command unhandled: {:?}", ctx.command);
+                InteractionHelper::send_ephemeral(&ctx.context.http, &ctx.command, "internal server error").await
+                    .map_err(|err| err.into())
             }
         };
 
