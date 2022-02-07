@@ -1,8 +1,8 @@
+use crate::commands::ApplicationCommandContext;
 use crate::*;
 use anyhow::Result;
 use serenity::http::{CacheHttp, Http};
 use serenity::model::prelude::*;
-use crate::commands::ApplicationCommandContext;
 
 pub struct AskCommand<F, C>
 where
@@ -22,11 +22,7 @@ where
         Self { finder, creator }
     }
 
-    pub async fn run(
-        &self,
-        ctx: &ApplicationCommandContext,
-        summary: String,
-    ) -> Result<()> {
+    pub async fn run(&self, ctx: &ApplicationCommandContext, summary: String) -> Result<()> {
         let channel_id = ctx.command.channel_id;
         let user = &ctx.command.user;
         let content = format!("{} 質問内容を入力してください。", user.mention());
@@ -38,8 +34,9 @@ where
         InteractionHelper::send_ephemeral(
             &ctx.context.http,
             &ctx.command,
-            "質問スレッドが開始されました"
-        ).await;
+            "質問スレッドが開始されました",
+        )
+        .await;
 
         Ok(())
     }

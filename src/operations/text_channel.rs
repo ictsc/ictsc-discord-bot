@@ -11,7 +11,12 @@ pub struct CreateTextChannelInput {
 
 #[async_trait]
 pub trait TextChannelCreator {
-    async fn create(&self, http: &Http, guild_id: GuildId, input: CreateTextChannelInput) -> Result<GuildChannel>;
+    async fn create(
+        &self,
+        http: &Http,
+        guild_id: GuildId,
+        input: CreateTextChannelInput,
+    ) -> Result<GuildChannel>;
 }
 
 #[async_trait]
@@ -37,15 +42,18 @@ pub trait TextChannelDeleter {
 
 #[async_trait]
 pub trait TextChannelSyncer: TextChannelCreator + TextChannelFinder + TextChannelDeleter {
-    async fn sync(&self, http: &Http, guild_id: GuildId, input: CreateTextChannelInput) -> Result<()> {
+    async fn sync(
+        &self,
+        http: &Http,
+        guild_id: GuildId,
+        input: CreateTextChannelInput,
+    ) -> Result<()> {
         let mut channels = self.find_by_name(http, guild_id, &input.name).await?;
 
         match channels.len() {
             1 => {
                 channels[0]
-                    .edit(http, |channel| {
-                        channel.category(input.category_id)
-                    })
+                    .edit(http, |channel| channel.category(input.category_id))
                     .await?;
             }
             _ => {
@@ -64,11 +72,15 @@ pub struct TextChannelManager;
 
 #[async_trait]
 impl TextChannelCreator for TextChannelManager {
-    async fn create(&self, http: &Http, guild_id: GuildId, input: CreateTextChannelInput) -> Result<GuildChannel> {
+    async fn create(
+        &self,
+        http: &Http,
+        guild_id: GuildId,
+        input: CreateTextChannelInput,
+    ) -> Result<GuildChannel> {
         Ok(guild_id
             .create_channel(http, |channel| {
-                channel.name(input.name)
-                    .kind(ChannelType::Text);
+                channel.name(input.name).kind(ChannelType::Text);
 
                 match input.category_id {
                     Some(id) => channel.category(id),

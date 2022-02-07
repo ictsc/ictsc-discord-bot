@@ -29,9 +29,7 @@ impl From<Configuration> for bot::Configuration {
             token: config.discord.token,
             guild_id: config.discord.guild_id,
             application_id: config.discord.application_id,
-            teams: config.teams.into_iter()
-                .map(|team| team.into())
-                .collect(),
+            teams: config.teams.into_iter().map(|team| team.into()).collect(),
         }
     }
 }
@@ -46,7 +44,7 @@ impl From<TeamConfiguration> for bot::TeamConfiguration {
             role_name: team.role_name,
             invitation_code: team.invitation_code,
         }
-    } 
+    }
 }
 
 #[derive(Debug, Deserialize)]

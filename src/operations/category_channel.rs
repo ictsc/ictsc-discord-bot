@@ -10,7 +10,12 @@ pub struct CreateCategoryChannelInput {
 
 #[async_trait]
 pub trait CategoryChannelCreator {
-    async fn create(&self, http: &Http, guild_id: GuildId, input: CreateCategoryChannelInput) -> Result<GuildChannel>;
+    async fn create(
+        &self,
+        http: &Http,
+        guild_id: GuildId,
+        input: CreateCategoryChannelInput,
+    ) -> Result<GuildChannel>;
 }
 
 #[async_trait]
@@ -35,14 +40,21 @@ pub trait CategoryChannelDeleter {
 }
 
 #[async_trait]
-pub trait CategoryChannelSyncer: CategoryChannelCreator + CategoryChannelFinder + CategoryChannelDeleter {
-    async fn sync(&self, http: &Http, guild_id: GuildId, input: CreateCategoryChannelInput) -> Result<GuildChannel> {
+pub trait CategoryChannelSyncer:
+    CategoryChannelCreator + CategoryChannelFinder + CategoryChannelDeleter
+{
+    async fn sync(
+        &self,
+        http: &Http,
+        guild_id: GuildId,
+        input: CreateCategoryChannelInput,
+    ) -> Result<GuildChannel> {
         let channels = self.find_by_name(http, guild_id, &input.name).await?;
 
         match channels.len() {
             1 => {
                 // TODO: handling parameter change
-                return Ok(channels[0].clone())
+                return Ok(channels[0].clone());
             }
             _ => {
                 for channel in channels {
@@ -58,11 +70,15 @@ pub struct CategoryChannelManager;
 
 #[async_trait]
 impl CategoryChannelCreator for CategoryChannelManager {
-    async fn create(&self, http: &Http, guild_id: GuildId, input: CreateCategoryChannelInput) -> Result<GuildChannel> {
+    async fn create(
+        &self,
+        http: &Http,
+        guild_id: GuildId,
+        input: CreateCategoryChannelInput,
+    ) -> Result<GuildChannel> {
         Ok(guild_id
             .create_channel(http, |channel| {
-                channel.name(input.name)
-                    .kind(ChannelType::Category)
+                channel.name(input.name).kind(ChannelType::Category)
             })
             .await?)
     }

@@ -17,7 +17,11 @@ pub trait InteractionResponder {
 #[async_trait]
 pub trait InteractionDeferredResponder {
     async fn defer(http: &Http, command: &ApplicationCommandInteraction) -> Result<()>;
-    async fn defer_respond<D>(http: &Http, command: &ApplicationCommandInteraction, msg: D) -> Result<()>
+    async fn defer_respond<D>(
+        http: &Http,
+        command: &ApplicationCommandInteraction,
+        msg: D,
+    ) -> Result<()>
     where
         D: ToString + Send;
 }
@@ -75,14 +79,16 @@ impl InteractionDeferredResponder for InteractionHelper {
         Ok(())
     }
 
-    async fn defer_respond<D>(http: &Http, command: &ApplicationCommandInteraction, msg: D) -> Result<()>
-        where
-            D: ToString + Send,
+    async fn defer_respond<D>(
+        http: &Http,
+        command: &ApplicationCommandInteraction,
+        msg: D,
+    ) -> Result<()>
+    where
+        D: ToString + Send,
     {
         command
-            .edit_original_interaction_response(http, |message| {
-                message.content(msg)
-            })
+            .edit_original_interaction_response(http, |message| message.content(msg))
             .await;
 
         Ok(())

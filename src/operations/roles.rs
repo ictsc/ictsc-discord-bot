@@ -47,12 +47,24 @@ pub trait RoleDeleter {
 
 #[async_trait]
 pub trait RoleGranter {
-    async fn grant(&self, http: &Http, guild_id: GuildId, user_id: UserId, role_id: RoleId) -> Result<()>;
+    async fn grant(
+        &self,
+        http: &Http,
+        guild_id: GuildId,
+        user_id: UserId,
+        role_id: RoleId,
+    ) -> Result<()>;
 }
 
 #[async_trait]
 pub trait RoleRevoker {
-    async fn revoke(&self, http: &Http, guild_id: GuildId, user_id: UserId, role_id: RoleId) -> Result<()>;
+    async fn revoke(
+        &self,
+        http: &Http,
+        guild_id: GuildId,
+        user_id: UserId,
+        role_id: RoleId,
+    ) -> Result<()>;
 }
 
 #[async_trait]
@@ -132,13 +144,20 @@ impl RoleFinder for RoleManager {
     }
 
     async fn find_all(&self, http: &Http, guild_id: GuildId) -> Result<Vec<Role>> {
-        Ok(guild_id.roles(http).await?
+        Ok(guild_id
+            .roles(http)
+            .await?
             .into_iter()
             .map(|(k, v)| v)
             .collect())
     }
 
-    async fn find_by_user(&self, http: &Http, guild_id: GuildId, user_id: UserId) -> Result<Vec<Role>> {
+    async fn find_by_user(
+        &self,
+        http: &Http,
+        guild_id: GuildId,
+        user_id: UserId,
+    ) -> Result<Vec<Role>> {
         let roles = self.find_all(http, guild_id).await?;
 
         let user = user_id.to_user(http).await?;
@@ -163,7 +182,13 @@ impl RoleDeleter for RoleManager {
 
 #[async_trait]
 impl RoleGranter for RoleManager {
-    async fn grant(&self, http: &Http, guild_id: GuildId, user_id: UserId, role_id: RoleId) -> Result<()> {
+    async fn grant(
+        &self,
+        http: &Http,
+        guild_id: GuildId,
+        user_id: UserId,
+        role_id: RoleId,
+    ) -> Result<()> {
         let mut member = guild_id.member(http, user_id).await?;
         member.add_role(http, role_id).await;
         Ok(())
@@ -172,7 +197,13 @@ impl RoleGranter for RoleManager {
 
 #[async_trait]
 impl RoleRevoker for RoleManager {
-    async fn revoke(&self, http: &Http, guild_id: GuildId, user_id: UserId, role_id: RoleId) -> Result<()> {
+    async fn revoke(
+        &self,
+        http: &Http,
+        guild_id: GuildId,
+        user_id: UserId,
+        role_id: RoleId,
+    ) -> Result<()> {
         let mut member = guild_id.member(http, user_id).await?;
         member.remove_role(http, role_id).await;
         Ok(())

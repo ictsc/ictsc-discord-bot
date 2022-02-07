@@ -34,13 +34,34 @@ pub struct TeamConfiguration {
     pub invitation_code: String,
 }
 
-pub struct Bot {
+pub struct Bot
+{
     config: Configuration,
+    ask_command: AskCommand<UserManager, ThreadManager>,
+    join_command: JoinCommand<RoleManager>,
+    whoami_command: WhoAmICommand<UserManager>,
 }
 
-impl Bot {
+impl Bot
+{
     pub fn new(config: Configuration) -> Self {
-        Bot { config }
+        let guild_id = GuildId(config.guild_id);
+
+        let mut definitions: HashMap<String, String> = HashMap::new();
+        config.teams.iter().for_each(|team| {
+            definitions.insert(team.invitation_code.clone(), team.role_name.clone());
+        });
+
+        let ask_command = AskCommand::new(UserManager, ThreadManager);
+        let join_command = JoinCommand::new(RoleManager, guild_id, definitions);
+        let whoami_command = WhoAmICommand::new(UserManager);
+
+        Bot {
+            config,
+            ask_command,
+            join_command,
+            whoami_command,
+        }
     }
 }
 
@@ -346,35 +367,27 @@ impl Bot {
         Ok(InteractionHelper::send(&ctx.context.http, &ctx.command, "pong!").await?)
     }
 
-    async fn handle_command_whoami(
-        &self,
-        ctx: &ApplicationCommandContext,
-    ) -> Result<()> {
-        let handler = WhoAmICommand::new(UserManager);
-        Ok(handler.run(&ctx).await?)
-    }
-
     async fn handle_command_ask(
         &self,
         ctx: &ApplicationCommandContext,
     ) -> Result<()> {
-        let handler = AskCommand::new(UserManager, ThreadManager);
         let summary = InteractionHelper::value_of_as_str(&ctx.command, "summary").unwrap();
-        Ok(handler.run(ctx, summary.into()).await?)
+        Ok(self.ask_command.run(ctx, summary.into()).await?)
+    }
+
+    async fn handle_command_whoami(
+        &self,
+        ctx: &ApplicationCommandContext,
+    ) -> Result<()> {
+        Ok(self.whoami_command.run(&ctx).await?)
     }
 
     async fn handle_command_join(
         &self,
         ctx: &ApplicationCommandContext,
     ) -> Result<()> {
-        let mut definitions: HashMap<String, String> = HashMap::new();
-        self.config.teams.iter().for_each(|team| {
-            definitions.insert(team.invitation_code.clone(), team.role_name.clone());
-        });
-
-        let handler = JoinCommand::new(RoleManager, GuildId(self.config.guild_id), definitions);
         let invitation_code = InteractionHelper::value_of_as_str(&ctx.command, "invitation_code").unwrap();
-        Ok(handler.run(&ctx, invitation_code.into()).await?)
+        Ok(self.join_command.run(&ctx, invitation_code.into()).await?)
     }
 
     async fn handle_application_command(
@@ -403,6 +416,7 @@ impl Bot {
                     name,
                     reason
                 );
+                InteractionHelper::send_ephemeral(&ctx.context.http, &ctx.command, "internal server error").await.unwrap();
             }
         }
     }

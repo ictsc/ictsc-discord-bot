@@ -1,8 +1,8 @@
 mod bot;
 pub mod commands;
-mod operations;
 mod errors;
+mod operations;
 
 pub use bot::*;
-pub use operations::*;
 pub use errors::*;
+pub use operations::*;
