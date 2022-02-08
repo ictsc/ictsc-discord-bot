@@ -1,11 +1,15 @@
-use crate::commands::ApplicationCommandContext;
+use crate::commands::{ApplicationCommandContext, ReactionContext};
 use crate::*;
 use anyhow::Result;
 
 use std::collections::HashMap;
 use std::sync::Arc;
 use serenity::model::channel::ReactionType;
+use serenity::model::id::ChannelId;
 use tokio::sync::Mutex;
+
+const OK_REACTION: &str = "🙆\u{200d}♂\u{fe0f}";
+const NG_REACTION: &str = "🙅\u{200d}♂\u{fe0f}";
 
 pub struct RecreateCommand<Repository>
 where
@@ -16,7 +20,13 @@ where
     problems: HashMap<String, ProblemConfiguration>,
     ok_reaction: ReactionType,
     ng_reaction: ReactionType,
-    pending_requests: Arc<Mutex<HashMap<u64, (String, String)>>>,
+    pending_requests: Arc<Mutex<HashMap<u64, RecreateRequest>>>,
+}
+
+struct RecreateRequest {
+    pub channel_id: ChannelId,
+    pub team_id: String,
+    pub problem_id: String,
 }
 
 impl<Repository> RecreateCommand<Repository>
@@ -38,8 +48,8 @@ where
             repository,
             teams: ts,
             problems: ps,
-            ok_reaction: ReactionType::Unicode("🙆\u{200d}♂\u{fe0f}".into()),
-            ng_reaction: ReactionType::Unicode("🙅\u{200d}♂\u{fe0f}".into()),
+            ok_reaction: ReactionType::Unicode(OK_REACTION.into()),
+            ng_reaction: ReactionType::Unicode(NG_REACTION.into()),
             pending_requests: Arc::new(Mutex::new(HashMap::new())),
         }
     }
@@ -73,11 +83,48 @@ where
         let message_id = *message.id.as_u64();
         let team_id = team.id;
         let problem_id = problem.id;
+        let channel_id = message.channel_id;
 
         {
             let mut table = self.pending_requests.lock().await;
-            table.insert(message_id, (team_id, problem_id));
+            table.insert(message_id, RecreateRequest {
+                channel_id, team_id, problem_id,
+            });
         }
+
+        Ok(())
+    }
+
+    pub async fn add_reaction(&self, ctx: &ReactionContext) -> Result<()> {
+        let reaction = ctx.reaction.emoji.to_string();
+
+        let message_id = ctx.reaction.message_id;
+
+        if reaction != OK_REACTION && reaction != NG_REACTION {
+            return Ok(());
+        }
+
+        let request = {
+            let mut table = self.pending_requests.lock().await;
+            match table.remove(message_id.as_u64()) {
+                Some(v) => v,
+                None => return Ok(()),
+            }
+        };
+
+        match reaction.as_str() {
+            OK_REACTION => {
+                request.channel_id.send_message(&ctx.context.http, |message| {
+                    message.content("初期化を開始します。")
+                }).await?;
+            },
+            NG_REACTION => {
+                request.channel_id.send_message(&ctx.context.http, |message| {
+                    message.content("初期化を中断します。")
+                }).await?;
+            },
+            _ => {},
+        };
 
         Ok(())
     }

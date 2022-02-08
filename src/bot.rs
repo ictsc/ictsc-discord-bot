@@ -5,7 +5,7 @@ use std::collections::HashMap;
 use crate::commands::ask::AskCommand;
 use crate::commands::join::JoinCommand;
 use crate::commands::whoami::WhoAmICommand;
-use crate::commands::ApplicationCommandContext;
+use crate::commands::{ApplicationCommandContext, ReactionContext};
 use anyhow::Result;
 use serenity::async_trait;
 use serenity::builder::*;
@@ -191,8 +191,13 @@ impl EventHandler for Bot {
         };
     }
 
-    async fn reaction_add(&self, _ctx: Context, reaction: Reaction) {
+    async fn reaction_add(&self, ctx: Context, reaction: Reaction) {
         log::debug!("called reaction_add: {:?}", reaction);
+
+        self.handle_reaction(ReactionContext {
+            context: ctx,
+            reaction,
+        }).await;
     }
 }
 
@@ -449,5 +454,9 @@ impl Bot {
                 .unwrap();
             }
         }
+    }
+
+    async fn handle_reaction(&self, ctx: ReactionContext) {
+        self.recreate_command.add_reaction(&ctx).await;
     }
 }
