@@ -1,4 +1,4 @@
-use anyhow::Result;
+use crate::Result;
 use async_trait::async_trait;
 use serenity::http::Http;
 use serenity::model::prelude::*;

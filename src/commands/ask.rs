@@ -1,6 +1,6 @@
 use crate::commands::ApplicationCommandContext;
 use crate::*;
-use anyhow::Result;
+
 use serenity::http::CacheHttp;
 use serenity::model::prelude::*;
 

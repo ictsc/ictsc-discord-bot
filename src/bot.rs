@@ -6,7 +6,7 @@ use crate::commands::ask::AskCommand;
 use crate::commands::join::JoinCommand;
 use crate::commands::whoami::WhoAmICommand;
 use crate::commands::{ApplicationCommandContext, ReactionContext};
-use anyhow::Result;
+use crate::Result;
 use serenity::async_trait;
 use serenity::builder::*;
 use serenity::http::Http;

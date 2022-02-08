@@ -1,6 +1,5 @@
 use crate::commands::{ApplicationCommandContext, ReactionContext};
 use crate::*;
-use anyhow::Result;
 
 use std::collections::HashMap;
 use std::sync::Arc;

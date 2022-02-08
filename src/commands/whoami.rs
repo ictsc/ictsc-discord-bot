@@ -1,6 +1,5 @@
 use crate::commands::ApplicationCommandContext;
 use crate::*;
-use anyhow::Result;
 
 use std::collections::HashMap;
 
