@@ -438,26 +438,21 @@ impl Bot {
             }
         };
 
-        match result {
-            Ok(_) => (),
-            Err(reason) => {
-                log::error!(
-                    "failed to handle application command: (name: {}, reason: {:?})",
-                    name,
-                    reason
-                );
-                InteractionHelper::send_ephemeral(
-                    &ctx.context.http,
-                    &ctx.command,
-                    "internal server error",
-                )
-                .await
-                .unwrap();
-            }
+        if let Err(err) = result {
+            log::error!("failed to handle application command: {:?}", err);
+            let result = InteractionHelper::send_ephemeral(
+                &ctx.context.http,
+                &ctx.command,
+                err,
+            ).await;
         }
     }
 
     async fn handle_reaction(&self, ctx: ReactionContext) {
-        self.recreate_command.add_reaction(&ctx).await;
+        let result = self.recreate_command.add_reaction(&ctx).await;
+
+        if let Err(err) = result {
+            log::error!("failed to handle reaction: {:?}", err);
+        }
     }
 }

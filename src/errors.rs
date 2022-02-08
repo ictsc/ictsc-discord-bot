@@ -1,3 +1,4 @@
+use std::fmt::Display;
 use thiserror::Error;
 
 pub type Result<T> = std::result::Result<T, Error>;
@@ -6,9 +7,9 @@ pub type Result<T> = std::result::Result<T, Error>;
 pub enum Error {
     #[error("{0}")]
     UserError(#[from] UserError),
-    #[error("{0}")]
+    #[error("不明なエラーが発生しました。")]
     SystemError(#[from] SystemError),
-    #[error("{0}")]
+    #[error("不明なエラーが発生しました。")]
     SerenityError(#[from] serenity::Error),
 }
 
