@@ -30,6 +30,7 @@ impl From<Configuration> for bot::Configuration {
             guild_id: config.discord.guild_id,
             application_id: config.discord.application_id,
             teams: config.teams.into_iter().map(|team| team.into()).collect(),
+            problems: config.problems.into_iter().map(|prob| prob.into()).collect(),
         }
     }
 }
@@ -43,6 +44,16 @@ impl From<TeamConfiguration> for bot::TeamConfiguration {
             channel_name: team.channel_name,
             role_name: team.role_name,
             invitation_code: team.invitation_code,
+        }
+    }
+}
+
+impl From<ProblemConfiguration> for bot::ProblemConfiguration {
+    fn from(problem: ProblemConfiguration) -> Self {
+        Self {
+            id: problem.id,
+            code: problem.code,
+            name: problem.name,
         }
     }
 }
@@ -74,6 +85,6 @@ pub struct TeamConfiguration {
 #[derive(Debug, Deserialize)]
 pub struct ProblemConfiguration {
     pub id: String,
+    pub code: String,
     pub name: String,
-    pub problem_code: String,
 }

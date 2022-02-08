@@ -10,9 +10,11 @@ use anyhow::Result;
 use serenity::async_trait;
 use serenity::builder::*;
 use serenity::http::Http;
+use serenity::model::guild::Target::Role;
 use serenity::model::prelude::application_command::*;
 use serenity::model::prelude::*;
 use serenity::prelude::*;
+use crate::commands::recreate::RecreateCommand;
 
 type CommandCreator =
     Box<dyn FnOnce(&mut CreateApplicationCommand) -> &mut CreateApplicationCommand + Send>;
@@ -24,6 +26,7 @@ pub struct Configuration {
     pub guild_id: u64,
     pub application_id: u64,
     pub teams: Vec<TeamConfiguration>,
+    pub problems: Vec<ProblemConfiguration>,
 }
 
 #[derive(Debug, Clone)]
@@ -36,10 +39,18 @@ pub struct TeamConfiguration {
     pub invitation_code: String,
 }
 
+#[derive(Debug, Clone)]
+pub struct ProblemConfiguration {
+    pub id: String,
+    pub code: String,
+    pub name: String,
+}
+
 pub struct Bot {
     config: Configuration,
     ask_command: AskCommand<UserManager, ThreadManager>,
     join_command: JoinCommand<RoleManager>,
+    recreate_command: RecreateCommand<RoleManager>,
     whoami_command: WhoAmICommand<UserManager>,
 }
 
@@ -49,12 +60,14 @@ impl Bot {
 
         let ask_command = AskCommand::new(UserManager, ThreadManager);
         let join_command = JoinCommand::new(RoleManager, guild_id, &config.teams);
+        let recreate_command = RecreateCommand::new(RoleManager, &config.teams, &config.problems);
         let whoami_command = WhoAmICommand::new(UserManager);
 
         Bot {
             config,
             ask_command,
             join_command,
+            recreate_command,
             whoami_command,
         }
     }
@@ -125,6 +138,22 @@ fn setup_application_command_definitions() -> CommandDefinitions<'static> {
                     option
                         .name("summary")
                         .description("質問内容の簡潔な説明（例：問題〇〇について, ...）")
+                        .kind(ApplicationCommandOptionType::String)
+                        .required(true)
+                })
+        }),
+    );
+
+    definitions.insert(
+        "recreate",
+        Box::new(|command| {
+            command
+                .name("recreate")
+                .description("問題環境を再作成します。")
+                .create_option(|option| {
+                    option
+                        .name("problem_code")
+                        .description("問題コード")
                         .kind(ApplicationCommandOptionType::String)
                         .required(true)
                 })
@@ -375,6 +404,12 @@ impl Bot {
         Ok(self.join_command.run(ctx, invitation_code.into()).await?)
     }
 
+    async fn handle_command_recreate(&self, ctx: &ApplicationCommandContext) -> Result<()> {
+        let problem_code =
+            InteractionHelper::value_of_as_str(&ctx.command, "problem_code").unwrap();
+        Ok(self.recreate_command.run(ctx, problem_code.into()).await?)
+    }
+
     async fn handle_application_command(&self, ctx: ApplicationCommandContext) {
         let name = ctx.command.data.name.as_str();
 
@@ -383,6 +418,7 @@ impl Bot {
             "whoami" => self.handle_command_whoami(&ctx).await,
             "ask" => self.handle_command_ask(&ctx).await,
             "join" => self.handle_command_join(&ctx).await,
+            "recreate" => self.handle_command_recreate(&ctx).await,
             _ => {
                 log::error!("received command unhandled: {:?}", ctx.command);
                 InteractionHelper::send_ephemeral(

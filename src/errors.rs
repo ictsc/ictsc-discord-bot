@@ -16,6 +16,10 @@ pub enum Error {
 pub enum UserError {
     #[error("招待コードが不正です。")]
     InvalidInvitationCode,
+    #[error("そのような問題はありません。")]
+    NoSuchProblem,
+    #[error("許可されていない処理です。")]
+    Forbidden,
 }
 
 #[derive(Debug, Error)]

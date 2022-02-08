@@ -1,5 +1,6 @@
 pub mod ask;
 pub mod join;
+pub mod recreate;
 pub mod whoami;
 
 pub struct ApplicationCommandContext {

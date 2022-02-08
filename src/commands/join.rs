@@ -40,7 +40,7 @@ where
         &self,
         ctx: &ApplicationCommandContext,
         user_id: UserId,
-        role_name: String,
+        team: &TeamConfiguration,
     ) -> Result<()> {
         let http = &ctx.context.http;
         let guild_id = self.guild_id;
@@ -49,11 +49,11 @@ where
         // TODO: ロール名から毎回検索をかけずに、初回にRoleIdを解決する
         let target_roles = self
             .repository
-            .find_by_name(http, guild_id, role_name.clone())
+            .find_by_name(http, guild_id, team.role_name.clone())
             .await?;
         let target_role = target_roles
             .first()
-            .ok_or(SystemError::NoSuchRole(role_name.clone()))?;
+            .ok_or(SystemError::NoSuchRole(team.role_name.clone()))?;
 
         self.repository
             .grant(http, guild_id, user_id, target_role.id)
@@ -82,7 +82,7 @@ where
         let command = &ctx.command;
 
         // `invitation_code`の検証
-        let target_role_name = self
+        let team = self
             .definitions
             .get(&invitation_code)
             .ok_or(UserError::InvalidInvitationCode)?;
@@ -92,7 +92,7 @@ where
 
         InteractionHelper::defer(http, command).await;
 
-        match self.run_defer(ctx, user_id, target_role_name.into()).await {
+        match self.run_defer(ctx, user_id, team).await {
             Ok(_) => {
                 InteractionHelper::defer_respond(http, command, "チームに参加しました。").await
             }
