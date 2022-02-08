@@ -1,10 +1,10 @@
 use crate::commands::{ApplicationCommandContext, ReactionContext};
 use crate::*;
 
-use std::collections::HashMap;
-use std::sync::Arc;
 use serenity::model::channel::ReactionType;
 use serenity::model::id::ChannelId;
+use std::collections::HashMap;
+use std::sync::Arc;
 use tokio::sync::Mutex;
 
 const OK_REACTION: &str = "🙆\u{200d}♂\u{fe0f}";
@@ -32,7 +32,11 @@ impl<Repository> RecreateCommand<Repository>
 where
     Repository: RoleFinder + Send,
 {
-    pub fn new(repository: Repository, teams: &[TeamConfiguration], problems: &[ProblemConfiguration]) -> Self {
+    pub fn new(
+        repository: Repository,
+        teams: &[TeamConfiguration],
+        problems: &[ProblemConfiguration],
+    ) -> Self {
         let mut ts = HashMap::new();
         teams.iter().for_each(|team| {
             ts.insert(team.role_name.clone(), team.clone());
@@ -57,7 +61,10 @@ where
         let guild_id = ctx.command.guild_id.unwrap();
         let user = &ctx.command.user;
 
-        let roles = self.repository.find_by_user(&ctx.context.http, guild_id, user.id).await?;
+        let roles = self
+            .repository
+            .find_by_user(&ctx.context.http, guild_id, user.id)
+            .await?;
 
         let mut team = None;
         for role in &roles {
@@ -69,7 +76,9 @@ where
 
         let team = team.ok_or(errors::UserError::Forbidden)?;
 
-        let problem = self.problems.get(&code)
+        let problem = self
+            .problems
+            .get(&code)
             .map(|problem| problem.clone())
             .ok_or(errors::UserError::NoSuchProblem)?;
 
@@ -86,9 +95,14 @@ where
 
         {
             let mut table = self.pending_requests.lock().await;
-            table.insert(message_id, RecreateRequest {
-                channel_id, team_id, problem_id,
-            });
+            table.insert(
+                message_id,
+                RecreateRequest {
+                    channel_id,
+                    team_id,
+                    problem_id,
+                },
+            );
         }
 
         Ok(())
@@ -113,16 +127,22 @@ where
 
         match reaction.as_str() {
             OK_REACTION => {
-                request.channel_id.send_message(&ctx.context.http, |message| {
-                    message.content("初期化を開始します。")
-                }).await?;
-            },
+                request
+                    .channel_id
+                    .send_message(&ctx.context.http, |message| {
+                        message.content("初期化を開始します。")
+                    })
+                    .await?;
+            }
             NG_REACTION => {
-                request.channel_id.send_message(&ctx.context.http, |message| {
-                    message.content("初期化を中断します。")
-                }).await?;
-            },
-            _ => {},
+                request
+                    .channel_id
+                    .send_message(&ctx.context.http, |message| {
+                        message.content("初期化を中断します。")
+                    })
+                    .await?;
+            }
+            _ => {}
         };
 
         Ok(())

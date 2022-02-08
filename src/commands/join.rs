@@ -17,17 +17,12 @@ impl<Repository> JoinCommand<Repository>
 where
     Repository: RoleFinder + RoleGranter + RoleRevoker + Send + Sync,
 {
-    pub fn new(
-        repository: Repository,
-        guild_id: GuildId,
-        teams: &[TeamConfiguration],
-    ) -> Self {
+    pub fn new(repository: Repository, guild_id: GuildId, teams: &[TeamConfiguration]) -> Self {
         let mut definitions = HashMap::new();
 
-        teams.iter()
-            .for_each(|team| {
-                definitions.insert(team.invitation_code.clone(), team.clone());
-            });
+        teams.iter().for_each(|team| {
+            definitions.insert(team.invitation_code.clone(), team.clone());
+        });
 
         Self {
             repository,

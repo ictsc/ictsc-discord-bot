@@ -30,7 +30,11 @@ impl From<Configuration> for bot::Configuration {
             guild_id: config.discord.guild_id,
             application_id: config.discord.application_id,
             teams: config.teams.into_iter().map(|team| team.into()).collect(),
-            problems: config.problems.into_iter().map(|prob| prob.into()).collect(),
+            problems: config
+                .problems
+                .into_iter()
+                .map(|prob| prob.into())
+                .collect(),
         }
     }
 }

@@ -10,11 +10,11 @@ use crate::Result;
 use serenity::async_trait;
 use serenity::builder::*;
 use serenity::http::Http;
-use serenity::model::guild::Target::Role;
+
+use crate::commands::recreate::RecreateCommand;
 use serenity::model::prelude::application_command::*;
 use serenity::model::prelude::*;
 use serenity::prelude::*;
-use crate::commands::recreate::RecreateCommand;
 
 type CommandCreator =
     Box<dyn FnOnce(&mut CreateApplicationCommand) -> &mut CreateApplicationCommand + Send>;
@@ -197,7 +197,8 @@ impl EventHandler for Bot {
         self.handle_reaction(ReactionContext {
             context: ctx,
             reaction,
-        }).await;
+        })
+        .await;
     }
 }
 
