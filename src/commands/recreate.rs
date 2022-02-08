@@ -3,6 +3,9 @@ use crate::*;
 use anyhow::Result;
 
 use std::collections::HashMap;
+use std::sync::Arc;
+use serenity::model::channel::ReactionType;
+use tokio::sync::Mutex;
 
 pub struct RecreateCommand<Repository>
 where
@@ -11,6 +14,9 @@ where
     repository: Repository,
     teams: HashMap<String, TeamConfiguration>,
     problems: HashMap<String, ProblemConfiguration>,
+    ok_reaction: ReactionType,
+    ng_reaction: ReactionType,
+    pending_requests: Arc<Mutex<HashMap<u64, (String, String)>>>,
 }
 
 impl<Repository> RecreateCommand<Repository>
@@ -32,6 +38,9 @@ where
             repository,
             teams: ts,
             problems: ps,
+            ok_reaction: ReactionType::Unicode("🙆\u{200d}♂\u{fe0f}".into()),
+            ng_reaction: ReactionType::Unicode("🙅\u{200d}♂\u{fe0f}".into()),
+            pending_requests: Arc::new(Mutex::new(HashMap::new())),
         }
     }
 
@@ -55,8 +64,20 @@ where
             .map(|problem| problem.clone())
             .ok_or(errors::UserError::NoSuchProblem)?;
 
-        let message = format!("問題「{}」を初期化します。よろしいですか？", problem.name);
-        InteractionHelper::send(&ctx.context.http, &ctx.command, message).await;
+        let content = format!("問題「{}」を初期化します。よろしいですか？", problem.name);
+
+        let message = InteractionHelper::send(&ctx.context.http, &ctx.command, content).await?;
+        InteractionHelper::react(&ctx.context.http, &ctx.command, self.ok_reaction.clone()).await;
+        InteractionHelper::react(&ctx.context.http, &ctx.command, self.ng_reaction.clone()).await;
+
+        let message_id = *message.id.as_u64();
+        let team_id = team.id;
+        let problem_id = problem.id;
+
+        {
+            let mut table = self.pending_requests.lock().await;
+            table.insert(message_id, (team_id, problem_id));
+        }
 
         Ok(())
     }

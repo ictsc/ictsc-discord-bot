@@ -9,9 +9,11 @@ use std::collections::HashMap;
 
 #[async_trait]
 pub trait InteractionResponder {
-    async fn send<D>(http: &Http, command: &ApplicationCommandInteraction, msg: D) -> Result<()>
+    async fn send<D>(http: &Http, command: &ApplicationCommandInteraction, msg: D) -> Result<Message>
     where
         D: ToString + Send;
+
+    async fn react(http: &Http, command: &ApplicationCommandInteraction, reaction: ReactionType) -> Result<()>;
 }
 
 #[async_trait]
@@ -57,7 +59,7 @@ pub struct InteractionHelper;
 
 #[async_trait]
 impl InteractionResponder for InteractionHelper {
-    async fn send<D>(http: &Http, command: &ApplicationCommandInteraction, msg: D) -> Result<()>
+    async fn send<D>(http: &Http, command: &ApplicationCommandInteraction, msg: D) -> Result<Message>
     where
         D: ToString + Send,
     {
@@ -68,6 +70,12 @@ impl InteractionResponder for InteractionHelper {
                     .interaction_response_data(|data| data.content(msg))
             })
             .await?;
+        Ok(command.get_interaction_response(http).await?)
+    }
+
+    async fn react(http: &Http, command: &ApplicationCommandInteraction, reaction: ReactionType) -> Result<()> {
+        let message = command.get_interaction_response(http).await?;
+        message.react(http, reaction).await?;
         Ok(())
     }
 }

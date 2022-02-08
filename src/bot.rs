@@ -386,7 +386,8 @@ impl Bot {
 
 impl Bot {
     async fn handle_command_ping(&self, ctx: &ApplicationCommandContext) -> Result<()> {
-        Ok(InteractionHelper::send(&ctx.context.http, &ctx.command, "pong!").await?)
+        InteractionHelper::send(&ctx.context.http, &ctx.command, "pong!").await?;
+        Ok(())
     }
 
     async fn handle_command_ask(&self, ctx: &ApplicationCommandContext) -> Result<()> {
