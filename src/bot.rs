@@ -18,6 +18,7 @@ type CommandCreator =
     Box<dyn FnOnce(&mut CreateApplicationCommand) -> &mut CreateApplicationCommand + Send>;
 type CommandDefinitions<'a> = HashMap<&'a str, CommandCreator>;
 
+#[derive(Debug, Clone)]
 pub struct Configuration {
     pub token: String,
     pub guild_id: u64,
@@ -25,6 +26,7 @@ pub struct Configuration {
     pub teams: Vec<TeamConfiguration>,
 }
 
+#[derive(Debug, Clone)]
 pub struct TeamConfiguration {
     pub id: String,
     pub name: String,
@@ -45,13 +47,8 @@ impl Bot {
     pub fn new(config: Configuration) -> Self {
         let guild_id = GuildId(config.guild_id);
 
-        let mut definitions: HashMap<String, String> = HashMap::new();
-        config.teams.iter().for_each(|team| {
-            definitions.insert(team.invitation_code.clone(), team.role_name.clone());
-        });
-
         let ask_command = AskCommand::new(UserManager, ThreadManager);
-        let join_command = JoinCommand::new(RoleManager, guild_id, definitions);
+        let join_command = JoinCommand::new(RoleManager, guild_id, &config.teams);
         let whoami_command = WhoAmICommand::new(UserManager);
 
         Bot {

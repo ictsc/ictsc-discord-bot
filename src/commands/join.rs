@@ -10,7 +10,7 @@ where
 {
     repository: Repository,
     guild_id: GuildId,
-    definitions: HashMap<String, String>,
+    definitions: HashMap<String, TeamConfiguration>,
 }
 
 impl<Repository> JoinCommand<Repository>
@@ -20,8 +20,15 @@ where
     pub fn new(
         repository: Repository,
         guild_id: GuildId,
-        definitions: HashMap<String, String>,
+        teams: &[TeamConfiguration],
     ) -> Self {
+        let mut definitions = HashMap::new();
+
+        teams.iter()
+            .for_each(|team| {
+                definitions.insert(team.invitation_code.clone(), team.clone());
+            });
+
         Self {
             repository,
             guild_id,
