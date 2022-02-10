@@ -8,6 +8,7 @@ use serde_derive::Deserialize;
 pub struct Configuration {
     pub discord: DiscordConfiguration,
     pub slack: Option<SlackConfiguration>,
+    pub recreate: RecreateServiceConfiguration,
 
     #[serde(default)]
     pub teams: Vec<TeamConfiguration>,
@@ -29,12 +30,23 @@ impl From<Configuration> for bot::Configuration {
             token: config.discord.token,
             guild_id: config.discord.guild_id,
             application_id: config.discord.application_id,
+            recreate_service: config.recreate.into(),
             teams: config.teams.into_iter().map(|team| team.into()).collect(),
             problems: config
                 .problems
                 .into_iter()
                 .map(|prob| prob.into())
                 .collect(),
+        }
+    }
+}
+
+impl From<RecreateServiceConfiguration> for bot::RecreateServiceConfiguration {
+    fn from(config: RecreateServiceConfiguration) -> Self {
+        Self {
+            baseurl: config.baseurl,
+            username: config.username,
+            password: config.password,
         }
     }
 }
@@ -74,6 +86,13 @@ pub struct SlackConfiguration {
     pub username: String,
     pub icon_emoji: String,
     pub webhook_url: String,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct RecreateServiceConfiguration {
+    pub baseurl: String,
+    pub username: String,
+    pub password: String,
 }
 
 #[derive(Debug, Deserialize)]

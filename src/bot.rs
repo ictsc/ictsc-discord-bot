@@ -25,8 +25,16 @@ pub struct Configuration {
     pub token: String,
     pub guild_id: u64,
     pub application_id: u64,
+    pub recreate_service: RecreateServiceConfiguration,
     pub teams: Vec<TeamConfiguration>,
     pub problems: Vec<ProblemConfiguration>,
+}
+
+#[derive(Debug, Clone)]
+pub struct RecreateServiceConfiguration {
+    pub baseurl: String,
+    pub username: String,
+    pub password: String,
 }
 
 #[derive(Debug, Clone)]
@@ -50,7 +58,7 @@ pub struct Bot {
     config: Configuration,
     ask_command: AskCommand<UserManager, ThreadManager>,
     join_command: JoinCommand<RoleManager>,
-    recreate_command: RecreateCommand<RoleManager>,
+    recreate_command: RecreateCommand<RoleManager, ProblemRecreateManager>,
     whoami_command: WhoAmICommand<UserManager>,
 }
 
@@ -58,9 +66,15 @@ impl Bot {
     pub fn new(config: Configuration) -> Self {
         let guild_id = GuildId(config.guild_id);
 
+        let problemRecreateManager = ProblemRecreateManager::new(
+            config.recreate_service.baseurl.clone(),
+            config.recreate_service.username.clone(),
+            config.recreate_service.password.clone(),
+        );
+
         let ask_command = AskCommand::new(UserManager, ThreadManager);
         let join_command = JoinCommand::new(RoleManager, guild_id, &config.teams);
-        let recreate_command = RecreateCommand::new(RoleManager, &config.teams, &config.problems);
+        let recreate_command = RecreateCommand::new(RoleManager, problemRecreateManager, &config.teams, &config.problems);
         let whoami_command = WhoAmICommand::new(UserManager);
 
         Bot {

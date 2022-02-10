@@ -10,11 +10,13 @@ use tokio::sync::Mutex;
 const OK_REACTION: &str = "🙆\u{200d}♂\u{fe0f}";
 const NG_REACTION: &str = "🙅\u{200d}♂\u{fe0f}";
 
-pub struct RecreateCommand<Repository>
+pub struct RecreateCommand<RoleRepository, ProblemRepository>
 where
-    Repository: RoleFinder + Send,
+    RoleRepository: RoleFinder + Send,
+    ProblemRepository: ProblemRecreater + Send,
 {
-    repository: Repository,
+    roleRepository: RoleRepository,
+    problemRepository: ProblemRepository,
     teams: HashMap<String, TeamConfiguration>,
     problems: HashMap<String, ProblemConfiguration>,
     ok_reaction: ReactionType,
@@ -28,12 +30,14 @@ struct RecreateRequest {
     pub problem_id: String,
 }
 
-impl<Repository> RecreateCommand<Repository>
+impl<RoleRepository, ProblemRepository> RecreateCommand<RoleRepository, ProblemRepository>
 where
-    Repository: RoleFinder + Send,
+    RoleRepository: RoleFinder + Send,
+    ProblemRepository: ProblemRecreater + Send,
 {
     pub fn new(
-        repository: Repository,
+        roleRepository: RoleRepository,
+        problemRepository: ProblemRepository,
         teams: &[TeamConfiguration],
         problems: &[ProblemConfiguration],
     ) -> Self {
@@ -48,7 +52,8 @@ where
         });
 
         Self {
-            repository,
+            roleRepository,
+            problemRepository,
             teams: ts,
             problems: ps,
             ok_reaction: ReactionType::Unicode(OK_REACTION.into()),
@@ -62,7 +67,7 @@ where
         let user = &ctx.command.user;
 
         let roles = self
-            .repository
+            .roleRepository
             .find_by_user(&ctx.context.http, guild_id, user.id)
             .await?;
 
@@ -125,25 +130,26 @@ where
             }
         };
 
-        match reaction.as_str() {
-            OK_REACTION => {
-                request
-                    .channel_id
-                    .send_message(&ctx.context.http, |message| {
-                        message.content("初期化を開始します。")
-                    })
-                    .await?;
-            }
-            NG_REACTION => {
-                request
-                    .channel_id
-                    .send_message(&ctx.context.http, |message| {
-                        message.content("初期化を中断します。")
-                    })
-                    .await?;
-            }
-            _ => {}
-        };
+        if reaction.as_str() == NG_REACTION {
+            request
+                .channel_id
+                .send_message(&ctx.context.http, |message| {
+                    message.content("初期化を中断します。")
+                })
+                .await?;
+            return Ok(());
+        }
+
+        let url = self.problemRepository
+            .recreate(request.team_id, request.problem_id)
+            .await?;
+
+        request
+            .channel_id
+            .send_message(&ctx.context.http, |message| {
+                message.content(format!("初期化を開始します。\n{}", url))
+            })
+            .await?;
 
         Ok(())
     }

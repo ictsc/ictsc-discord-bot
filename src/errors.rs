@@ -11,6 +11,8 @@ pub enum Error {
     SystemError(#[from] SystemError),
     #[error("不明なエラーが発生しました。")]
     SerenityError(#[from] serenity::Error),
+    #[error("不明なエラーが発生しました。")]
+    ReqwestError(#[from] reqwest::Error),
 }
 
 #[derive(Debug, Error)]
