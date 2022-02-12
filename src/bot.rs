@@ -229,26 +229,34 @@ impl Bot {
         Ok(client.start().await?)
     }
 
-    pub async fn create_admin_roles(&self) -> Result<()> {
+    pub async fn create_roles(&self) -> Result<()> {
         let token = &self.config.token;
         let guild_id = GuildId::from(self.config.guild_id);
         let application_id = self.config.application_id;
 
         let http = &Http::new_with_token_application_id(token, application_id);
 
-        RoleManager
-            .sync(
-                http,
-                guild_id,
-                CreateRoleInput {
-                    name: String::from("ICTSC2021 Staff"),
-                    color: 14942278,
-                    hoist: true,
-                    mentionable: true,
-                    permissions: Permissions::all(),
-                },
-            )
-            .await?;
+        let mut roles = Vec::new();
+
+        roles.push(CreateRoleInput {
+            name: String::from("ICTSC2021 Staff"),
+            color: 14942278,
+            hoist: true,
+            mentionable: true,
+            permissions: Permissions::all(),
+        });
+
+        for team in &self.config.teams {
+            roles.push(CreateRoleInput {
+                name: team.role_name.clone(),
+                color: 0,
+                hoist: true,
+                mentionable: true,
+                permissions: Permissions::empty(),
+            })
+        }
+
+        RoleManager.sync_bulk(http, guild_id, roles).await?;
 
         Ok(())
     }
@@ -293,15 +301,7 @@ impl Bot {
 
         let mut roles = Vec::new();
 
-        for team in &self.config.teams {
-            roles.push(CreateRoleInput {
-                name: team.role_name.clone(),
-                color: 0,
-                hoist: true,
-                mentionable: true,
-                permissions: Permissions::empty(),
-            })
-        }
+
 
         RoleManager.sync_bulk(http, guild_id, roles).await?;
 

@@ -17,9 +17,8 @@ struct Arguments {
 #[derive(Debug, Subcommand)]
 enum Commands {
     Start,
-    CreateAdminRoles,
+    CreateRoles,
     CreateAdminChannels,
-    CreateTeamRoles,
     CreateTeamChannels,
 }
 
@@ -40,9 +39,8 @@ async fn main() {
 
     let result = match args.command {
         Commands::Start => bot.start().await,
-        Commands::CreateAdminRoles => bot.create_admin_roles().await,
+        Commands::CreateRoles => bot.create_roles().await,
         Commands::CreateAdminChannels => bot.create_admin_channels().await,
-        Commands::CreateTeamRoles => bot.create_team_roles().await,
         Commands::CreateTeamChannels => bot.create_team_channels().await,
     };
 
