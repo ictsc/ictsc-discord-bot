@@ -184,8 +184,11 @@ impl EventHandler for Bot {
         self.setup_application_command(ctx, guild).await;
     }
 
-    async fn ready(&self, _ctx: Context, _: Ready) {
+    async fn ready(&self, ctx: Context, _: Ready) {
         log::debug!("called ready");
+
+        self.setup_global_application_command(ctx).await;
+
         log::info!("started bot");
     }
 
