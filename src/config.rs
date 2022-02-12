@@ -68,7 +68,6 @@ impl From<ProblemConfiguration> for bot::ProblemConfiguration {
     fn from(problem: ProblemConfiguration) -> Self {
         Self {
             id: problem.id,
-            code: problem.code,
             name: problem.name,
         }
     }
@@ -108,6 +107,5 @@ pub struct TeamConfiguration {
 #[derive(Debug, Deserialize)]
 pub struct ProblemConfiguration {
     pub id: String,
-    pub code: String,
     pub name: String,
 }

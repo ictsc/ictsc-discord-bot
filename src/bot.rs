@@ -50,7 +50,6 @@ pub struct TeamConfiguration {
 #[derive(Debug, Clone)]
 pub struct ProblemConfiguration {
     pub id: String,
-    pub code: String,
     pub name: String,
 }
 

@@ -48,7 +48,7 @@ where
 
         let mut ps = HashMap::new();
         problems.iter().for_each(|problem| {
-            ps.insert(problem.code.clone(), problem.clone());
+            ps.insert(problem.id.clone(), problem.clone());
         });
 
         Self {
