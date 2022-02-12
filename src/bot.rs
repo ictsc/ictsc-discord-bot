@@ -229,7 +229,7 @@ impl Bot {
         Ok(client.start().await?)
     }
 
-    pub async fn create_admin_role(&self) -> Result<()> {
+    pub async fn create_admin_roles(&self) -> Result<()> {
         let token = &self.config.token;
         let guild_id = GuildId::from(self.config.guild_id);
         let application_id = self.config.application_id;
@@ -284,7 +284,7 @@ impl Bot {
         Ok(())
     }
 
-    pub async fn create_team_role(&self) -> Result<()> {
+    pub async fn create_team_roles(&self) -> Result<()> {
         let token = &self.config.token;
         let guild_id = GuildId::from(self.config.guild_id);
         let application_id = self.config.application_id;
