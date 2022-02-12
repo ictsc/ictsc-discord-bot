@@ -32,6 +32,12 @@ pub trait CategoryChannelFinder {
         guild_id: GuildId,
         name: S,
     ) -> Result<Vec<GuildChannel>>;
+
+    async fn find_all(
+        &self,
+        http: &Http,
+        guild_id: GuildId,
+    ) -> Result<Vec<GuildChannel>>;
 }
 
 #[async_trait]
@@ -43,13 +49,16 @@ pub trait CategoryChannelDeleter {
 pub trait CategoryChannelSyncer:
     CategoryChannelCreator + CategoryChannelFinder + CategoryChannelDeleter
 {
-    async fn sync(
+    async fn sync_cached(
         &self,
         http: &Http,
         guild_id: GuildId,
+        channels: &[GuildChannel],
         input: CreateCategoryChannelInput,
     ) -> Result<GuildChannel> {
-        let channels = self.find_by_name(http, guild_id, &input.name).await?;
+        let channels: Vec<_> = channels.iter()
+            .filter(|channel| channel.name == input.name)
+            .collect();
 
         match channels.len() {
             1 => {
@@ -63,6 +72,34 @@ pub trait CategoryChannelSyncer:
                 return self.create(http, guild_id, input).await;
             }
         };
+    }
+
+    async fn sync(
+        &self,
+        http: &Http,
+        guild_id: GuildId,
+        input: CreateCategoryChannelInput,
+    ) -> Result<GuildChannel> {
+        let channels = self.find_all(http, guild_id).await?;
+
+        self.sync_cached(http, guild_id, &channels, input).await
+    }
+
+    async fn sync_bulk(
+        &self,
+        http: &Http,
+        guild_id: GuildId,
+        inputs: Vec<CreateCategoryChannelInput>,
+    ) -> Result<Vec<GuildChannel>> {
+        let channels = self.find_all(http, guild_id).await?;
+
+        let mut results = Vec::new();
+
+        for input in inputs {
+            results.push(self.sync_cached(http, guild_id, &channels, input).await?);
+        }
+
+        Ok(results)
     }
 }
 
@@ -113,6 +150,15 @@ impl CategoryChannelFinder for CategoryChannelManager {
             }
         }
         Ok(result)
+    }
+
+    async fn find_all(&self, http: &Http, guild_id: GuildId) -> Result<Vec<GuildChannel>> {
+        Ok(guild_id.channels(http)
+            .await?
+            .into_iter()
+            .map(|(_, channel)| channel)
+            .filter(|channel| channel.kind == ChannelType::Category)
+            .collect())
     }
 }
 

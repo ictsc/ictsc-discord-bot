@@ -33,6 +33,11 @@ pub trait TextChannelFinder {
         guild_id: GuildId,
         name: S,
     ) -> Result<Vec<GuildChannel>>;
+    async fn find_all(
+        &self,
+        http: &Http,
+        guild_id: GuildId,
+    ) -> Result<Vec<GuildChannel>>;
 }
 
 #[async_trait]
@@ -42,29 +47,57 @@ pub trait TextChannelDeleter {
 
 #[async_trait]
 pub trait TextChannelSyncer: TextChannelCreator + TextChannelFinder + TextChannelDeleter {
-    async fn sync(
+    async fn sync_cached(
         &self,
         http: &Http,
         guild_id: GuildId,
+        channels: &[GuildChannel],
         input: CreateTextChannelInput,
-    ) -> Result<()> {
-        let mut channels = self.find_by_name(http, guild_id, &input.name).await?;
+    ) -> Result<GuildChannel> {
+        let channels: Vec<_> = channels.iter()
+            .filter(|channel| channel.name == input.name)
+            .collect();
 
         match channels.len() {
             1 => {
-                channels[0]
-                    .edit(http, |channel| channel.category(input.category_id))
-                    .await?;
+                // TODO: handling parameter change
+                return Ok(channels[0].clone());
             }
             _ => {
                 for channel in channels {
                     self.delete(http, guild_id, channel.id).await?;
                 }
-                self.create(http, guild_id, input).await?;
+                return self.create(http, guild_id, input).await;
             }
         };
+    }
 
-        Ok(())
+    async fn sync(
+        &self,
+        http: &Http,
+        guild_id: GuildId,
+        input: CreateTextChannelInput,
+    ) -> Result<GuildChannel> {
+        let channels = self.find_all(http, guild_id).await?;
+
+        self.sync_cached(http, guild_id, &channels, input).await
+    }
+
+    async fn sync_bulk(
+        &self,
+        http: &Http,
+        guild_id: GuildId,
+        inputs: Vec<CreateTextChannelInput>,
+    ) -> Result<Vec<GuildChannel>> {
+        let channels = self.find_all(http, guild_id).await?;
+
+        let mut results = Vec::new();
+
+        for input in inputs {
+            results.push(self.sync_cached(http, guild_id, &channels, input).await?);
+        }
+
+        Ok(results)
     }
 }
 
@@ -120,6 +153,15 @@ impl TextChannelFinder for TextChannelManager {
             }
         }
         Ok(result)
+    }
+
+    async fn find_all(&self, http: &Http, guild_id: GuildId) -> Result<Vec<GuildChannel>> {
+        Ok(guild_id.channels(http)
+            .await?
+            .into_iter()
+            .map(|(_, channel)| channel)
+            .filter(|channel| channel.kind == ChannelType::Text)
+            .collect())
     }
 }
 

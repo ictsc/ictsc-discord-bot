@@ -294,51 +294,52 @@ impl Bot {
         Ok(())
     }
 
-    pub async fn create_team_roles(&self) -> Result<()> {
+    pub async fn create_channels(&self) -> Result<()> {
         let token = &self.config.token;
         let guild_id = GuildId::from(self.config.guild_id);
         let application_id = self.config.application_id;
 
         let http = &Http::new_with_token_application_id(token, application_id);
 
-        let mut roles = Vec::new();
+        let mut categories = Vec::new();
 
-
-
-        RoleManager.sync_bulk(http, guild_id, roles).await?;
-
-        Ok(())
-    }
-
-    pub async fn create_team_channels(&self) -> Result<()> {
-        let token = &self.config.token;
-        let guild_id = GuildId::from(self.config.guild_id);
-        let application_id = self.config.application_id;
-
-        let http = &Http::new_with_token_application_id(token, application_id);
+        categories.push(CreateCategoryChannelInput {
+            name: String::from("admin"),
+        });
 
         for team in &self.config.teams {
-            let category = CategoryChannelManager
-                .sync(
-                    http,
-                    guild_id,
-                    CreateCategoryChannelInput {
-                        name: team.channel_name.clone(),
-                    },
-                )
-                .await?;
-
-            TextChannelManager
-                .sync(
-                    http,
-                    guild_id,
-                    CreateTextChannelInput {
-                        name: team.channel_name.clone(),
-                        category_id: Some(category.id),
-                    },
-                )
-                .await?;
+            categories.push(CreateCategoryChannelInput {
+                name: team.channel_name.clone(),
+            });
         }
+
+        let categories = CategoryChannelManager.sync_bulk(http, guild_id, categories).await?;
+        let mut categories_table = HashMap::new();
+        for category in categories {
+            categories_table.insert(category.name, category.id);
+        }
+
+        let mut channels = Vec::new();
+
+        let category_id = categories_table.get("admin")
+            .expect("channel name is invalid").clone();
+
+        channels.push(CreateTextChannelInput {
+            name: String::from("admin"),
+            category_id: Some(category_id),
+        });
+
+        for team in &self.config.teams {
+            let category_id = categories_table.get(&team.channel_name)
+                .expect("channel name is invalid").clone();
+
+            channels.push(CreateTextChannelInput {
+                name: team.channel_name.clone(),
+                category_id: Some(category_id),
+            })
+        }
+
+        TextChannelManager.sync_bulk(http, guild_id, channels).await?;
 
         Ok(())
     }
