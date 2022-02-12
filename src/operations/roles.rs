@@ -2,8 +2,9 @@ use crate::Result;
 use async_trait::async_trait;
 use serenity::http::Http;
 use serenity::model::prelude::*;
+use serenity::utils::Color;
 
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub struct CreateRoleInput {
     pub name: String,
     pub color: u64,
@@ -69,19 +70,33 @@ pub trait RoleRevoker {
 
 #[async_trait]
 pub trait RoleSyncer: RoleCreator + RoleFinder + RoleDeleter {
-    async fn sync(&self, http: &Http, guild_id: GuildId, input: CreateRoleInput) -> Result<()> {
-        let roles = self.find_by_name(http, guild_id, &input.name).await?;
+    async fn sync_cached(&self, http: &Http, guild_id: GuildId, roles: &[Role], input: CreateRoleInput) -> Result<()> {
+        let roles: Vec<_> = roles.iter()
+            .filter(|role| role.name == input.name)
+            .collect();
 
         match roles.len() {
             1 => {
-                guild_id
-                    .edit_role(http, roles[0].id, |role| {
-                        role.colour(input.color)
-                            .mentionable(input.mentionable)
-                            .hoist(input.hoist)
-                            .permissions(input.permissions)
-                    })
-                    .await?;
+                let role = roles[0];
+
+                log::debug!("{:?} vs {:?}", role, input);
+
+                let mut diff = role.colour.0 as u64 != input.color;
+                diff = diff || role.mentionable != input.mentionable;
+                diff = diff || role.hoist != input.hoist;
+                diff = diff || role.permissions != input.permissions;
+
+                if diff {
+                    log::debug!("diff is found, updating");
+                    guild_id
+                        .edit_role(http, role.id, |role| {
+                            role.colour(input.color)
+                                .mentionable(input.mentionable)
+                                .hoist(input.hoist)
+                                .permissions(input.permissions)
+                        })
+                        .await?;
+                }
             }
             _ => {
                 for role in roles {
@@ -90,6 +105,24 @@ pub trait RoleSyncer: RoleCreator + RoleFinder + RoleDeleter {
                 self.create(http, guild_id, input).await?;
             }
         };
+
+        Ok(())
+    }
+
+    async fn sync(&self, http: &Http, guild_id: GuildId, input: CreateRoleInput) -> Result<()> {
+        let roles = self.find_all(http, guild_id).await?;
+
+        self.sync_cached(http, guild_id, &roles, input).await?;
+
+        Ok(())
+    }
+
+    async fn sync_bulk(&self, http: &Http, guild_id: GuildId, inputs: Vec<CreateRoleInput>) -> Result<()> {
+        let roles = self.find_all(http, guild_id).await?;
+
+        for input in inputs {
+            self.sync_cached(http, guild_id, &roles, input).await?;
+        }
 
         Ok(())
     }

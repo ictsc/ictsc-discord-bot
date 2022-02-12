@@ -291,21 +291,19 @@ impl Bot {
 
         let http = &Http::new_with_token_application_id(token, application_id);
 
+        let mut roles = Vec::new();
+
         for team in &self.config.teams {
-            RoleManager
-                .sync(
-                    http,
-                    guild_id,
-                    CreateRoleInput {
-                        name: team.role_name.clone(),
-                        color: 0,
-                        hoist: true,
-                        mentionable: true,
-                        permissions: Permissions::empty(),
-                    },
-                )
-                .await?;
+            roles.push(CreateRoleInput {
+                name: team.role_name.clone(),
+                color: 0,
+                hoist: true,
+                mentionable: true,
+                permissions: Permissions::empty(),
+            })
         }
+
+        RoleManager.sync_bulk(http, guild_id, roles).await?;
 
         Ok(())
     }
