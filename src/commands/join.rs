@@ -91,13 +91,9 @@ where
             Ok(_) => {
                 InteractionHelper::defer_respond(http, command, "チームに参加しました。").await
             }
-            Err(Error::UserError(err)) => {
-                log::warn!("failed to run join: {:?}", err);
-                InteractionHelper::defer_respond(http, command, err).await
-            }
             Err(err) => {
                 log::warn!("failed to run join: {:?}", err);
-                InteractionHelper::defer_respond(http, command, "internal server error").await
+                InteractionHelper::defer_respond(http, command, err).await
             }
         };
 
