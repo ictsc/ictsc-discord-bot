@@ -16,7 +16,7 @@ build:
 run:
 	docker run --name kana -itd -v $(shell pwd)/bot.yaml:/app/bot.yaml:ro -e RUST_LOG=bot=debug ictsc/ictsc-kana:${VERSION} -f /app/bot.yaml start
 
-stop:
-	docker stop -f kana
+rm:
+	docker rm -f kana
 
-.PHONY: precommit fmt fix build run stop
+.PHONY: precommit fmt fix build run rm
