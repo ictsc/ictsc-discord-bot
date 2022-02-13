@@ -24,13 +24,13 @@ enum Commands {
 
 #[tokio::main]
 async fn main() {
-    env_logger::init();
+    tracing_subscriber::fmt::init();
 
     let args: Arguments = Arguments::parse();
     let config = match Configuration::load(args.config) {
         Ok(config) => config,
         Err(err) => {
-            log::error!("couldn't read config file: {:?}", err);
+            tracing::error!("couldn't read config file: {:?}", err);
             return;
         }
     };
@@ -45,6 +45,6 @@ async fn main() {
     };
 
     if let Err(reason) = result {
-        log::error!("finished unsuccessfully: {:?}", reason);
+        tracing::error!("finished unsuccessfully: {:?}", reason);
     }
 }

@@ -179,21 +179,21 @@ fn setup_application_command_definitions() -> CommandDefinitions<'static> {
 #[async_trait]
 impl EventHandler for Bot {
     async fn guild_create(&self, ctx: Context, guild: Guild) {
-        log::debug!("called guild_create: {:?}", guild);
+        tracing::debug!("called guild_create: {:?}", guild);
 
         self.setup_application_command(ctx, guild).await;
     }
 
     async fn ready(&self, ctx: Context, _: Ready) {
-        log::debug!("called ready");
+        tracing::debug!("called ready");
 
         self.setup_global_application_command(ctx).await;
 
-        log::info!("started bot");
+        tracing::info!("started bot");
     }
 
     async fn interaction_create(&self, ctx: Context, interaction: Interaction) {
-        log::debug!("called interaction_create: {:?}", interaction);
+        tracing::debug!("called interaction_create: {:?}", interaction);
 
         match interaction {
             Interaction::ApplicationCommand(command) => {
@@ -208,7 +208,7 @@ impl EventHandler for Bot {
     }
 
     async fn reaction_add(&self, ctx: Context, reaction: Reaction) {
-        log::debug!("called reaction_add: {:?}", reaction);
+        tracing::debug!("called reaction_add: {:?}", reaction);
 
         self.handle_reaction(ReactionContext {
             context: ctx,
@@ -335,7 +335,7 @@ impl Bot {
             .unwrap();
         for command in &commands {
             if !definitions.contains_key(command.name.as_str()) {
-                log::debug!("delete global application command: {:?}", command);
+                tracing::debug!("delete global application command: {:?}", command);
                 ApplicationCommand::delete_global_application_command(&ctx.http, command.id)
                     .await
                     .unwrap();
@@ -343,7 +343,7 @@ impl Bot {
         }
 
         for (name, handler) in definitions {
-            log::debug!("create global application command: {:?}", name);
+            tracing::debug!("create global application command: {:?}", name);
             ApplicationCommand::create_global_application_command(&ctx.http, handler)
                 .await
                 .unwrap();
@@ -356,7 +356,7 @@ impl Bot {
         let commands = guild.get_application_commands(&ctx.http).await.unwrap();
         for command in &commands {
             if !definitions.contains_key(command.name.as_str()) {
-                log::debug!("delete application command: {:?}", command);
+                tracing::debug!("delete application command: {:?}", command);
                 guild
                     .delete_application_command(&ctx.http, command.id)
                     .await
@@ -365,7 +365,7 @@ impl Bot {
         }
 
         for (name, handler) in definitions {
-            log::debug!("create application command: {:?}", name);
+            tracing::debug!("create application command: {:?}", name);
             guild
                 .create_application_command(&ctx.http, handler)
                 .await
@@ -377,7 +377,7 @@ impl Bot {
         let commands = guild.get_application_commands(&ctx.http).await.unwrap();
 
         for command in &commands {
-            log::debug!("delete application command: {:?}", command);
+            tracing::debug!("delete application command: {:?}", command);
             guild
                 .delete_application_command(&ctx.http, command.id)
                 .await
@@ -423,7 +423,7 @@ impl Bot {
             "join" => self.handle_command_join(&ctx).await,
             "recreate" => self.handle_command_recreate(&ctx).await,
             _ => {
-                log::error!("received command unhandled: {:?}", ctx.command);
+                tracing::error!("received command unhandled: {:?}", ctx.command);
                 InteractionHelper::send_ephemeral(
                     &ctx.context.http,
                     &ctx.command,
@@ -435,7 +435,7 @@ impl Bot {
         };
 
         if let Err(err) = result {
-            log::error!("failed to handle application command: {:?}", err);
+            tracing::error!("failed to handle application command: {:?}", err);
             let result = InteractionHelper::send_ephemeral(
                 &ctx.context.http,
                 &ctx.command,
@@ -448,7 +448,7 @@ impl Bot {
         let result = self.recreate_command.add_reaction(&ctx).await;
 
         if let Err(err) = result {
-            log::error!("failed to handle reaction: {:?}", err);
+            tracing::error!("failed to handle reaction: {:?}", err);
         }
     }
 }

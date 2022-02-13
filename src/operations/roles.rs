@@ -84,7 +84,7 @@ pub trait RoleSyncer: RoleCreator + RoleFinder + RoleDeleter {
             1 => {
                 let role = roles[0];
 
-                log::debug!("{:?} vs {:?}", role, input);
+                tracing::debug!("{:?} vs {:?}", role, input);
 
                 let mut diff = role.colour.0 as u64 != input.color;
                 diff = diff || role.mentionable != input.mentionable;
@@ -92,7 +92,7 @@ pub trait RoleSyncer: RoleCreator + RoleFinder + RoleDeleter {
                 diff = diff || role.permissions != input.permissions;
 
                 if diff {
-                    log::debug!("diff is found, updating");
+                    tracing::debug!("diff is found, updating");
                     guild_id
                         .edit_role(http, role.id, |role| {
                             role.colour(input.color)
@@ -221,16 +221,16 @@ impl RoleDeleter for RoleManager {
 #[async_trait]
 impl RoleBulkDeleter for RoleManager {
     async fn delete_all(&self, http: &Http, guild_id: GuildId) -> Result<()> {
-        log::debug!("RoleManager#delete_all");
+        tracing::debug!("RoleManager#delete_all");
 
         let roles = self.find_all(http, guild_id).await?;
 
         for role in roles {
             match self.delete(http, guild_id, role.id).await {
                 Ok(_) =>
-                    log::debug!("deleted role (id: {}, name: {})", role.id, role.name),
+                    tracing::debug!("deleted role (id: {}, name: {})", role.id, role.name),
                 Err(err) =>
-                    log::warn!("couldn't delete role (id: {}, name: {})", role.id, role.name),
+                    tracing::warn!("couldn't delete role (id: {}, name: {})", role.id, role.name),
             }
         }
 
