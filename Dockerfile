@@ -13,4 +13,4 @@ COPY . .
 RUN --mount=type=cache,target=/app/.cache/sccache \
     cargo build --release
 
-ENTRYPOINT ["/app/target/release/app"]
+ENTRYPOINT ["/app/target/release/bot"]
