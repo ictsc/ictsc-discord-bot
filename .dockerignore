@@ -1,0 +1,10 @@
+Dockerfile
+.dockerignore
+.gitignore
+
+README.md
+Makefile
+
+/target
+
+bot.yaml
