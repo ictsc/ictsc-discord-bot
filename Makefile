@@ -14,6 +14,6 @@ build:
 	docker build -t ictsc/ictsc-kana:${VERSION} .
 
 run:
-	docker run -itd -v $(shell pwd)/bot.yaml:/app/bot.yaml:ro ictsc/ictsc-kana:${VERSION} -- -f /app/bot.yaml start
+	docker run -itd -v $(shell pwd)/bot.yaml:/app/bot.yaml:ro -e RUST_LOG=bot=debug ictsc/ictsc-kana:${VERSION} -f /app/bot.yaml start
 
-.PHONY: precommit fmt fix
+.PHONY: precommit fmt fix build run
