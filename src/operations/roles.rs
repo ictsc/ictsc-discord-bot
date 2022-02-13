@@ -47,6 +47,11 @@ pub trait RoleDeleter {
 }
 
 #[async_trait]
+pub trait RoleBulkDeleter {
+    async fn delete_all(&self, http: &Http, guild_id: GuildId) -> Result<()>;
+}
+
+#[async_trait]
 pub trait RoleGranter {
     async fn grant(
         &self,
@@ -210,6 +215,26 @@ impl RoleFinder for RoleManager {
 impl RoleDeleter for RoleManager {
     async fn delete(&self, http: &Http, guild_id: GuildId, role_id: RoleId) -> Result<()> {
         Ok(guild_id.delete_role(http, role_id).await?)
+    }
+}
+
+#[async_trait]
+impl RoleBulkDeleter for RoleManager {
+    async fn delete_all(&self, http: &Http, guild_id: GuildId) -> Result<()> {
+        log::debug!("RoleManager#delete_all");
+
+        let roles = self.find_all(http, guild_id).await?;
+
+        for role in roles {
+            match self.delete(http, guild_id, role.id).await {
+                Ok(_) =>
+                    log::debug!("deleted role (id: {}, name: {})", role.id, role.name),
+                Err(err) =>
+                    log::warn!("couldn't delete role (id: {}, name: {})", role.id, role.name),
+            }
+        }
+
+        Ok(())
     }
 }
 
