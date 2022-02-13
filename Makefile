@@ -1,3 +1,5 @@
+VERSION := $(shell git rev-parse --short HEAD)
+
 all:
 
 precommit: fmt fix
@@ -7,5 +9,11 @@ fmt:
 
 fix:
 	cargo fix --allow-dirty --allow-staged
+
+build:
+	docker build -t ictsc/ictsc-kana:${VERSION} .
+
+run:
+	docker run -itd -v $(shell pwd)/bot.yaml:/app/bot.yaml:ro ictsc/ictsc-kana:${VERSION} -- -f /app/bot.yaml start
 
 .PHONY: precommit fmt fix
