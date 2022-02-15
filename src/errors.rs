@@ -23,6 +23,10 @@ pub enum UserError {
     NoSuchProblem,
     #[error("チームに所属していないため、処理を実行することができません。")]
     UserNotInTeam,
+    #[error("再作成リクエストが実行中です。")]
+    RequestInQueue,
+    #[error("競技時間外です。")]
+    OutOfCompetitionTime,
     #[error("許可されていない処理です。")]
     Forbidden,
 }

@@ -1,6 +1,6 @@
-use crate::Result;
+use crate::{errors, Result};
 use async_trait::async_trait;
-use reqwest::Client;
+use reqwest::{Client, StatusCode};
 use reqwest::header::{AUTHORIZATION, CONTENT_TYPE, HeaderMap};
 use serenity::http::Http;
 use serenity::model::prelude::*;
@@ -41,17 +41,23 @@ impl ProblemRecreater for ProblemRecreateManager {
     {
         let url = format!("{}/admin/postJob", self.baseurl);
 
-        let bytes = self.client.post(url)
+        let response = self.client.post(url)
             .body(format!("team_id={}&prob_id={}", team_id, problem_id))
             .send()
-            .await?
-            .bytes()
-            .await?
-            .to_vec();
+            .await?;
 
-        let statusUrl = format!("{}{}", self.baseurl, String::from_utf8(bytes).unwrap());
-
-        Ok(statusUrl)
+        match response.status() {
+            StatusCode::OK => {
+                let data = response.bytes().await?.to_vec();
+                Ok(format!("{}{}", self.baseurl, String::from_utf8(data).unwrap()))
+            }
+            StatusCode::BAD_REQUEST => Err(errors::UserError::RequestInQueue.into()),
+            StatusCode::NOT_FOUND => Err(errors::UserError::OutOfCompetitionTime.into()),
+            _ => {
+                let message = format!("recreate server returns unexpected status code: {:?}", response.status());
+                Err(errors::SystemError::UnexpectedError(message).into())
+            }
+        }
     }
 }
 
