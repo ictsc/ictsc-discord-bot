@@ -14,7 +14,7 @@ build:
 	docker build -t ictsc/ictsc-kana:${VERSION} .
 
 run:
-	docker run --name kana -itd -v $(shell pwd)/bot.yaml:/app/bot.yaml:ro -e RUST_LOG=bot=debug ictsc/ictsc-kana:${VERSION} -f /app/bot.yaml start
+	docker run --name kana -itd -v $(shell pwd)/bot.yaml:/bot.yaml:ro -e RUST_LOG=bot=debug ictsc/ictsc-kana:${VERSION} -f /bot.yaml start
 
 rm:
 	docker rm -f kana
