@@ -152,14 +152,19 @@ where
             return Ok(());
         }
 
-        let url = self.problemRepository
+        let result = self.problemRepository
             .recreate(request.team_id, request.problem_id)
-            .await?;
+            .await;
+
+        let response = match result {
+            Ok(url) => format!("初期化を開始します。\n{}", url),
+            Err(err) => format!("{}", err),
+        };
 
         request
             .channel_id
             .send_message(&ctx.context.http, |message| {
-                message.content(format!("初期化を開始します。\n{}", url))
+                message.content(response)
             })
             .await?;
 
