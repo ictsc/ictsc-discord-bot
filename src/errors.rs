@@ -21,6 +21,8 @@ pub enum UserError {
     InvalidInvitationCode,
     #[error("そのような問題はありません。")]
     NoSuchProblem,
+    #[error("チームに所属していないため、処理を実行することができません。")]
+    UserNotInTeam,
     #[error("許可されていない処理です。")]
     Forbidden,
 }
@@ -29,4 +31,6 @@ pub enum UserError {
 pub enum SystemError {
     #[error("no such role: {0}")]
     NoSuchRole(String),
+    #[error("unexpected error: {0}")]
+    UnexpectedError(String),
 }

@@ -2,7 +2,7 @@ use crate::commands::{ApplicationCommandContext, ReactionContext};
 use crate::*;
 
 use serenity::model::channel::ReactionType;
-use serenity::model::id::ChannelId;
+use serenity::model::id::{ChannelId, UserId};
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::Mutex;
@@ -26,6 +26,7 @@ where
 
 struct RecreateRequest {
     pub channel_id: ChannelId,
+    pub user_id: UserId,
     pub team_id: String,
     pub problem_id: String,
 }
@@ -95,6 +96,7 @@ where
 
         let message_id = *message.id.as_u64();
         let team_id = team.id;
+        let user_id = user.id;
         let problem_id = problem.id;
         let channel_id = message.channel_id;
 
@@ -104,6 +106,7 @@ where
                 message_id,
                 RecreateRequest {
                     channel_id,
+                    user_id,
                     team_id,
                     problem_id,
                 },
@@ -114,6 +117,9 @@ where
     }
 
     pub async fn add_reaction(&self, ctx: &ReactionContext) -> Result<()> {
+        let user_id = ctx.reaction.user_id
+            .ok_or(errors::SystemError::UnexpectedError("ctx.reaction.user_id is None".into()))?;
+
         let reaction = ctx.reaction.emoji.to_string();
 
         let message_id = ctx.reaction.message_id;
@@ -125,7 +131,13 @@ where
         let request = {
             let mut table = self.pending_requests.lock().await;
             match table.remove(message_id.as_u64()) {
-                Some(v) => v,
+                Some(v) => {
+                    if v.user_id != user_id {
+                        table.insert(*message_id.as_u64(), v);
+                        return Ok(());
+                    }
+                    v
+                },
                 None => return Ok(()),
             }
         };
