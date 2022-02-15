@@ -79,7 +79,7 @@ where
             };
         }
 
-        let team = team.ok_or(errors::UserError::Forbidden)?;
+        let team = team.ok_or(errors::UserError::UserNotInTeam)?;
 
         let problem = self
             .problems
