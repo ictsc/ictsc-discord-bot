@@ -414,6 +414,9 @@ impl Bot {
     }
 
     async fn handle_application_command(&self, ctx: ApplicationCommandContext) {
+        let span = tracing::span!(tracing::Level::INFO, "application_command", interaction_id = ctx.command.id.as_u64());
+        let _enter = span.enter();
+
         let name = ctx.command.data.name.as_str();
 
         let result = match name {
@@ -422,25 +425,27 @@ impl Bot {
             "ask" => self.handle_command_ask(&ctx).await,
             "join" => self.handle_command_join(&ctx).await,
             "recreate" => self.handle_command_recreate(&ctx).await,
-            _ => {
-                tracing::error!("received command unhandled: {:?}", ctx.command);
-                InteractionHelper::send_ephemeral(
-                    &ctx.context.http,
-                    &ctx.command,
-                    "internal server error",
-                )
-                .await
-                .map_err(|err| err.into())
-            }
+            _ => Err(errors::SystemError::UnhandledCommand(String::from(name)).into()),
         };
 
-        if let Err(err) = result {
-            tracing::error!("failed to handle application command: {:?}", err);
-            let result = InteractionHelper::send_ephemeral(
-                &ctx.context.http,
-                &ctx.command,
-                err,
-            ).await;
+        match result {
+            Ok(_) => (),
+            Err(errors::Error::UserError(err)) => {
+                tracing::error!("failed to handle application command: {:?}", err);
+                let _ = InteractionHelper::send_ephemeral(
+                    &ctx.context.http,
+                    &ctx.command,
+                    err,
+                ).await;
+            },
+            Err(err) => {
+                tracing::error!("failed to handle application command: {:?}", err);
+                let _ = InteractionHelper::send_ephemeral(
+                    &ctx.context.http,
+                    &ctx.command,
+                    format!("{} (interaction_id: {})", err, ctx.command.id),
+                ).await;
+            },
         }
     }
 

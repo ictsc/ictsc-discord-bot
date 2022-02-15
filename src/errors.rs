@@ -35,6 +35,8 @@ pub enum UserError {
 pub enum SystemError {
     #[error("no such role: {0}")]
     NoSuchRole(String),
+    #[error("unexpected command: {0}")]
+    UnhandledCommand(String),
     #[error("unexpected error: {0}")]
     UnexpectedError(String),
 }
