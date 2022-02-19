@@ -73,6 +73,7 @@ impl From<Configuration> for bot::Configuration {
             token: config.discord.token,
             guild_id: config.discord.guild_id,
             application_id: config.discord.application_id,
+            staff: config.staff.into(),
             recreate_service: config.recreate.into(),
             teams: config.teams.into_iter().map(|team| team.into()).collect(),
             problems: config
@@ -80,6 +81,14 @@ impl From<Configuration> for bot::Configuration {
                 .into_iter()
                 .map(|prob| prob.into())
                 .collect(),
+        }
+    }
+}
+
+impl From<StaffConfiguration> for bot::StaffConfiguration {
+    fn from(config: StaffConfiguration) -> Self {
+        Self {
+            password: config.password,
         }
     }
 }

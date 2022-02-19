@@ -20,14 +20,22 @@ type CommandCreator =
     Box<dyn FnOnce(&mut CreateApplicationCommand) -> &mut CreateApplicationCommand + Send>;
 type CommandDefinitions<'a> = HashMap<&'a str, CommandCreator>;
 
+static STAFF_ROLE_NAME: &'static str = "ICTSC2021 Staff";
+
 #[derive(Debug, Clone)]
 pub struct Configuration {
     pub token: String,
     pub guild_id: u64,
     pub application_id: u64,
+    pub staff: StaffConfiguration,
     pub recreate_service: RecreateServiceConfiguration,
     pub teams: Vec<TeamConfiguration>,
     pub problems: Vec<ProblemConfiguration>,
+}
+
+#[derive(Debug, Clone)]
+pub struct StaffConfiguration {
+    pub password: String,
 }
 
 #[derive(Debug, Clone)]
@@ -71,8 +79,15 @@ impl Bot {
             config.recreate_service.password.clone(),
         );
 
+        let mut team_mapping  = HashMap::new();
+        team_mapping.insert(config.staff.password.clone(), String::from(STAFF_ROLE_NAME));
+        config.teams.iter()
+            .for_each(|team| {
+                team_mapping.insert(team.invitation_code.clone(), team.role_name.clone());
+            });
+
         let ask_command = AskCommand::new(UserManager, ThreadManager);
-        let join_command = JoinCommand::new(RoleManager, guild_id, &config.teams);
+        let join_command = JoinCommand::new(RoleManager, guild_id, team_mapping);
         let recreate_command = RecreateCommand::new(RoleManager, problemRecreateManager, &config.teams, &config.problems);
         let whoami_command = WhoAmICommand::new(UserManager);
 
