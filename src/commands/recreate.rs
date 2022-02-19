@@ -24,6 +24,7 @@ where
     pending_requests: Arc<Mutex<HashMap<u64, RecreateRequest>>>,
 }
 
+#[derive(Debug)]
 struct RecreateRequest {
     pub channel_id: ChannelId,
     pub user_id: UserId,
@@ -76,10 +77,7 @@ where
             .cloned()
             .ok_or(errors::UserError::NoSuchProblem(code))?;
 
-        tracing::debug!(?problem, "found problem");
-
-
-        tracing::debug!("finding user's team");
+        tracing::debug!(?problem, "found problem, finding user's team");
 
         let roles = self
             .roleRepository
@@ -96,6 +94,7 @@ where
 
         let team = team.ok_or(errors::UserError::UserNotInTeam)?;
 
+        tracing::debug!(?team, "found team, sending confirmation message");
 
         let content = format!("問題「{}」を初期化します。よろしいですか？", problem.name);
 
@@ -104,23 +103,17 @@ where
         InteractionHelper::react(&ctx.context.http, &ctx.command, self.ng_reaction.clone()).await;
 
         let message_id = *message.id.as_u64();
-        let team_id = team.id;
-        let user_id = user.id;
-        let problem_id = problem.id;
-        let channel_id = message.channel_id;
+        let request = RecreateRequest {
+            team_id: team.id,
+            user_id: user.id,
+            problem_id: problem.id,
+            channel_id: message.channel_id,
+        };
 
-        {
-            let mut table = self.pending_requests.lock().await;
-            table.insert(
-                message_id,
-                RecreateRequest {
-                    channel_id,
-                    user_id,
-                    team_id,
-                    problem_id,
-                },
-            );
-        }
+        tracing::debug!(?message_id, ?request, "saving recreate request");
+
+        let mut table = self.pending_requests.lock().await;
+        table.insert(message_id, request);
 
         Ok(())
     }
