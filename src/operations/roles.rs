@@ -220,17 +220,15 @@ impl RoleDeleter for RoleManager {
 
 #[async_trait]
 impl RoleBulkDeleter for RoleManager {
+    #[tracing::instrument(skip(self, http))]
     async fn delete_all(&self, http: &Http, guild_id: GuildId) -> Result<()> {
-        tracing::debug!("RoleManager#delete_all");
-
         let roles = self.find_all(http, guild_id).await?;
 
         for role in roles {
-            match self.delete(http, guild_id, role.id).await {
-                Ok(_) =>
-                    tracing::debug!("deleted role (id: {}, name: {})", role.id, role.name),
-                Err(err) =>
-                    tracing::warn!("couldn't delete role (id: {}, name: {})", role.id, role.name),
+            tracing::debug!(role_id = ?role.id, role_name = ?role.name, "deleting role");
+            let result = self.delete(http, guild_id, role.id).await;
+            if let Err(err) = result {
+                tracing::warn!(?err, role_id = ?role.id, role_name = ?role.name, "failed to delete role");
             }
         }
 

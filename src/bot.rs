@@ -292,6 +292,7 @@ impl Bot {
         Ok(())
     }
 
+    #[tracing::instrument(skip_all)]
     pub async fn delete_roles(&self) -> Result<()> {
         let token = &self.config.token;
         let guild_id = GuildId::from(self.config.guild_id);
@@ -299,7 +300,11 @@ impl Bot {
 
         let http = &Http::new_with_token_application_id(token, application_id);
 
+        tracing::info!("deleting all roles");
+
         RoleManager.delete_all(http, guild_id).await;
+
+        tracing::info!("delete all roles completed");
 
         Ok(())
     }
