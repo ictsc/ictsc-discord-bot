@@ -1,37 +1,20 @@
-#![feature(derive_default_enum)]
-
 use crate::Result;
 use async_trait::async_trait;
 use serenity::http::Http;
 use serenity::model::prelude::*;
 
-#[derive(Default)]
 pub struct CreateChannelInput {
     pub name: String,
-    pub kind: ChannelKind,
+    pub kind: ChannelType,
     pub category_id: Option<ChannelId>,
 }
 
-#[derive(Clone, Copy)]
-#[repr(u8)]
-pub enum ChannelKind {
-    Category,
-    Text,
-    Voice,
-}
-
-impl Default for ChannelKind {
+impl Default for CreateChannelInput {
     fn default() -> Self {
-        Self::Category
-    }
-}
-
-impl From<ChannelKind> for serenity::model::prelude::ChannelType {
-    fn from(kind: ChannelKind) -> Self {
-        match kind {
-            ChannelKind::Category => Self::Category,
-            ChannelKind::Text => Self::Text,
-            ChannelKind::Voice => Self::Voice,
+        Self {
+            name: String::from(""),
+            kind: ChannelType::Unknown,
+            category_id: None,
         }
     }
 }

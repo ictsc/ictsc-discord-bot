@@ -324,14 +324,14 @@ impl Bot {
 
         categories.push(CreateChannelInput {
             name: String::from("admin"),
-            kind: ChannelKind::Category,
+            kind: ChannelType::Category,
             ..CreateChannelInput::default()
         });
 
         for team in &self.config.teams {
             categories.push(CreateChannelInput {
                 name: team.channel_name.clone(),
-                kind: ChannelKind::Category,
+                kind: ChannelType::Category,
                 ..CreateChannelInput::default()
             });
         }
@@ -352,7 +352,7 @@ impl Bot {
 
         channels.push(CreateChannelInput {
             name: String::from("admin"),
-            kind: ChannelKind::Text,
+            kind: ChannelType::Text,
             category_id: Some(category_id),
             ..CreateChannelInput::default()
         });
@@ -364,14 +364,14 @@ impl Bot {
 
             channels.push(CreateChannelInput {
                 name: String::from(TEAM_TEXT_CHANNEL_NAME),
-                kind: ChannelKind::Text,
+                kind: ChannelType::Text,
                 category_id: Some(category_id),
                 ..CreateChannelInput::default()
             });
 
             channels.push(CreateChannelInput {
                 name: String::from(TEAM_VOICE_CHANNEL_NAME),
-                kind: ChannelKind::Voice,
+                kind: ChannelType::Voice,
                 category_id: Some(category_id),
                 ..CreateChannelInput::default()
             });
