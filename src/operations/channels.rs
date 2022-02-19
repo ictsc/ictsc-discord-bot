@@ -72,6 +72,7 @@ pub trait ChannelFinder {
 #[async_trait]
 pub trait ChannelDeleter {
     async fn delete(&self, http: &Http, guild_id: GuildId, channel_id: ChannelId) -> Result<()>;
+    async fn delete_all(&self, http: &Http, guild_id: GuildId) -> Result<()>;
 }
 
 #[async_trait]
@@ -149,6 +150,15 @@ impl ChannelFinder for ChannelManager {
 impl ChannelDeleter for ChannelManager {
     async fn delete(&self, http: &Http, _guild_id: GuildId, channel_id: ChannelId) -> Result<()> {
         channel_id.delete(http).await?;
+        Ok(())
+    }
+
+    #[tracing::instrument(skip(self, http))]
+    async fn delete_all(&self, http: &Http, guild_id: GuildId) -> Result<()> {
+        for (_, channel) in &guild_id.channels(http).await? {
+            tracing::debug!(channel_id = ?channel.id, channel_name = ?channel.name, "deleting channel");
+            channel.delete(http).await?;
+        }
         Ok(())
     }
 }

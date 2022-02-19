@@ -370,6 +370,23 @@ impl Bot {
 
         Ok(())
     }
+
+    #[tracing::instrument(skip_all)]
+    pub async fn delete_channels(&self) -> Result<()> {
+        let token = &self.config.token;
+        let guild_id = GuildId::from(self.config.guild_id);
+        let application_id = self.config.application_id;
+
+        let http = &Http::new_with_token_application_id(token, application_id);
+
+        tracing::info!("deleting all channels");
+
+        ChannelManager.delete_all(http, guild_id).await;
+
+        tracing::info!("delete all channels completed");
+
+        Ok(())
+    }
 }
 
 impl Bot {
