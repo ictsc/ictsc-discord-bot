@@ -120,7 +120,6 @@ where
 
     #[tracing::instrument(skip(self, ctx))]
     pub async fn run(&self, ctx: &ApplicationCommandContext, code: String) -> Result<()> {
-
         let http = &ctx.context.http;
         let command = &ctx.command;
 
@@ -129,7 +128,7 @@ where
 
         if let Err(err) = self.run_defer(ctx, code).await {
             tracing::warn!(?err, "failed to run command");
-            InteractionHelper::defer_respond(http, command, err).await?;
+            InteractionHelper::defer_respond(http, command, format!("{} (id: {})", err, command.id),).await?;
         }
 
         Ok(())

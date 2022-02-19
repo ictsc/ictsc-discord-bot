@@ -593,7 +593,7 @@ impl Bot {
                 let _ = InteractionHelper::send_ephemeral(
                     &ctx.context.http,
                     &ctx.command,
-                    format!("{} (interaction_id: {})", err, ctx.command.id),
+                    format!("{} (id: {})", err, ctx.command.id),
                 )
                 .await;
             }

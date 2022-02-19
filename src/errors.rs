@@ -16,11 +16,11 @@ pub enum Error {
 
 #[derive(Debug, Error)]
 pub enum UserError {
-    #[error("招待コードが不正です。")]
+    #[error("招待コード `{0}` に対応するチームはありません。招待コードを再度お確かめください。")]
     InvalidInvitationCode(String),
-    #[error("そのような問題はありません。")]
+    #[error("問題コード `{0}` に対応する問題がありません。問題コードを再度お確かめください。")]
     NoSuchProblem(String),
-    #[error("チームに所属していないため、処理を実行することができません。")]
+    #[error("チームに所属していないため、処理を実行することができません。/joinを用いてチームに参加してください。")]
     UserNotInTeam,
     #[error("再作成リクエストが実行中です。")]
     RequestInQueue,
