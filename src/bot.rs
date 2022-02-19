@@ -401,43 +401,32 @@ impl Bot {
 impl Bot {
     #[tracing::instrument(skip_all)]
     async fn handle_command_ping(&self, ctx: &ApplicationCommandContext) -> Result<()> {
-        tracing::info!("ping command called");
         InteractionHelper::send(&ctx.context.http, &ctx.command, "pong!").await?;
         Ok(())
     }
 
     #[tracing::instrument(skip_all)]
     async fn handle_command_ask(&self, ctx: &ApplicationCommandContext) -> Result<()> {
-        tracing::info!("ask command called");
         let summary = InteractionHelper::value_of_as_str(&ctx.command, "summary").unwrap();
         Ok(self.ask_command.run(ctx, summary.into()).await?)
     }
 
     #[tracing::instrument(skip_all)]
     async fn handle_command_whoami(&self, ctx: &ApplicationCommandContext) -> Result<()> {
-        tracing::info!("whoami command called");
         Ok(self.whoami_command.run(ctx).await?)
     }
 
-    #[tracing::instrument(skip_all, fields(invitation_code))]
+    #[tracing::instrument(skip_all)]
     async fn handle_command_join(&self, ctx: &ApplicationCommandContext) -> Result<()> {
         let invitation_code =
             InteractionHelper::value_of_as_str(&ctx.command, "invitation_code").unwrap();
-
-        tracing::Span::current().record("invitation_code", &invitation_code);
-        tracing::info!("join command called");
-
         Ok(self.join_command.run(ctx, invitation_code.into()).await?)
     }
 
-    #[tracing::instrument(skip_all, fields(problem_code))]
+    #[tracing::instrument(skip_all)]
     async fn handle_command_recreate(&self, ctx: &ApplicationCommandContext) -> Result<()> {
         let problem_code =
             InteractionHelper::value_of_as_str(&ctx.command, "problem_code").unwrap();
-
-        tracing::Span::current().record("problem_code", &problem_code);
-        tracing::info!("recreate command called");
-
         Ok(self.recreate_command.run(ctx, problem_code.into()).await?)
     }
 

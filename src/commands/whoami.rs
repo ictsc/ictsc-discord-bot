@@ -18,6 +18,7 @@ where
         Self { finder }
     }
 
+    #[tracing::instrument(skip(self, ctx))]
     pub async fn run(&self, ctx: &ApplicationCommandContext) -> Result<()> {
         let user = &ctx.command.user;
 

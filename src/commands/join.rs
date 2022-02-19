@@ -10,32 +10,30 @@ where
 {
     repository: Repository,
     guild_id: GuildId,
-    definitions: HashMap<String, TeamConfiguration>,
+    mapping: HashMap<String, String>,
 }
 
 impl<Repository> JoinCommand<Repository>
 where
     Repository: RoleFinder + RoleGranter + RoleRevoker + Send + Sync,
 {
-    pub fn new(repository: Repository, guild_id: GuildId, teams: &[TeamConfiguration]) -> Self {
-        let mut definitions = HashMap::new();
-
-        teams.iter().for_each(|team| {
-            definitions.insert(team.invitation_code.clone(), team.clone());
-        });
-
+    pub fn new(repository: Repository, guild_id: GuildId, mapping: HashMap<String, String>) -> Self {
+        tracing::debug!(mapping = ?mapping, "join command initialized");
         Self {
             repository,
             guild_id,
-            definitions,
+            mapping,
         }
     }
 
+    #[tracing::instrument(skip_all, fields(
+        role_name = role_name
+    ))]
     pub async fn run_defer(
         &self,
         ctx: &ApplicationCommandContext,
         user_id: UserId,
-        team: &TeamConfiguration,
+        role_name: &str,
     ) -> Result<()> {
         let http = &ctx.context.http;
         let guild_id = self.guild_id;
@@ -49,8 +47,6 @@ where
         let target_role = target_roles
             .first()
             .ok_or(SystemError::NoSuchRole(role_name.into()))?;
-
-        tracing::info!(user_id = ?user_id, role_name = ?role_name, "granted role");
 
         self.repository
             .grant(http, guild_id, user_id, target_role.id)
@@ -67,9 +63,12 @@ where
             }
         }
 
+        tracing::info!("granted");
+
         Ok(())
     }
 
+    #[tracing::instrument(skip(self, ctx))]
     pub async fn run(
         &self,
         ctx: &ApplicationCommandContext,
@@ -79,17 +78,17 @@ where
         let command = &ctx.command;
 
         // `invitation_code`の検証
-        let team = self
-            .definitions
+        let role_name = self
+            .mapping
             .get(&invitation_code)
-            .ok_or(UserError::InvalidInvitationCode)?;
+            .ok_or(UserError::InvalidInvitationCode(invitation_code))?;
 
         let _guild_id = self.guild_id;
         let user_id = ctx.command.user.id;
 
         InteractionHelper::defer(http, command).await;
 
-        match self.run_defer(ctx, user_id, team).await {
+        match self.run_defer(ctx, user_id, role_name).await {
             Ok(_) => {
                 InteractionHelper::defer_respond(http, command, "チームに参加しました。").await
             }

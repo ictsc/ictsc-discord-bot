@@ -63,6 +63,7 @@ where
         }
     }
 
+    #[tracing::instrument(skip(self, ctx))]
     pub async fn run(&self, ctx: &ApplicationCommandContext, code: String) -> Result<()> {
         let guild_id = ctx.command.guild_id.unwrap();
         let user = &ctx.command.user;
@@ -86,7 +87,7 @@ where
             .problems
             .get(&code)
             .map(|problem| problem.clone())
-            .ok_or(errors::UserError::NoSuchProblem)?;
+            .ok_or(errors::UserError::NoSuchProblem(code))?;
 
         let content = format!("問題「{}」を初期化します。よろしいですか？", problem.name);
 

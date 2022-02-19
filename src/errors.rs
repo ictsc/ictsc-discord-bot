@@ -18,9 +18,9 @@ pub enum Error {
 #[derive(Debug, Error)]
 pub enum UserError {
     #[error("招待コードが不正です。")]
-    InvalidInvitationCode,
+    InvalidInvitationCode(String),
     #[error("そのような問題はありません。")]
-    NoSuchProblem,
+    NoSuchProblem(String),
     #[error("チームに所属していないため、処理を実行することができません。")]
     UserNotInTeam,
     #[error("再作成リクエストが実行中です。")]

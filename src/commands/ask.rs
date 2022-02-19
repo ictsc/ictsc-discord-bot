@@ -22,6 +22,7 @@ where
         Self { finder, creator }
     }
 
+    #[tracing::instrument(skip(self, ctx))]
     pub async fn run(&self, ctx: &ApplicationCommandContext, summary: String) -> Result<()> {
         let channel_id = ctx.command.channel_id;
         let user = &ctx.command.user;
