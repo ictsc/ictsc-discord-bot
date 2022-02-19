@@ -21,6 +21,8 @@ type CommandCreator =
 type CommandDefinitions<'a> = HashMap<&'a str, CommandCreator>;
 
 static STAFF_ROLE_NAME: &'static str = "ICTSC2021 Staff";
+static TEAM_TEXT_CHANNEL_NAME: &'static str = "text";
+static TEAM_VOICE_CHANNEL_NAME: &'static str = "voice";
 
 #[derive(Debug, Clone)]
 pub struct Configuration {
@@ -343,12 +345,12 @@ impl Bot {
                 .expect("channel name is invalid").clone();
 
             text_channels.push(CreateTextChannelInput {
-                name: team.channel_name.clone(),
+                name: String::from(TEAM_TEXT_CHANNEL_NAME),
                 category_id: Some(category_id),
             });
 
             voice_channels.push(CreateVoiceChannelInput {
-                name: team.channel_name.clone(),
+                name: String::from(TEAM_VOICE_CHANNEL_NAME),
                 category_id: Some(category_id),
             });
         }
