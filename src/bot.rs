@@ -313,50 +313,60 @@ impl Bot {
 
         let mut categories = Vec::new();
 
-        categories.push(CreateCategoryChannelInput {
+        categories.push(CreateChannelInput {
             name: String::from("admin"),
+            kind: ChannelKind::Category,
+            ..CreateChannelInput::default()
         });
 
         for team in &self.config.teams {
-            categories.push(CreateCategoryChannelInput {
+            categories.push(CreateChannelInput {
                 name: team.channel_name.clone(),
+                kind: ChannelKind::Category,
+                ..CreateChannelInput::default()
             });
         }
 
-        let categories = CategoryChannelManager.sync_bulk(http, guild_id, categories).await?;
+        let categories = ChannelManager.sync(http, guild_id, categories).await?;
         let mut categories_table = HashMap::new();
         for category in categories {
             categories_table.insert(category.name, category.id);
         }
 
-        let mut text_channels = Vec::new();
-        let mut voice_channels = Vec::new();
+        println!("{:?}", categories_table);
+
+        let mut channels = Vec::new();
 
         let category_id = categories_table.get("admin")
             .expect("channel name is invalid").clone();
 
-        text_channels.push(CreateTextChannelInput {
+        channels.push(CreateChannelInput {
             name: String::from("admin"),
+            kind: ChannelKind::Text,
             category_id: Some(category_id),
+            ..CreateChannelInput::default()
         });
 
         for team in &self.config.teams {
             let category_id = categories_table.get(&team.channel_name)
                 .expect("channel name is invalid").clone();
 
-            text_channels.push(CreateTextChannelInput {
+            channels.push(CreateChannelInput {
                 name: String::from(TEAM_TEXT_CHANNEL_NAME),
+                kind: ChannelKind::Text,
                 category_id: Some(category_id),
+                ..CreateChannelInput::default()
             });
 
-            voice_channels.push(CreateVoiceChannelInput {
+            channels.push(CreateChannelInput {
                 name: String::from(TEAM_VOICE_CHANNEL_NAME),
+                kind: ChannelKind::Voice,
                 category_id: Some(category_id),
+                ..CreateChannelInput::default()
             });
         }
 
-        TextChannelManager.sync_bulk(http, guild_id, text_channels).await?;
-        VoiceChannelManager.sync_bulk(http, guild_id, voice_channels).await?;
+        ChannelManager.sync(http, guild_id, channels).await?;
 
         Ok(())
     }

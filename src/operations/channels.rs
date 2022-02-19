@@ -1,26 +1,55 @@
+#![feature(derive_default_enum)]
+
 use crate::Result;
 use async_trait::async_trait;
 use serenity::http::Http;
 use serenity::model::prelude::*;
 
 #[derive(Default)]
-pub struct CreateTextChannelInput {
+pub struct CreateChannelInput {
     pub name: String,
+    pub kind: ChannelKind,
     pub category_id: Option<ChannelId>,
 }
 
+#[derive(Clone, Copy)]
+#[repr(u8)]
+pub enum ChannelKind {
+    Category,
+    Text,
+    Voice,
+}
+
+impl Default for ChannelKind {
+    fn default() -> Self {
+        Self::Category
+    }
+}
+
+impl From<ChannelKind> for serenity::model::prelude::ChannelType {
+    fn from(kind: ChannelKind) -> Self {
+        match kind {
+            ChannelKind::Category => Self::Category,
+            ChannelKind::Text => Self::Text,
+            ChannelKind::Voice => Self::Voice,
+        }
+    }
+}
+
+pub struct ChannelManager;
+
 #[async_trait]
-pub trait TextChannelCreator {
+pub trait ChannelCreator {
     async fn create(
         &self,
         http: &Http,
         guild_id: GuildId,
-        input: CreateTextChannelInput,
+        input: CreateChannelInput,
     ) -> Result<GuildChannel>;
 }
 
 #[async_trait]
-pub trait TextChannelFinder {
+pub trait ChannelFinder {
     async fn find_by_id(
         &self,
         http: &Http,
@@ -41,79 +70,31 @@ pub trait TextChannelFinder {
 }
 
 #[async_trait]
-pub trait TextChannelDeleter {
+pub trait ChannelDeleter {
     async fn delete(&self, http: &Http, guild_id: GuildId, channel_id: ChannelId) -> Result<()>;
 }
 
 #[async_trait]
-pub trait TextChannelSyncer: TextChannelCreator + TextChannelFinder + TextChannelDeleter {
-    async fn sync_cached(
-        &self,
-        http: &Http,
-        guild_id: GuildId,
-        channels: &[GuildChannel],
-        input: CreateTextChannelInput,
-    ) -> Result<GuildChannel> {
-        let channels: Vec<_> = channels.iter()
-            .filter(|channel| channel.name == input.name)
-            .collect();
-
-        match channels.len() {
-            1 => {
-                // TODO: handling parameter change
-                return Ok(channels[0].clone());
-            }
-            _ => {
-                for channel in channels {
-                    self.delete(http, guild_id, channel.id).await?;
-                }
-                return self.create(http, guild_id, input).await;
-            }
-        };
-    }
-
+pub trait ChannelSyncer {
     async fn sync(
         &self,
         http: &Http,
         guild_id: GuildId,
-        input: CreateTextChannelInput,
-    ) -> Result<GuildChannel> {
-        let channels = self.find_all(http, guild_id).await?;
-
-        self.sync_cached(http, guild_id, &channels, input).await
-    }
-
-    async fn sync_bulk(
-        &self,
-        http: &Http,
-        guild_id: GuildId,
-        inputs: Vec<CreateTextChannelInput>,
-    ) -> Result<Vec<GuildChannel>> {
-        let channels = self.find_all(http, guild_id).await?;
-
-        let mut results = Vec::new();
-
-        for input in inputs {
-            results.push(self.sync_cached(http, guild_id, &channels, input).await?);
-        }
-
-        Ok(results)
-    }
+        inputs: Vec<CreateChannelInput>,
+    ) -> Result<Vec<GuildChannel>>;
 }
 
-pub struct TextChannelManager;
-
 #[async_trait]
-impl TextChannelCreator for TextChannelManager {
+impl ChannelCreator for ChannelManager {
     async fn create(
         &self,
         http: &Http,
         guild_id: GuildId,
-        input: CreateTextChannelInput,
+        input: CreateChannelInput,
     ) -> Result<GuildChannel> {
         Ok(guild_id
             .create_channel(http, |channel| {
-                channel.name(input.name).kind(ChannelType::Text);
+                channel.name(input.name).kind(input.kind.into());
 
                 match input.category_id {
                     Some(id) => channel.category(id),
@@ -125,7 +106,7 @@ impl TextChannelCreator for TextChannelManager {
 }
 
 #[async_trait]
-impl TextChannelFinder for TextChannelManager {
+impl ChannelFinder for ChannelManager {
     async fn find_by_id(
         &self,
         http: &Http,
@@ -133,7 +114,7 @@ impl TextChannelFinder for TextChannelManager {
         channel_id: ChannelId,
     ) -> Result<Option<GuildChannel>> {
         for (id, channel) in guild_id.channels(http).await? {
-            if channel.kind == ChannelType::Text && id == channel_id {
+            if id == channel_id {
                 return Ok(Some(channel));
             }
         }
@@ -148,7 +129,7 @@ impl TextChannelFinder for TextChannelManager {
     ) -> Result<Vec<GuildChannel>> {
         let mut result: Vec<_> = vec![];
         for (_, channel) in guild_id.channels(http).await? {
-            if channel.kind == ChannelType::Text && name.as_ref() == channel.name {
+            if name.as_ref() == channel.name {
                 result.push(channel);
             }
         }
@@ -160,17 +141,53 @@ impl TextChannelFinder for TextChannelManager {
             .await?
             .into_iter()
             .map(|(_, channel)| channel)
-            .filter(|channel| channel.kind == ChannelType::Text)
             .collect())
     }
 }
 
 #[async_trait]
-impl TextChannelDeleter for TextChannelManager {
+impl ChannelDeleter for ChannelManager {
     async fn delete(&self, http: &Http, _guild_id: GuildId, channel_id: ChannelId) -> Result<()> {
         channel_id.delete(http).await?;
         Ok(())
     }
 }
 
-impl TextChannelSyncer for TextChannelManager {}
+#[async_trait]
+impl<T> ChannelSyncer for T
+    where
+        T: ChannelCreator + ChannelDeleter + ChannelFinder + Sync
+{
+    async fn sync(
+        &self,
+        http: &Http,
+        guild_id: GuildId,
+        inputs: Vec<CreateChannelInput>,
+    ) -> Result<Vec<GuildChannel>> {
+        let channels = self.find_all(http, guild_id).await?;
+
+        let mut results = Vec::new();
+
+        for input in inputs {
+            let filtered: Vec<_> = channels.iter()
+                .filter(|channel| channel.name == input.name && channel.kind == input.kind.into())
+                .collect();
+
+            match filtered.len() {
+                1 => {
+                    // TODO: handling parameter change
+                    results.push(filtered[0].clone());
+                }
+                _ => {
+                    for channel in filtered {
+                        self.delete(http, guild_id, channel.id).await?;
+                    }
+                    results.push(self.create(http, guild_id, input).await?);
+                }
+            }
+        }
+
+        Ok(results)
+    }
+
+}
