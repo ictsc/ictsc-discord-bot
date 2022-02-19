@@ -268,12 +268,19 @@ impl Bot {
         Ok(client.start().await?)
     }
 
-    pub async fn create_roles(&self) -> Result<()> {
+    fn setup_client(&self) -> (GuildId, Http) {
         let token = &self.config.token;
-        let guild_id = GuildId::from(self.config.guild_id);
         let application_id = self.config.application_id;
 
-        let http = &Http::new_with_token_application_id(token, application_id);
+        (
+            GuildId::from(self.config.guild_id),
+            Http::new_with_token_application_id(token, application_id),
+        )
+    }
+
+    #[tracing::instrument(skip_all)]
+    pub async fn create_roles(&self) -> Result<()> {
+        let (guild_id, ref http) = self.setup_client();
 
         let mut roles = Vec::new();
 
@@ -302,11 +309,7 @@ impl Bot {
 
     #[tracing::instrument(skip_all)]
     pub async fn delete_roles(&self) -> Result<()> {
-        let token = &self.config.token;
-        let guild_id = GuildId::from(self.config.guild_id);
-        let application_id = self.config.application_id;
-
-        let http = &Http::new_with_token_application_id(token, application_id);
+        let (guild_id, ref http) = self.setup_client();
 
         tracing::info!("deleting all roles");
 
@@ -319,11 +322,7 @@ impl Bot {
 
     #[tracing::instrument(skip_all)]
     pub async fn create_channels(&self) -> Result<()> {
-        let token = &self.config.token;
-        let guild_id = GuildId::from(self.config.guild_id);
-        let application_id = self.config.application_id;
-
-        let http = &Http::new_with_token_application_id(token, application_id);
+        let (guild_id, ref http) = self.setup_client();
 
         tracing::info!("fetching all roles");
         let roles: HashMap<_, _> = RoleManager.find_all(http, guild_id).await?
@@ -445,11 +444,7 @@ impl Bot {
 
     #[tracing::instrument(skip_all)]
     pub async fn delete_channels(&self) -> Result<()> {
-        let token = &self.config.token;
-        let guild_id = GuildId::from(self.config.guild_id);
-        let application_id = self.config.application_id;
-
-        let http = &Http::new_with_token_application_id(token, application_id);
+        let (guild_id, ref http) = self.setup_client();
 
         tracing::info!("deleting all channels");
 
