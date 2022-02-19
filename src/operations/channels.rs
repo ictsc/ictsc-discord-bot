@@ -62,11 +62,7 @@ pub trait ChannelFinder {
         guild_id: GuildId,
         name: S,
     ) -> Result<Vec<GuildChannel>>;
-    async fn find_all(
-        &self,
-        http: &Http,
-        guild_id: GuildId,
-    ) -> Result<Vec<GuildChannel>>;
+    async fn find_all(&self, http: &Http, guild_id: GuildId) -> Result<Vec<GuildChannel>>;
 }
 
 #[async_trait]
@@ -138,7 +134,8 @@ impl ChannelFinder for ChannelManager {
     }
 
     async fn find_all(&self, http: &Http, guild_id: GuildId) -> Result<Vec<GuildChannel>> {
-        Ok(guild_id.channels(http)
+        Ok(guild_id
+            .channels(http)
             .await?
             .into_iter()
             .map(|(_, channel)| channel)
@@ -165,8 +162,8 @@ impl ChannelDeleter for ChannelManager {
 
 #[async_trait]
 impl<T> ChannelSyncer for T
-    where
-        T: ChannelCreator + ChannelDeleter + ChannelFinder + Sync
+where
+    T: ChannelCreator + ChannelDeleter + ChannelFinder + Sync,
 {
     async fn sync(
         &self,
@@ -179,7 +176,8 @@ impl<T> ChannelSyncer for T
         let mut results = Vec::new();
 
         for input in inputs {
-            let filtered: Vec<_> = channels.iter()
+            let filtered: Vec<_> = channels
+                .iter()
                 .filter(|channel| channel.name == input.name && channel.kind == input.kind.into())
                 .collect();
 
@@ -199,5 +197,4 @@ impl<T> ChannelSyncer for T
 
         Ok(results)
     }
-
 }

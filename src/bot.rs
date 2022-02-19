@@ -20,9 +20,9 @@ type CommandCreator =
     Box<dyn FnOnce(&mut CreateApplicationCommand) -> &mut CreateApplicationCommand + Send>;
 type CommandDefinitions<'a> = HashMap<&'a str, CommandCreator>;
 
-static STAFF_ROLE_NAME: &'static str = "ICTSC2021 Staff";
-static TEAM_TEXT_CHANNEL_NAME: &'static str = "text";
-static TEAM_VOICE_CHANNEL_NAME: &'static str = "voice";
+static STAFF_ROLE_NAME: &str = "ICTSC2021 Staff";
+static TEAM_TEXT_CHANNEL_NAME: &str = "text";
+static TEAM_VOICE_CHANNEL_NAME: &str = "voice";
 
 #[derive(Debug, Clone)]
 pub struct Configuration {
@@ -81,16 +81,20 @@ impl Bot {
             config.recreate_service.password.clone(),
         );
 
-        let mut team_mapping  = HashMap::new();
+        let mut team_mapping = HashMap::new();
         team_mapping.insert(config.staff.password.clone(), String::from(STAFF_ROLE_NAME));
-        config.teams.iter()
-            .for_each(|team| {
-                team_mapping.insert(team.invitation_code.clone(), team.role_name.clone());
-            });
+        config.teams.iter().for_each(|team| {
+            team_mapping.insert(team.invitation_code.clone(), team.role_name.clone());
+        });
 
         let ask_command = AskCommand::new(UserManager, ThreadManager);
         let join_command = JoinCommand::new(RoleManager, guild_id, team_mapping);
-        let recreate_command = RecreateCommand::new(RoleManager, problemRecreateManager, &config.teams, &config.problems);
+        let recreate_command = RecreateCommand::new(
+            RoleManager,
+            problemRecreateManager,
+            &config.teams,
+            &config.problems,
+        );
         let whoami_command = WhoAmICommand::new(UserManager);
 
         Bot {
@@ -342,8 +346,9 @@ impl Bot {
 
         let mut channels = Vec::new();
 
-        let category_id = categories_table.get("admin")
-            .expect("channel name is invalid").clone();
+        let category_id = *categories_table
+            .get("admin")
+            .expect("channel name is invalid");
 
         channels.push(CreateChannelInput {
             name: String::from("admin"),
@@ -353,8 +358,9 @@ impl Bot {
         });
 
         for team in &self.config.teams {
-            let category_id = categories_table.get(&team.channel_name)
-                .expect("channel name is invalid").clone();
+            let category_id = *categories_table
+                .get(&team.channel_name)
+                .expect("channel name is invalid");
 
             channels.push(CreateChannelInput {
                 name: String::from(TEAM_TEXT_CHANNEL_NAME),
@@ -464,26 +470,26 @@ impl Bot {
     #[tracing::instrument(skip_all)]
     async fn handle_command_ask(&self, ctx: &ApplicationCommandContext) -> Result<()> {
         let summary = InteractionHelper::value_of_as_str(&ctx.command, "summary").unwrap();
-        Ok(self.ask_command.run(ctx, summary.into()).await?)
+        self.ask_command.run(ctx, summary.into()).await
     }
 
     #[tracing::instrument(skip_all)]
     async fn handle_command_whoami(&self, ctx: &ApplicationCommandContext) -> Result<()> {
-        Ok(self.whoami_command.run(ctx).await?)
+        self.whoami_command.run(ctx).await
     }
 
     #[tracing::instrument(skip_all)]
     async fn handle_command_join(&self, ctx: &ApplicationCommandContext) -> Result<()> {
         let invitation_code =
             InteractionHelper::value_of_as_str(&ctx.command, "invitation_code").unwrap();
-        Ok(self.join_command.run(ctx, invitation_code.into()).await?)
+        self.join_command.run(ctx, invitation_code.into()).await
     }
 
     #[tracing::instrument(skip_all)]
     async fn handle_command_recreate(&self, ctx: &ApplicationCommandContext) -> Result<()> {
         let problem_code =
             InteractionHelper::value_of_as_str(&ctx.command, "problem_code").unwrap();
-        Ok(self.recreate_command.run(ctx, problem_code.into()).await?)
+        self.recreate_command.run(ctx, problem_code.into()).await
     }
 
     #[tracing::instrument(skip_all, fields(
@@ -512,8 +518,9 @@ impl Bot {
                     &ctx.context.http,
                     &ctx.command,
                     format!("{} (interaction_id: {})", err, ctx.command.id),
-                ).await;
-            },
+                )
+                .await;
+            }
         }
     }
 

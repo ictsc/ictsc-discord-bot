@@ -2,7 +2,6 @@ use crate::Result;
 use async_trait::async_trait;
 use serenity::http::Http;
 use serenity::model::prelude::*;
-use serenity::utils::Color;
 
 #[derive(Default, Debug)]
 pub struct CreateRoleInput {
@@ -75,8 +74,15 @@ pub trait RoleRevoker {
 
 #[async_trait]
 pub trait RoleSyncer: RoleCreator + RoleFinder + RoleDeleter {
-    async fn sync_cached(&self, http: &Http, guild_id: GuildId, roles: &[Role], input: CreateRoleInput) -> Result<()> {
-        let roles: Vec<_> = roles.iter()
+    async fn sync_cached(
+        &self,
+        http: &Http,
+        guild_id: GuildId,
+        roles: &[Role],
+        input: CreateRoleInput,
+    ) -> Result<()> {
+        let roles: Vec<_> = roles
+            .iter()
             .filter(|role| role.name == input.name)
             .collect();
 
@@ -122,7 +128,12 @@ pub trait RoleSyncer: RoleCreator + RoleFinder + RoleDeleter {
         Ok(())
     }
 
-    async fn sync_bulk(&self, http: &Http, guild_id: GuildId, inputs: Vec<CreateRoleInput>) -> Result<()> {
+    async fn sync_bulk(
+        &self,
+        http: &Http,
+        guild_id: GuildId,
+        inputs: Vec<CreateRoleInput>,
+    ) -> Result<()> {
         let roles = self.find_all(http, guild_id).await?;
 
         for input in inputs {

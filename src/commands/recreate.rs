@@ -86,7 +86,7 @@ where
         let problem = self
             .problems
             .get(&code)
-            .map(|problem| problem.clone())
+            .cloned()
             .ok_or(errors::UserError::NoSuchProblem(code))?;
 
         let content = format!("問題「{}」を初期化します。よろしいですか？", problem.name);
@@ -118,8 +118,12 @@ where
     }
 
     pub async fn add_reaction(&self, ctx: &ReactionContext) -> Result<()> {
-        let user_id = ctx.reaction.user_id
-            .ok_or(errors::SystemError::UnexpectedError("ctx.reaction.user_id is None".into()))?;
+        let user_id = ctx
+            .reaction
+            .user_id
+            .ok_or(errors::SystemError::UnexpectedError(
+                "ctx.reaction.user_id is None".into(),
+            ))?;
 
         let reaction = ctx.reaction.emoji.to_string();
 
@@ -138,7 +142,7 @@ where
                         return Ok(());
                     }
                     v
-                },
+                }
                 None => return Ok(()),
             }
         };
@@ -153,7 +157,8 @@ where
             return Ok(());
         }
 
-        let result = self.problemRepository
+        let result = self
+            .problemRepository
             .recreate(request.team_id, request.problem_id)
             .await;
 
@@ -164,9 +169,7 @@ where
 
         request
             .channel_id
-            .send_message(&ctx.context.http, |message| {
-                message.content(response)
-            })
+            .send_message(&ctx.context.http, |message| message.content(response))
             .await?;
 
         Ok(())

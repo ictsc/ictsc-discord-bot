@@ -17,7 +17,11 @@ impl<Repository> JoinCommand<Repository>
 where
     Repository: RoleFinder + RoleGranter + RoleRevoker + Send + Sync,
 {
-    pub fn new(repository: Repository, guild_id: GuildId, mapping: HashMap<String, String>) -> Self {
+    pub fn new(
+        repository: Repository,
+        guild_id: GuildId,
+        mapping: HashMap<String, String>,
+    ) -> Self {
         tracing::debug!(mapping = ?mapping, "join command initialized");
         Self {
             repository,

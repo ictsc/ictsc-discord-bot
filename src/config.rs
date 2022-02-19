@@ -124,4 +124,3 @@ impl From<ProblemConfiguration> for bot::ProblemConfiguration {
         }
     }
 }
-
