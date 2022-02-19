@@ -268,7 +268,7 @@ impl Bot {
         let mut roles = Vec::new();
 
         roles.push(CreateRoleInput {
-            name: String::from("ICTSC2021 Staff"),
+            name: String::from(STAFF_ROLE_NAME),
             color: 14942278,
             hoist: true,
             mentionable: true,
@@ -327,12 +327,13 @@ impl Bot {
             categories_table.insert(category.name, category.id);
         }
 
-        let mut channels = Vec::new();
+        let mut text_channels = Vec::new();
+        let mut voice_channels = Vec::new();
 
         let category_id = categories_table.get("admin")
             .expect("channel name is invalid").clone();
 
-        channels.push(CreateTextChannelInput {
+        text_channels.push(CreateTextChannelInput {
             name: String::from("admin"),
             category_id: Some(category_id),
         });
@@ -341,13 +342,19 @@ impl Bot {
             let category_id = categories_table.get(&team.channel_name)
                 .expect("channel name is invalid").clone();
 
-            channels.push(CreateTextChannelInput {
+            text_channels.push(CreateTextChannelInput {
                 name: team.channel_name.clone(),
                 category_id: Some(category_id),
-            })
+            });
+
+            voice_channels.push(CreateVoiceChannelInput {
+                name: team.channel_name.clone(),
+                category_id: Some(category_id),
+            });
         }
 
-        TextChannelManager.sync_bulk(http, guild_id, channels).await?;
+        TextChannelManager.sync_bulk(http, guild_id, text_channels).await?;
+        VoiceChannelManager.sync_bulk(http, guild_id, voice_channels).await?;
 
         Ok(())
     }

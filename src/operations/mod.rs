@@ -5,6 +5,7 @@ mod roles;
 mod text_channel;
 mod threads;
 mod users;
+mod voice_channel;
 
 pub use category_channel::*;
 pub use interactions::*;
@@ -13,3 +14,4 @@ pub use roles::*;
 pub use text_channel::*;
 pub use threads::*;
 pub use users::*;
+pub use voice_channel::*;
