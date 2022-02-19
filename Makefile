@@ -11,10 +11,10 @@ fix:
 	cargo fix --allow-dirty --allow-staged
 
 build:
-	docker build -t ictsc/ictsc-kana:${VERSION} .
+	DOCKER_BUILDKIT=1 docker build -t ictsc/ictsc-kana:${VERSION} .
 
 run:
-	docker run --name kana -itd -v $(shell pwd)/bot.yaml:/bot.yaml:ro -e RUST_LOG=bot=debug ictsc/ictsc-kana:${VERSION} -f /bot.yaml start
+	docker run --name kana -itd -v $(shell pwd)/bot.yaml:/bot.yaml:ro -e RUST_LOG=bot=debug,info ictsc/ictsc-kana:${VERSION} -f /bot.yaml start
 
 rm:
 	docker rm -f kana
