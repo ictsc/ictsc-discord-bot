@@ -44,11 +44,13 @@ where
         // TODO: ロール名から毎回検索をかけずに、初回にRoleIdを解決する
         let target_roles = self
             .repository
-            .find_by_name(http, guild_id, team.role_name.clone())
+            .find_by_name(http, guild_id, role_name.clone())
             .await?;
         let target_role = target_roles
             .first()
-            .ok_or(SystemError::NoSuchRole(team.role_name.clone()))?;
+            .ok_or(SystemError::NoSuchRole(role_name.into()))?;
+
+        tracing::info!(user_id = ?user_id, role_name = ?role_name, "granted role");
 
         self.repository
             .grant(http, guild_id, user_id, target_role.id)

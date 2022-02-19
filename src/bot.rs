@@ -178,22 +178,28 @@ fn setup_application_command_definitions() -> CommandDefinitions<'static> {
 
 #[async_trait]
 impl EventHandler for Bot {
+    #[tracing::instrument(skip_all, fields(
+        guild_id = ?guild.id
+    ))]
     async fn guild_create(&self, ctx: Context, guild: Guild) {
-        tracing::debug!("called guild_create: {:?}", guild);
+        tracing::debug!("guild created");
 
         self.setup_application_command(ctx, guild).await;
     }
 
+    #[tracing::instrument(skip_all)]
     async fn ready(&self, ctx: Context, _: Ready) {
-        tracing::debug!("called ready");
+        tracing::info!("bot is ready");
 
         self.setup_global_application_command(ctx).await;
-
-        tracing::info!("started bot");
     }
 
+    #[tracing::instrument(skip_all, fields(
+        interaction_kind = ?interaction.kind(),
+        interaction_id = ?interaction.id(),
+    ))]
     async fn interaction_create(&self, ctx: Context, interaction: Interaction) {
-        tracing::debug!("called interaction_create: {:?}", interaction);
+        tracing::debug!("called interaction_create");
 
         match interaction {
             Interaction::ApplicationCommand(command) => {
@@ -207,8 +213,14 @@ impl EventHandler for Bot {
         };
     }
 
+    #[tracing::instrument(skip_all, fields(
+        guild_id = ?reaction.guild_id,
+        message_id = ?reaction.message_id,
+        user_id = ?reaction.user_id,
+        channel_id = ?reaction.channel_id,
+    ))]
     async fn reaction_add(&self, ctx: Context, reaction: Reaction) {
-        tracing::debug!("called reaction_add: {:?}", reaction);
+        tracing::debug!("called reaction_add");
 
         self.handle_reaction(ReactionContext {
             context: ctx,
@@ -387,36 +399,55 @@ impl Bot {
 }
 
 impl Bot {
+    #[tracing::instrument(skip_all)]
     async fn handle_command_ping(&self, ctx: &ApplicationCommandContext) -> Result<()> {
+        tracing::info!("ping command called");
         InteractionHelper::send(&ctx.context.http, &ctx.command, "pong!").await?;
         Ok(())
     }
 
+    #[tracing::instrument(skip_all)]
     async fn handle_command_ask(&self, ctx: &ApplicationCommandContext) -> Result<()> {
+        tracing::info!("ask command called");
         let summary = InteractionHelper::value_of_as_str(&ctx.command, "summary").unwrap();
         Ok(self.ask_command.run(ctx, summary.into()).await?)
     }
 
+    #[tracing::instrument(skip_all)]
     async fn handle_command_whoami(&self, ctx: &ApplicationCommandContext) -> Result<()> {
+        tracing::info!("whoami command called");
         Ok(self.whoami_command.run(ctx).await?)
     }
 
+    #[tracing::instrument(skip_all, fields(invitation_code))]
     async fn handle_command_join(&self, ctx: &ApplicationCommandContext) -> Result<()> {
         let invitation_code =
             InteractionHelper::value_of_as_str(&ctx.command, "invitation_code").unwrap();
+
+        tracing::Span::current().record("invitation_code", &invitation_code);
+        tracing::info!("join command called");
+
         Ok(self.join_command.run(ctx, invitation_code.into()).await?)
     }
 
+    #[tracing::instrument(skip_all, fields(problem_code))]
     async fn handle_command_recreate(&self, ctx: &ApplicationCommandContext) -> Result<()> {
         let problem_code =
             InteractionHelper::value_of_as_str(&ctx.command, "problem_code").unwrap();
+
+        tracing::Span::current().record("problem_code", &problem_code);
+        tracing::info!("recreate command called");
+
         Ok(self.recreate_command.run(ctx, problem_code.into()).await?)
     }
 
+    #[tracing::instrument(skip_all, fields(
+        guild_id = ?ctx.command.guild_id,
+        channel_id = ?ctx.command.channel_id,
+        user_id = ?ctx.command.user.id,
+        user_name = ?ctx.command.user.name,
+    ))]
     async fn handle_application_command(&self, ctx: ApplicationCommandContext) {
-        let span = tracing::span!(tracing::Level::INFO, "application_command", interaction_id = ctx.command.id.as_u64());
-        let _enter = span.enter();
-
         let name = ctx.command.data.name.as_str();
 
         let result = match name {
@@ -430,16 +461,8 @@ impl Bot {
 
         match result {
             Ok(_) => (),
-            Err(errors::Error::UserError(err)) => {
-                tracing::error!("failed to handle application command: {:?}", err);
-                let _ = InteractionHelper::send_ephemeral(
-                    &ctx.context.http,
-                    &ctx.command,
-                    err,
-                ).await;
-            },
             Err(err) => {
-                tracing::error!("failed to handle application command: {:?}", err);
+                tracing::error!(?err, "failed to handle application command");
                 let _ = InteractionHelper::send_ephemeral(
                     &ctx.context.http,
                     &ctx.command,
@@ -449,6 +472,7 @@ impl Bot {
         }
     }
 
+    #[tracing::instrument(skip_all)]
     async fn handle_reaction(&self, ctx: ReactionContext) {
         let result = self.recreate_command.add_reaction(&ctx).await;
 
