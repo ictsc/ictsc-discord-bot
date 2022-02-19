@@ -145,18 +145,14 @@ impl RoleFinder for RoleManager {
         guild_id: GuildId,
         user_id: UserId,
     ) -> Result<Vec<Role>> {
-        let roles = self.find_all(http, guild_id).await?;
+        let member = guild_id.member(http, user_id).await?;
 
-        let user = user_id.to_user(http).await?;
-
-        let mut filtered = Vec::new();
-        for role in roles.iter() {
-            if user.has_role(http, guild_id, role).await? {
-                filtered.push(role.clone());
-            }
+        let mut roles = Vec::new();
+        for role_id in member.roles {
+            roles.push(self.find_by_id(http, guild_id, role_id).await?.unwrap());
         }
 
-        return Ok(filtered);
+        Ok(roles)
     }
 }
 
