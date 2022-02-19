@@ -73,75 +73,13 @@ pub trait RoleRevoker {
 }
 
 #[async_trait]
-pub trait RoleSyncer: RoleCreator + RoleFinder + RoleDeleter {
-    async fn sync_cached(
-        &self,
-        http: &Http,
-        guild_id: GuildId,
-        roles: &[Role],
-        input: CreateRoleInput,
-    ) -> Result<()> {
-        let roles: Vec<_> = roles
-            .iter()
-            .filter(|role| role.name == input.name)
-            .collect();
-
-        match roles.len() {
-            1 => {
-                let role = roles[0];
-
-                tracing::debug!("{:?} vs {:?}", role, input);
-
-                let mut diff = role.colour.0 as u64 != input.color;
-                diff = diff || role.mentionable != input.mentionable;
-                diff = diff || role.hoist != input.hoist;
-                diff = diff || role.permissions != input.permissions;
-
-                if diff {
-                    tracing::debug!("diff is found, updating");
-                    guild_id
-                        .edit_role(http, role.id, |role| {
-                            role.colour(input.color)
-                                .mentionable(input.mentionable)
-                                .hoist(input.hoist)
-                                .permissions(input.permissions)
-                        })
-                        .await?;
-                }
-            }
-            _ => {
-                for role in roles {
-                    self.delete(http, guild_id, role.id).await?;
-                }
-                self.create(http, guild_id, input).await?;
-            }
-        };
-
-        Ok(())
-    }
-
-    async fn sync(&self, http: &Http, guild_id: GuildId, input: CreateRoleInput) -> Result<()> {
-        let roles = self.find_all(http, guild_id).await?;
-
-        self.sync_cached(http, guild_id, &roles, input).await?;
-
-        Ok(())
-    }
-
-    async fn sync_bulk(
+pub trait RoleSyncer {
+    async fn sync(
         &self,
         http: &Http,
         guild_id: GuildId,
         inputs: Vec<CreateRoleInput>,
-    ) -> Result<()> {
-        let roles = self.find_all(http, guild_id).await?;
-
-        for input in inputs {
-            self.sync_cached(http, guild_id, &roles, input).await?;
-        }
-
-        Ok(())
-    }
+    ) -> Result<()>;
 }
 
 pub struct RoleManager;
@@ -277,4 +215,67 @@ impl RoleRevoker for RoleManager {
     }
 }
 
-impl RoleSyncer for RoleManager {}
+#[async_trait]
+impl<T> RoleSyncer for T
+where
+    T: RoleCreator + RoleDeleter + RoleFinder + Sync
+{
+    #[tracing::instrument(skip_all)]
+    async fn sync(
+        &self,
+        http: &Http,
+        guild_id: GuildId,
+        inputs: Vec<CreateRoleInput>,
+    ) -> Result<()> {
+        let roles = self.find_all(http, guild_id).await?;
+
+        let mut results = Vec::new();
+
+        for input in inputs {
+            tracing::debug!(?input, "syncing role");
+
+            let filtered: Vec<_> = roles
+                .iter()
+                .filter(|role| role.name == input.name)
+                .collect();
+
+            match filtered.len() {
+                1 => {
+                    let role = filtered[0].clone();
+
+                    tracing::debug!(?role, ?input, "role found, syncing");
+
+                    let mut diff = role.colour.0 as u64 != input.color;
+                    diff = diff || role.mentionable != input.mentionable;
+                    diff = diff || role.hoist != input.hoist;
+                    diff = diff || role.permissions != input.permissions;
+
+                    if !diff {
+                        results.push(role);
+                        continue;
+                    }
+
+                    tracing::debug!("diff found, updating");
+
+                    results.push(guild_id
+                        .edit_role(http, role.id, |role| {
+                            role.colour(input.color)
+                                .mentionable(input.mentionable)
+                                .hoist(input.hoist)
+                                .permissions(input.permissions)
+                        })
+                        .await?);
+                }
+                _ => {
+                    tracing::debug!(role_name = ?input.name, "role not found or several roles found, updating");
+                    for role in filtered {
+                        self.delete(http, guild_id, role.id).await?;
+                    }
+                    results.push(self.create(http, guild_id, input).await?);
+                }
+            }
+        }
+
+        Ok(())
+    }
+}

@@ -282,9 +282,11 @@ impl Bot {
     pub async fn create_roles(&self) -> Result<()> {
         let (guild_id, ref http) = self.setup_client();
 
-        let mut roles = Vec::new();
+        tracing::info!("creating roles");
 
-        roles.push(CreateRoleInput {
+        let mut inputs = Vec::new();
+
+        inputs.push(CreateRoleInput {
             name: String::from(STAFF_ROLE_NAME),
             color: 14942278,
             hoist: true,
@@ -293,7 +295,7 @@ impl Bot {
         });
 
         for team in &self.config.teams {
-            roles.push(CreateRoleInput {
+            inputs.push(CreateRoleInput {
                 name: team.role_name.clone(),
                 color: 0,
                 hoist: true,
@@ -302,7 +304,9 @@ impl Bot {
             })
         }
 
-        RoleManager.sync_bulk(http, guild_id, roles).await?;
+        RoleManager.sync(http, guild_id, inputs).await?;
+
+        tracing::info!("create roles finished");
 
         Ok(())
     }
