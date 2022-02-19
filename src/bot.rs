@@ -1,6 +1,7 @@
 use crate::*;
 
 use std::collections::HashMap;
+use reqwest::get;
 
 use crate::commands::ask::AskCommand;
 use crate::commands::join::JoinCommand;
@@ -15,14 +16,17 @@ use crate::commands::recreate::RecreateCommand;
 use serenity::model::prelude::application_command::*;
 use serenity::model::prelude::*;
 use serenity::prelude::*;
+use crate::SystemError::{NoSuchCategory, NoSuchRole};
 
 type CommandCreator =
     Box<dyn FnOnce(&mut CreateApplicationCommand) -> &mut CreateApplicationCommand + Send>;
 type CommandDefinitions<'a> = HashMap<&'a str, CommandCreator>;
 
+static STAFF_CATEGORY_NAME: &str = "ICTSC2021 Staff";
 static STAFF_ROLE_NAME: &str = "ICTSC2021 Staff";
-static TEAM_TEXT_CHANNEL_NAME: &str = "text";
-static TEAM_VOICE_CHANNEL_NAME: &str = "voice";
+static EVERYONE_ROLE_NAME: &str = "@everyone";
+static TEXT_CHANNEL_NAME: &str = "text";
+static VOICE_CHANNEL_NAME: &str = "voice";
 
 #[derive(Debug, Clone)]
 pub struct Configuration {
@@ -313,6 +317,7 @@ impl Bot {
         Ok(())
     }
 
+    #[tracing::instrument(skip_all)]
     pub async fn create_channels(&self) -> Result<()> {
         let token = &self.config.token;
         let guild_id = GuildId::from(self.config.guild_id);
@@ -320,64 +325,120 @@ impl Bot {
 
         let http = &Http::new_with_token_application_id(token, application_id);
 
-        let mut categories = Vec::new();
+        tracing::info!("fetching all roles");
+        let roles: HashMap<_, _> = RoleManager.find_all(http, guild_id).await?
+            .into_iter()
+            .map(|r| (r.name, r.id))
+            .collect();
 
-        categories.push(CreateChannelInput {
-            name: String::from("admin"),
+        let staff_role_id = *roles.get(STAFF_ROLE_NAME)
+            .ok_or(NoSuchRole(STAFF_ROLE_NAME.into()))?;
+
+        let everyone_role_id = *roles.get(EVERYONE_ROLE_NAME)
+            .ok_or(NoSuchRole(EVERYONE_ROLE_NAME.into()))?;
+
+        let default_permissions = vec![
+            PermissionOverwrite {
+                allow: Permissions::all(),
+                deny: Permissions::empty(),
+                kind: PermissionOverwriteType::Role(staff_role_id),
+            },
+            PermissionOverwrite {
+                allow: Permissions::empty(),
+                deny: Permissions::all(),
+                kind: PermissionOverwriteType::Role(everyone_role_id),
+            },
+        ];
+
+        tracing::info!("creating categories");
+        let mut inputs = Vec::new();
+
+        inputs.push(CreateChannelInput {
+            name: STAFF_CATEGORY_NAME.into(),
             kind: ChannelType::Category,
+            permissions: default_permissions.clone(),
             ..CreateChannelInput::default()
         });
 
         for team in &self.config.teams {
-            categories.push(CreateChannelInput {
+            let team_role_id = *roles.get(&team.role_name)
+                .ok_or(NoSuchRole(team.role_name.clone()))?;
+
+            let mut permissions = default_permissions.clone();
+            permissions.push(PermissionOverwrite {
+                allow: Permissions::all(),
+                deny: Permissions::empty(),
+                kind: PermissionOverwriteType::Role(team_role_id),
+            });
+
+            inputs.push(CreateChannelInput {
                 name: team.channel_name.clone(),
                 kind: ChannelType::Category,
+                permissions,
                 ..CreateChannelInput::default()
             });
         }
 
-        let categories = ChannelManager.sync(http, guild_id, categories).await?;
-        let mut categories_table = HashMap::new();
-        for category in categories {
-            categories_table.insert(category.name, category.id);
-        }
+        let categories: HashMap<_, _> = ChannelManager.sync(http, guild_id, inputs).await?
+            .into_iter()
+            .map(|c| (c.name, c.id))
+            .collect();
 
-        println!("{:?}", categories_table);
+        tracing::info!("creating channels");
 
-        let mut channels = Vec::new();
+        let mut inputs = Vec::new();
 
-        let category_id = *categories_table
-            .get("admin")
-            .expect("channel name is invalid");
+        let staff_category_id = *categories.get(STAFF_CATEGORY_NAME)
+            .ok_or(NoSuchCategory(STAFF_CATEGORY_NAME.into()))?;
 
-        channels.push(CreateChannelInput {
-            name: String::from("admin"),
+        inputs.push(CreateChannelInput {
+            name: TEXT_CHANNEL_NAME.into(),
             kind: ChannelType::Text,
-            category_id: Some(category_id),
+            category_id: Some(staff_category_id),
+            permissions: default_permissions.clone(),
+            ..CreateChannelInput::default()
+        });
+
+        inputs.push(CreateChannelInput {
+            name: VOICE_CHANNEL_NAME.into(),
+            kind: ChannelType::Voice,
+            category_id: Some(staff_category_id),
+            permissions: default_permissions.clone(),
             ..CreateChannelInput::default()
         });
 
         for team in &self.config.teams {
-            let category_id = *categories_table
-                .get(&team.channel_name)
-                .expect("channel name is invalid");
+            let team_role_id = *roles.get(&team.role_name)
+                .ok_or(NoSuchCategory(team.channel_name.clone()))?;
 
-            channels.push(CreateChannelInput {
-                name: String::from(TEAM_TEXT_CHANNEL_NAME),
+            let team_category_id = *categories.get(&team.channel_name)
+                .ok_or(NoSuchCategory(team.channel_name.clone()))?;
+
+            let mut permissions = default_permissions.clone();
+            permissions.push(PermissionOverwrite {
+                allow: Permissions::all(),
+                deny: Permissions::empty(),
+                kind: PermissionOverwriteType::Role(team_role_id),
+            });
+
+            inputs.push(CreateChannelInput {
+                name: TEXT_CHANNEL_NAME.into(),
                 kind: ChannelType::Text,
-                category_id: Some(category_id),
+                category_id: Some(team_category_id),
+                permissions: permissions.clone(),
                 ..CreateChannelInput::default()
             });
 
-            channels.push(CreateChannelInput {
-                name: String::from(TEAM_VOICE_CHANNEL_NAME),
+            inputs.push(CreateChannelInput {
+                name: VOICE_CHANNEL_NAME.into(),
                 kind: ChannelType::Voice,
-                category_id: Some(category_id),
+                category_id: Some(team_category_id),
+                permissions: permissions.clone(),
                 ..CreateChannelInput::default()
             });
         }
 
-        ChannelManager.sync(http, guild_id, channels).await?;
+        ChannelManager.sync(http, guild_id, inputs).await?;
 
         Ok(())
     }

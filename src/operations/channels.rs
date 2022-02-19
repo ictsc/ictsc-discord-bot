@@ -7,14 +7,16 @@ pub struct CreateChannelInput {
     pub name: String,
     pub kind: ChannelType,
     pub category_id: Option<ChannelId>,
+    pub permissions: Vec<PermissionOverwrite>,
 }
 
 impl Default for CreateChannelInput {
     fn default() -> Self {
         Self {
-            name: String::from(""),
+            name: String::default(),
             kind: ChannelType::Unknown,
-            category_id: None,
+            category_id: Option::default(),
+            permissions: Vec::default(),
         }
     }
 }
@@ -75,6 +77,7 @@ impl ChannelCreator for ChannelManager {
         Ok(guild_id
             .create_channel(http, |channel| {
                 channel.name(input.name).kind(input.kind.into());
+                channel.permissions(input.permissions);
 
                 match input.category_id {
                     Some(id) => channel.category(id),
