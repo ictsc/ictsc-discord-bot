@@ -64,9 +64,22 @@ where
     }
 
     #[tracing::instrument(skip(self, ctx))]
-    pub async fn run(&self, ctx: &ApplicationCommandContext, code: String) -> Result<()> {
+    pub async fn run_defer(&self, ctx: &ApplicationCommandContext, code: String) -> Result<()> {
         let guild_id = ctx.command.guild_id.unwrap();
         let user = &ctx.command.user;
+
+        tracing::debug!("finding problem");
+
+        let problem = self
+            .problems
+            .get(&code)
+            .cloned()
+            .ok_or(errors::UserError::NoSuchProblem(code))?;
+
+        tracing::debug!(?problem, "found problem");
+
+
+        tracing::debug!("finding user's team");
 
         let roles = self
             .roleRepository
@@ -83,15 +96,10 @@ where
 
         let team = team.ok_or(errors::UserError::UserNotInTeam)?;
 
-        let problem = self
-            .problems
-            .get(&code)
-            .cloned()
-            .ok_or(errors::UserError::NoSuchProblem(code))?;
 
         let content = format!("問題「{}」を初期化します。よろしいですか？", problem.name);
 
-        let message = InteractionHelper::send(&ctx.context.http, &ctx.command, content).await?;
+        let message = InteractionHelper::defer_respond(&ctx.context.http, &ctx.command, content).await?;
         InteractionHelper::react(&ctx.context.http, &ctx.command, self.ok_reaction.clone()).await;
         InteractionHelper::react(&ctx.context.http, &ctx.command, self.ng_reaction.clone()).await;
 
@@ -112,6 +120,23 @@ where
                     problem_id,
                 },
             );
+        }
+
+        Ok(())
+    }
+
+    #[tracing::instrument(skip(self, ctx))]
+    pub async fn run(&self, ctx: &ApplicationCommandContext, code: String) -> Result<()> {
+
+        let http = &ctx.context.http;
+        let command = &ctx.command;
+
+        tracing::debug!("sending acknowledgement");
+        InteractionHelper::defer(&ctx.context.http, &ctx.command).await?;
+
+        if let Err(err) = self.run_defer(ctx, code).await {
+            tracing::warn!(?err, "failed to run command");
+            InteractionHelper::defer_respond(http, command, err).await?;
         }
 
         Ok(())

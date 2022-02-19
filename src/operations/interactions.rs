@@ -31,7 +31,7 @@ pub trait InteractionDeferredResponder {
         http: &Http,
         command: &ApplicationCommandInteraction,
         msg: D,
-    ) -> Result<()>
+    ) -> Result<Message>
     where
         D: ToString + Send;
 }
@@ -107,15 +107,14 @@ impl InteractionDeferredResponder for InteractionHelper {
         http: &Http,
         command: &ApplicationCommandInteraction,
         msg: D,
-    ) -> Result<()>
+    ) -> Result<Message>
     where
         D: ToString + Send,
     {
         command
             .edit_original_interaction_response(http, |message| message.content(msg))
             .await;
-
-        Ok(())
+        Ok(command.get_interaction_response(http).await?)
     }
 }
 

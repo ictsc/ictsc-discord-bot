@@ -22,7 +22,6 @@ where
         guild_id: GuildId,
         mapping: HashMap<String, String>,
     ) -> Self {
-        tracing::debug!(mapping = ?mapping, "join command initialized");
         Self {
             repository,
             guild_id,

@@ -3,6 +3,7 @@ use async_trait::async_trait;
 use serenity::http::Http;
 use serenity::model::prelude::*;
 
+#[derive(Debug)]
 pub struct CreateChannelInput {
     pub name: String,
     pub kind: ChannelType,
@@ -151,6 +152,7 @@ impl<T> ChannelSyncer for T
 where
     T: ChannelCreator + ChannelDeleter + ChannelFinder + Sync,
 {
+    #[tracing::instrument(skip_all)]
     async fn sync(
         &self,
         http: &Http,
@@ -162,17 +164,31 @@ where
         let mut results = Vec::new();
 
         for input in inputs {
+            tracing::debug!(?input, "syncing channel");
+
             let filtered: Vec<_> = channels
                 .iter()
-                .filter(|channel| channel.name == input.name && channel.kind == input.kind.into())
+                .filter(|channel| {
+                    channel.name == input.name && channel.kind == input.kind.into()
+                        && channel.category_id == input.category_id
+                })
                 .collect();
 
             match filtered.len() {
                 1 => {
+                    let mut channel = filtered[0].clone();
+
+                    tracing::debug!(?channel, ?input, "channel found, syncing");
+
+                    channel.edit(http, |channel| {
+                        channel.permissions(input.permissions)
+                    }).await?;
+
                     // TODO: handling parameter change
-                    results.push(filtered[0].clone());
+                    results.push(channel);
                 }
                 _ => {
+                    tracing::debug!(role_name = ?input.name, "channel not found or several channels found, updating");
                     for channel in filtered {
                         self.delete(http, guild_id, channel.id).await?;
                     }

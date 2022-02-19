@@ -458,6 +458,22 @@ impl Bot {
 
         Ok(())
     }
+
+    #[tracing::instrument(skip_all)]
+    pub async fn delete_commands(&self) -> Result<()> {
+        let (guild_id, ref http) = self.setup_client();
+
+        tracing::info!("deleting all commands");
+
+        for command in guild_id.get_application_commands(http).await? {
+            tracing::debug!(?command, "deleting command");
+            guild_id.delete_application_command(http, command.id).await?;
+        }
+
+        tracing::info!("delete all commands completed");
+
+        Ok(())
+    }
 }
 
 impl Bot {

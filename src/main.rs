@@ -21,6 +21,7 @@ enum Commands {
     DeleteRoles,
     CreateChannels,
     DeleteChannels,
+    DeleteCommands,
 }
 
 #[tokio::main]
@@ -44,6 +45,7 @@ async fn main() {
         Commands::DeleteRoles => bot.delete_roles().await,
         Commands::CreateChannels => bot.create_channels().await,
         Commands::DeleteChannels => bot.delete_channels().await,
+        Commands::DeleteCommands => bot.delete_commands().await,
     };
 
     if let Err(reason) = result {
