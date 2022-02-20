@@ -5,7 +5,6 @@ use std::collections::HashMap;
 
 use crate::commands::ask::AskCommand;
 use crate::commands::join::JoinCommand;
-use crate::commands::whoami::WhoAmICommand;
 use crate::commands::{ApplicationCommandContext, ReactionContext};
 use crate::Result;
 use serenity::async_trait;
@@ -602,11 +601,6 @@ impl Bot {
     }
 
     #[tracing::instrument(skip_all)]
-    async fn handle_command_whoami(&self, ctx: &ApplicationCommandContext) -> Result<()> {
-        self.whoami_command.run(ctx).await
-    }
-
-    #[tracing::instrument(skip_all)]
     async fn handle_command_join(&self, ctx: &ApplicationCommandContext) -> Result<()> {
         let invitation_code =
             InteractionHelper::value_of_as_str(&ctx.command, "invitation_code").unwrap();
@@ -631,7 +625,6 @@ impl Bot {
 
         let result = match name {
             "ping" => self.handle_command_ping(&ctx).await,
-            "whoami" => self.handle_command_whoami(&ctx).await,
             "ask" => self.handle_command_ask(&ctx).await,
             "join" => self.handle_command_join(&ctx).await,
             "recreate" => self.handle_command_recreate(&ctx).await,
