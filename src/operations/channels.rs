@@ -80,6 +80,9 @@ impl ChannelCreator for ChannelManager {
         Ok(guild_id
             .create_channel(http, |channel| {
                 channel.name(input.name).kind(input.kind);
+                if let Some(topic) = input.topic {
+                    channel.topic(topic);
+                }
                 channel.permissions(input.permissions);
 
                 match input.category_id {
