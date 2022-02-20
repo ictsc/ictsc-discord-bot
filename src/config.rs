@@ -52,6 +52,7 @@ pub struct TeamConfiguration {
     pub channel_name: String,
     pub role_name: String,
     pub invitation_code: String,
+    pub user_group_id: String,
 }
 
 #[derive(Debug, Deserialize)]
@@ -112,6 +113,7 @@ impl From<TeamConfiguration> for bot::TeamConfiguration {
             channel_name: team.channel_name,
             role_name: team.role_name,
             invitation_code: team.invitation_code,
+            user_group_id: team.user_group_id,
         }
     }
 }

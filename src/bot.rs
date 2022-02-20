@@ -59,6 +59,7 @@ pub struct TeamConfiguration {
     pub channel_name: String,
     pub role_name: String,
     pub invitation_code: String,
+    pub user_group_id: String,
 }
 
 #[derive(Debug, Clone)]
@@ -324,6 +325,19 @@ impl Bot {
         Ok(())
     }
 
+    fn create_topic(&self, team: &TeamConfiguration) -> String {
+        format!("**__踏み台サーバ__**
+
+ホスト名：{id}.bastion.ictsc.net
+ユーザ名：user
+パスワード：{invitation_code}
+
+**__スコアサーバ__**
+
+ユーザ登録URL：https://contest.ictsc.net/signup?invitation_code={invitation_code}&user_group_id={user_group_id}",
+                id = team.id, invitation_code = team.invitation_code, user_group_id = team.user_group_id)
+    }
+
     #[tracing::instrument(skip_all)]
     pub async fn create_channels(&self) -> Result<()> {
         let (guild_id, ref http) = self.setup_client();
@@ -429,6 +443,7 @@ impl Bot {
                 kind: ChannelType::Text,
                 category_id: Some(team_category_id),
                 permissions: permissions.clone(),
+                topic: Some(self.create_topic(team)),
                 ..CreateChannelInput::default()
             });
 

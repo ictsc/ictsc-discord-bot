@@ -184,7 +184,7 @@ where
 
                     channel.edit(http, |channel| {
                         if let Some(topic) = input.topic {
-                            channel.topic(topic)
+                            channel.topic(topic);
                         }
                         channel.permissions(input.permissions)
                     }).await?;
