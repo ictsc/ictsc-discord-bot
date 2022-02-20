@@ -98,7 +98,8 @@ where
 
         let content = format!("問題「{}」を初期化します。よろしいですか？", problem.name);
 
-        let message = InteractionHelper::defer_respond(&ctx.context.http, &ctx.command, content).await?;
+        let message =
+            InteractionHelper::defer_respond(&ctx.context.http, &ctx.command, content).await?;
         InteractionHelper::react(&ctx.context.http, &ctx.command, self.ok_reaction.clone()).await;
         InteractionHelper::react(&ctx.context.http, &ctx.command, self.ng_reaction.clone()).await;
 
@@ -128,7 +129,12 @@ where
 
         if let Err(err) = self.run_defer(ctx, code).await {
             tracing::warn!(?err, "failed to run command");
-            InteractionHelper::defer_respond(http, command, format!("{} (id: {})", err, command.id),).await?;
+            InteractionHelper::defer_respond(
+                http,
+                command,
+                format!("{} (id: {})", err, command.id),
+            )
+            .await?;
         }
 
         Ok(())

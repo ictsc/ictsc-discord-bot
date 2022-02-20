@@ -214,7 +214,7 @@ impl RoleRevoker for RoleManager {
 #[async_trait]
 impl<T> RoleSyncer for T
 where
-    T: RoleCreator + RoleDeleter + RoleFinder + Sync
+    T: RoleCreator + RoleDeleter + RoleFinder + Sync,
 {
     #[tracing::instrument(skip_all)]
     async fn sync(
@@ -253,14 +253,16 @@ where
 
                     tracing::debug!("diff found, updating");
 
-                    results.push(guild_id
-                        .edit_role(http, role.id, |role| {
-                            role.colour(input.color)
-                                .mentionable(input.mentionable)
-                                .hoist(input.hoist)
-                                .permissions(input.permissions)
-                        })
-                        .await?);
+                    results.push(
+                        guild_id
+                            .edit_role(http, role.id, |role| {
+                                role.colour(input.color)
+                                    .mentionable(input.mentionable)
+                                    .hoist(input.hoist)
+                                    .permissions(input.permissions)
+                            })
+                            .await?,
+                    );
                 }
                 _ => {
                     tracing::debug!(role_name = ?input.name, "role not found or several roles found, updating");

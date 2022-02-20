@@ -97,7 +97,12 @@ where
             }
             Err(err) => {
                 tracing::warn!("failed to run join: {:?}", err);
-                InteractionHelper::defer_respond(http, command, format!("{} (id: {})", err, ctx.command.id)).await
+                InteractionHelper::defer_respond(
+                    http,
+                    command,
+                    format!("{} (id: {})", err, ctx.command.id),
+                )
+                .await
             }
         };
 

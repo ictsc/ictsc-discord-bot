@@ -79,7 +79,7 @@ impl ChannelCreator for ChannelManager {
     ) -> Result<GuildChannel> {
         Ok(guild_id
             .create_channel(http, |channel| {
-                channel.name(input.name).kind(input.kind.into());
+                channel.name(input.name).kind(input.kind);
                 channel.permissions(input.permissions);
 
                 match input.category_id {
@@ -171,7 +171,8 @@ where
             let filtered: Vec<_> = channels
                 .iter()
                 .filter(|channel| {
-                    channel.name == input.name && channel.kind == input.kind.into()
+                    channel.name == input.name
+                        && channel.kind == input.kind
                         && channel.category_id == input.category_id
                 })
                 .collect();
@@ -182,12 +183,14 @@ where
 
                     tracing::debug!(?channel, ?input, "channel found, syncing");
 
-                    channel.edit(http, |channel| {
-                        if let Some(topic) = input.topic {
-                            channel.topic(topic);
-                        }
-                        channel.permissions(input.permissions)
-                    }).await?;
+                    channel
+                        .edit(http, |channel| {
+                            if let Some(topic) = input.topic {
+                                channel.topic(topic);
+                            }
+                            channel.permissions(input.permissions)
+                        })
+                        .await?;
 
                     results.push(channel);
                 }

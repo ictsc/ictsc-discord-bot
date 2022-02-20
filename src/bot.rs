@@ -1,7 +1,7 @@
 use crate::*;
 
+
 use std::collections::HashMap;
-use reqwest::get;
 
 use crate::commands::ask::AskCommand;
 use crate::commands::join::JoinCommand;
@@ -13,10 +13,10 @@ use serenity::builder::*;
 use serenity::http::Http;
 
 use crate::commands::recreate::RecreateCommand;
+use crate::SystemError::{NoSuchCategory, NoSuchRole};
 use serenity::model::prelude::application_command::*;
 use serenity::model::prelude::*;
 use serenity::prelude::*;
-use crate::SystemError::{NoSuchCategory, NoSuchRole};
 
 type CommandCreator =
     Box<dyn FnOnce(&mut CreateApplicationCommand) -> &mut CreateApplicationCommand + Send>;
@@ -343,15 +343,19 @@ impl Bot {
         let (guild_id, ref http) = self.setup_client();
 
         tracing::info!("fetching all roles");
-        let roles: HashMap<_, _> = RoleManager.find_all(http, guild_id).await?
+        let roles: HashMap<_, _> = RoleManager
+            .find_all(http, guild_id)
+            .await?
             .into_iter()
             .map(|r| (r.name, r.id))
             .collect();
 
-        let staff_role_id = *roles.get(STAFF_ROLE_NAME)
+        let staff_role_id = *roles
+            .get(STAFF_ROLE_NAME)
             .ok_or(NoSuchRole(STAFF_ROLE_NAME.into()))?;
 
-        let everyone_role_id = *roles.get(EVERYONE_ROLE_NAME)
+        let everyone_role_id = *roles
+            .get(EVERYONE_ROLE_NAME)
             .ok_or(NoSuchRole(EVERYONE_ROLE_NAME.into()))?;
 
         let default_permissions = vec![
@@ -378,7 +382,8 @@ impl Bot {
         });
 
         for team in &self.config.teams {
-            let team_role_id = *roles.get(&team.role_name)
+            let team_role_id = *roles
+                .get(&team.role_name)
                 .ok_or(NoSuchRole(team.role_name.clone()))?;
 
             let mut permissions = default_permissions.clone();
@@ -396,7 +401,9 @@ impl Bot {
             });
         }
 
-        let categories: HashMap<_, _> = ChannelManager.sync(http, guild_id, inputs).await?
+        let categories: HashMap<_, _> = ChannelManager
+            .sync(http, guild_id, inputs)
+            .await?
             .into_iter()
             .map(|c| (c.name, c.id))
             .collect();
@@ -405,7 +412,8 @@ impl Bot {
 
         let mut inputs = Vec::new();
 
-        let staff_category_id = *categories.get(STAFF_CATEGORY_NAME)
+        let staff_category_id = *categories
+            .get(STAFF_CATEGORY_NAME)
             .ok_or(NoSuchCategory(STAFF_CATEGORY_NAME.into()))?;
 
         inputs.push(CreateChannelInput {
@@ -425,10 +433,12 @@ impl Bot {
         });
 
         for team in &self.config.teams {
-            let team_role_id = *roles.get(&team.role_name)
+            let team_role_id = *roles
+                .get(&team.role_name)
                 .ok_or(NoSuchCategory(team.channel_name.clone()))?;
 
-            let team_category_id = *categories.get(&team.channel_name)
+            let team_category_id = *categories
+                .get(&team.channel_name)
                 .ok_or(NoSuchCategory(team.channel_name.clone()))?;
 
             let mut permissions = default_permissions.clone();
@@ -482,7 +492,9 @@ impl Bot {
 
         for command in guild_id.get_application_commands(http).await? {
             tracing::debug!(?command, "deleting command");
-            guild_id.delete_application_command(http, command.id).await?;
+            guild_id
+                .delete_application_command(http, command.id)
+                .await?;
         }
 
         tracing::info!("delete all commands completed");
