@@ -25,8 +25,17 @@ type CommandDefinitions<'a> = HashMap<&'a str, CommandCreator>;
 static STAFF_CATEGORY_NAME: &str = "ICTSC2021 Staff";
 static STAFF_ROLE_NAME: &str = "ICTSC2021 Staff";
 static EVERYONE_ROLE_NAME: &str = "@everyone";
+static GUIDANCE_CHANNEL_NAME: &str = "guidance";
+static ANNOUNCE_CHANNEL_NAME: &str = "announce";
+static RANDOM_CHANNEL_NAME: &str = "random";
 static TEXT_CHANNEL_NAME: &str = "text";
 static VOICE_CHANNEL_NAME: &str = "voice";
+
+const PERMISSIONS_READONLY: Permissions = Permissions {
+    bits: Permissions::ADD_REACTIONS.bits
+        | Permissions::READ_MESSAGE_HISTORY.bits
+        | Permissions::READ_MESSAGES.bits,
+};
 
 #[derive(Debug, Clone)]
 pub struct Configuration {
@@ -270,13 +279,19 @@ impl Bot {
             permissions: Permissions::all(),
         });
 
+        inputs.push(CreateRoleInput {
+            name: String::from("@everyone"),
+            permissions: Permissions::empty(),
+            ..CreateRoleInput::default()
+        });
+
         for team in &self.config.teams {
             inputs.push(CreateRoleInput {
                 name: team.role_name.clone(),
                 color: 0,
                 hoist: true,
                 mentionable: true,
-                permissions: Permissions::empty(),
+                permissions: PRESET_GENERAL,
             })
         }
 
@@ -363,7 +378,7 @@ impl Bot {
 
             let mut permissions = default_permissions.clone();
             permissions.push(PermissionOverwrite {
-                allow: Permissions::all(),
+                allow: PRESET_GENERAL,
                 deny: Permissions::empty(),
                 kind: PermissionOverwriteType::Role(team_role_id),
             });
@@ -391,6 +406,41 @@ impl Bot {
             .get(STAFF_CATEGORY_NAME)
             .ok_or(NoSuchCategory(STAFF_CATEGORY_NAME.into()))?;
 
+        let readonly_permissions = vec![
+            PermissionOverwrite {
+                allow: Permissions::all(),
+                deny: Permissions::empty(),
+                kind: PermissionOverwriteType::Role(staff_role_id),
+            },
+            PermissionOverwrite {
+                allow: PERMISSIONS_READONLY,
+                deny: PERMISSIONS_READONLY.complement(),
+                kind: PermissionOverwriteType::Role(everyone_role_id),
+            },
+        ];
+
+        // everyone channels
+        inputs.push(CreateChannelInput {
+            name: GUIDANCE_CHANNEL_NAME.into(),
+            kind: ChannelType::Text,
+            permissions: readonly_permissions.clone(),
+            ..CreateChannelInput::default()
+        });
+
+        inputs.push(CreateChannelInput {
+            name: ANNOUNCE_CHANNEL_NAME.into(),
+            kind: ChannelType::Text,
+            permissions: readonly_permissions.clone(),
+            ..CreateChannelInput::default()
+        });
+
+        inputs.push(CreateChannelInput {
+            name: RANDOM_CHANNEL_NAME.into(),
+            kind: ChannelType::Text,
+            ..CreateChannelInput::default()
+        });
+
+        // staff channels
         inputs.push(CreateChannelInput {
             name: TEXT_CHANNEL_NAME.into(),
             kind: ChannelType::Text,
@@ -408,17 +458,17 @@ impl Bot {
         });
 
         for team in &self.config.teams {
-            let team_role_id = *roles
-                .get(&team.role_name)
-                .ok_or(NoSuchCategory(team.channel_name.clone()))?;
-
             let team_category_id = *categories
                 .get(&team.channel_name)
                 .ok_or(NoSuchCategory(team.channel_name.clone()))?;
 
+            let team_role_id = *roles
+                .get(&team.role_name)
+                .ok_or(NoSuchRole(team.role_name.clone()))?;
+
             let mut permissions = default_permissions.clone();
             permissions.push(PermissionOverwrite {
-                allow: Permissions::all(),
+                allow: PRESET_GENERAL,
                 deny: Permissions::empty(),
                 kind: PermissionOverwriteType::Role(team_role_id),
             });
@@ -427,8 +477,8 @@ impl Bot {
                 name: TEXT_CHANNEL_NAME.into(),
                 kind: ChannelType::Text,
                 category_id: Some(team_category_id),
-                permissions: permissions.clone(),
                 topic: Some(self.create_topic(team)),
+                permissions: permissions.clone(),
                 ..CreateChannelInput::default()
             });
 
@@ -436,7 +486,7 @@ impl Bot {
                 name: VOICE_CHANNEL_NAME.into(),
                 kind: ChannelType::Voice,
                 category_id: Some(team_category_id),
-                permissions: permissions.clone(),
+                permissions,
                 ..CreateChannelInput::default()
             });
         }
