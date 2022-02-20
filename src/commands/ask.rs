@@ -32,7 +32,7 @@ where
             .create(&ctx.context.http, channel_id, summary, content)
             .await?;
 
-        InteractionHelper::send_ephemeral(
+        InteractionHelper::defer_respond(
             &ctx.context.http,
             &ctx.command,
             "質問スレッドが開始されました",

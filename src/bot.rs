@@ -81,7 +81,6 @@ pub struct Bot {
     ask_command: AskCommand<UserManager, ThreadManager>,
     join_command: JoinCommand<RoleManager>,
     recreate_command: RecreateCommand<RoleManager, ProblemRecreateManager>,
-    whoami_command: WhoAmICommand<UserManager>,
 }
 
 impl Bot {
@@ -108,14 +107,12 @@ impl Bot {
             &config.teams,
             &config.problems,
         );
-        let whoami_command = WhoAmICommand::new(UserManager);
 
         Bot {
             config,
             ask_command,
             join_command,
             recreate_command,
-            whoami_command,
         }
     }
 }
@@ -590,7 +587,7 @@ impl Bot {
 impl Bot {
     #[tracing::instrument(skip_all)]
     async fn handle_command_ping(&self, ctx: &ApplicationCommandContext) -> Result<()> {
-        InteractionHelper::send(&ctx.context.http, &ctx.command, "pong!").await?;
+        InteractionHelper::defer_respond(&ctx.context.http, &ctx.command, "pong!").await?;
         Ok(())
     }
 
@@ -623,6 +620,9 @@ impl Bot {
     async fn handle_application_command(&self, ctx: ApplicationCommandContext) {
         let name = ctx.command.data.name.as_str();
 
+        tracing::debug!("sending acknowledgement");
+        InteractionHelper::defer(&ctx.context.http, &ctx.command).await;
+
         let result = match name {
             "ping" => self.handle_command_ping(&ctx).await,
             "ask" => self.handle_command_ask(&ctx).await,
@@ -635,7 +635,7 @@ impl Bot {
             Ok(_) => (),
             Err(err) => {
                 tracing::error!(?err, "failed to handle application command");
-                let _ = InteractionHelper::send_ephemeral(
+                let _ = InteractionHelper::defer_respond(
                     &ctx.context.http,
                     &ctx.command,
                     format!("{} (id: {})", err, ctx.command.id),

@@ -65,7 +65,7 @@ where
     }
 
     #[tracing::instrument(skip(self, ctx))]
-    pub async fn run_defer(&self, ctx: &ApplicationCommandContext, code: String) -> Result<()> {
+    pub async fn run(&self, ctx: &ApplicationCommandContext, code: String) -> Result<()> {
         let guild_id = ctx.command.guild_id.unwrap();
         let user = &ctx.command.user;
 
@@ -115,27 +115,6 @@ where
 
         let mut table = self.pending_requests.lock().await;
         table.insert(message_id, request);
-
-        Ok(())
-    }
-
-    #[tracing::instrument(skip(self, ctx))]
-    pub async fn run(&self, ctx: &ApplicationCommandContext, code: String) -> Result<()> {
-        let http = &ctx.context.http;
-        let command = &ctx.command;
-
-        tracing::debug!("sending acknowledgement");
-        InteractionHelper::defer(&ctx.context.http, &ctx.command).await?;
-
-        if let Err(err) = self.run_defer(ctx, code).await {
-            tracing::warn!(?err, "failed to run command");
-            InteractionHelper::defer_respond(
-                http,
-                command,
-                format!("{} (id: {})", err, command.id),
-            )
-            .await?;
-        }
 
         Ok(())
     }
