@@ -8,6 +8,7 @@ pub struct CreateChannelInput {
     pub name: String,
     pub kind: ChannelType,
     pub category_id: Option<ChannelId>,
+    pub topic: Option<String>,
     pub permissions: Vec<PermissionOverwrite>,
 }
 
@@ -17,6 +18,7 @@ impl Default for CreateChannelInput {
             name: String::default(),
             kind: ChannelType::Unknown,
             category_id: Option::default(),
+            topic: Option::default(),
             permissions: Vec::default(),
         }
     }
@@ -181,10 +183,12 @@ where
                     tracing::debug!(?channel, ?input, "channel found, syncing");
 
                     channel.edit(http, |channel| {
+                        if let Some(topic) = input.topic {
+                            channel.topic(topic)
+                        }
                         channel.permissions(input.permissions)
                     }).await?;
 
-                    // TODO: handling parameter change
                     results.push(channel);
                 }
                 _ => {
