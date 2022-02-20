@@ -120,7 +120,7 @@ fn setup_global_application_command_definitions() -> CommandDefinitions<'static>
         Box::new(|command| {
             command
                 .name("join")
-                .description("join")
+                .description("チームに参加します。")
                 .create_option(|option| {
                     option
                         .name("invitation_code")
@@ -140,31 +140,6 @@ fn setup_application_command_definitions() -> CommandDefinitions<'static> {
     definitions.insert(
         "ping",
         Box::new(|command| command.name("ping").description("botの生存確認をします。")),
-    );
-
-    definitions.insert(
-        "whoami",
-        Box::new(|command| {
-            command
-                .name("whoami")
-                .description("ユーザ情報を表示します（デバッグ用）")
-        }),
-    );
-
-    definitions.insert(
-        "join",
-        Box::new(|command| {
-            command
-                .name("join")
-                .description("join")
-                .create_option(|option| {
-                    option
-                        .name("invitation_code")
-                        .description("招待コード")
-                        .kind(ApplicationCommandOptionType::String)
-                        .required(true)
-                })
-        }),
     );
 
     definitions.insert(
