@@ -487,7 +487,7 @@ impl Bot {
             .unwrap();
         for command in &commands {
             if !definitions.contains_key(command.name.as_str()) {
-                tracing::debug!("delete global application command: {:?}", command);
+                tracing::debug!(?command, "delete global application command");
                 ApplicationCommand::delete_global_application_command(&ctx.http, command.id)
                     .await
                     .unwrap();
@@ -495,7 +495,7 @@ impl Bot {
         }
 
         for (name, handler) in definitions {
-            tracing::debug!("create global application command: {:?}", name);
+            tracing::debug!(?name, "create global application command");
             ApplicationCommand::create_global_application_command(&ctx.http, handler)
                 .await
                 .unwrap();
@@ -508,7 +508,7 @@ impl Bot {
         let commands = guild.get_application_commands(&ctx.http).await.unwrap();
         for command in &commands {
             if !definitions.contains_key(command.name.as_str()) {
-                tracing::debug!("delete application command: {:?}", command);
+                tracing::debug!(?command, "delete application command");
                 guild
                     .delete_application_command(&ctx.http, command.id)
                     .await
@@ -517,7 +517,7 @@ impl Bot {
         }
 
         for (name, handler) in definitions {
-            tracing::debug!("create application command: {:?}", name);
+            tracing::debug!(?name, "create application command");
             guild
                 .create_application_command(&ctx.http, handler)
                 .await
@@ -529,7 +529,7 @@ impl Bot {
         let commands = guild.get_application_commands(&ctx.http).await.unwrap();
 
         for command in &commands {
-            tracing::debug!("delete application command: {:?}", command);
+            tracing::debug!(?command, "delete application command");
             guild
                 .delete_application_command(&ctx.http, command.id)
                 .await
