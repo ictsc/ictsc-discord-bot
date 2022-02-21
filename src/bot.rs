@@ -96,7 +96,7 @@ pub struct ProblemConfiguration {
 
 pub struct Bot {
     config: Configuration,
-    ask_command: AskCommand<UserManager, ThreadManager>,
+    ask_command: AskCommand<RoleManager, ThreadManager>,
     join_command: JoinCommand<RoleManager>,
     recreate_command: RecreateCommand<RoleManager, ProblemRecreateManager>,
 }
@@ -117,7 +117,7 @@ impl Bot {
             team_mapping.insert(team.invitation_code.clone(), team.role_name.clone());
         });
 
-        let ask_command = AskCommand::new(UserManager, ThreadManager);
+        let ask_command = AskCommand::new(guild_id, RoleManager, ThreadManager);
         let join_command = JoinCommand::new(RoleManager, guild_id, team_mapping);
         let recreate_command = RecreateCommand::new(
             RoleManager,
