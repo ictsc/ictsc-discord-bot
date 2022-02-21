@@ -36,6 +36,24 @@ const PERMISSIONS_READONLY: Permissions = Permissions {
         | Permissions::READ_MESSAGES.bits,
 };
 
+pub const PERMISSIONS_TEAM: Permissions = Permissions {
+    bits: Permissions::ADD_REACTIONS.bits
+        | Permissions::ATTACH_FILES.bits
+        | Permissions::CHANGE_NICKNAME.bits
+        | Permissions::CONNECT.bits
+        | Permissions::CREATE_INVITE.bits
+        | Permissions::EMBED_LINKS.bits
+        | Permissions::MENTION_EVERYONE.bits
+        | Permissions::READ_MESSAGE_HISTORY.bits
+        | Permissions::READ_MESSAGES.bits
+        | Permissions::SEND_MESSAGES.bits
+        | Permissions::SEND_TTS_MESSAGES.bits
+        | Permissions::SPEAK.bits
+        | Permissions::USE_EXTERNAL_EMOJIS.bits
+        | Permissions::USE_VAD.bits
+        | Permissions::USE_SLASH_COMMANDS.bits,
+};
+
 #[derive(Debug, Clone)]
 pub struct Configuration {
     pub token: String,
@@ -287,7 +305,7 @@ impl Bot {
                 color: 0,
                 hoist: true,
                 mentionable: true,
-                permissions: PRESET_GENERAL,
+                permissions: PERMISSIONS_TEAM,
             })
         }
 
@@ -374,7 +392,7 @@ impl Bot {
 
             let mut permissions = default_permissions.clone();
             permissions.push(PermissionOverwrite {
-                allow: PRESET_GENERAL,
+                allow: PERMISSIONS_TEAM,
                 deny: Permissions::empty(),
                 kind: PermissionOverwriteType::Role(team_role_id),
             });
@@ -464,7 +482,7 @@ impl Bot {
 
             let mut permissions = default_permissions.clone();
             permissions.push(PermissionOverwrite {
-                allow: PRESET_GENERAL,
+                allow: PERMISSIONS_TEAM,
                 deny: Permissions::empty(),
                 kind: PermissionOverwriteType::Role(team_role_id),
             });
