@@ -47,6 +47,7 @@ pub const PERMISSIONS_TEAM: Permissions = Permissions {
         | Permissions::READ_MESSAGE_HISTORY.bits
         | Permissions::READ_MESSAGES.bits
         | Permissions::SEND_MESSAGES.bits
+        | Permissions::SEND_MESSAGES_IN_THREADS.bits
         | Permissions::SEND_TTS_MESSAGES.bits
         | Permissions::SPEAK.bits
         | Permissions::USE_EXTERNAL_EMOJIS.bits
