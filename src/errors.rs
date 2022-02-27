@@ -22,6 +22,8 @@ pub enum UserError {
     NoSuchProblem(String),
     #[error("チームに所属していないため、処理を実行することができません。/joinを用いてチームに参加してください。")]
     UserNotInTeam,
+    #[error("質問の概要が長すぎます。")]
+    SummaryTooLong,
     #[error("再作成リクエストが実行中です。")]
     RequestInQueue,
     #[error("競技時間外です。")]
