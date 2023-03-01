@@ -1,6 +1,5 @@
 use crate::*;
 
-
 use std::collections::HashMap;
 
 use crate::commands::ask::AskCommand;
@@ -159,7 +158,9 @@ fn setup_global_application_command_definitions() -> CommandDefinitions<'static>
     definitions
 }
 
-fn setup_application_command_definitions(disabled_commands: &Vec<String>) -> CommandDefinitions<'static> {
+fn setup_application_command_definitions(
+    disabled_commands: &Vec<String>,
+) -> CommandDefinitions<'static> {
     let mut definitions = CommandDefinitions::new();
 
     if disabled_commands.contains(&"ping".to_string()) {
@@ -656,17 +657,17 @@ impl Bot {
         InteractionHelper::defer(&ctx.context.http, &ctx.command).await;
 
         let result = if self.config.disabled_commands.contains(&name.to_string()) {
-            tracing::info!(?name, "the command is disabled."); 
+            tracing::info!(?name, "the command is disabled.");
             Err(errors::SystemError::UnhandledCommand(String::from(name)).into())
-        }else{
+        } else {
             match name {
                 "ping" => self.handle_command_ping(&ctx).await,
                 "ask" => self.handle_command_ask(&ctx).await,
                 "join" => self.handle_command_join(&ctx).await,
                 "recreate" => self.handle_command_recreate(&ctx).await,
                 _ => Err(errors::SystemError::UnhandledCommand(String::from(name)).into()),
-           }
-       };
+            }
+        };
 
         match result {
             Ok(_) => (),
