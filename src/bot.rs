@@ -159,7 +159,7 @@ fn setup_global_application_command_definitions() -> CommandDefinitions<'static>
 }
 
 fn setup_application_command_definitions(
-    disabled_commands: &Vec<String>,
+    disabled_commands: &[String],
 ) -> CommandDefinitions<'static> {
     let mut definitions = CommandDefinitions::new();
 
