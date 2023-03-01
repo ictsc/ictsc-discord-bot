@@ -1,0 +1,25 @@
+staff:
+  password: staff password
+discord:
+  token: xxxx
+  application_id: 0
+  guild_id: 0
+slack:
+  username: slack bot user
+  icon_emoji: hoge
+  webhook_url: https://example.com
+recreate:
+  baseurl: https://example.com
+  username: hoge
+  password: hoge
+teams:
+  - id: hoge
+    name: team a
+    organization: hoge
+    channel_name: hoge
+    role_name: hoge
+    invitation_code: hoge
+    user_group_id: hoge
+problems:
+  - id: abc
+    name: problem abc
