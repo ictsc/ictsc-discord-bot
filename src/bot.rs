@@ -435,12 +435,12 @@ impl Bot {
         ];
 
         // everyone channels
-        inputs.push(CreateChannelInput {
-            name: GUIDANCE_CHANNEL_NAME.into(),
-            kind: ChannelType::Text,
-            permissions: readonly_permissions.clone(),
-            ..CreateChannelInput::default()
-        });
+        //inputs.push(CreateChannelInput {
+        //    name: GUIDANCE_CHANNEL_NAME.into(),
+        //    kind: ChannelType::Text,
+        //    permissions: readonly_permissions.clone(),
+        //    ..CreateChannelInput::default()
+        //});
 
         inputs.push(CreateChannelInput {
             name: ANNOUNCE_CHANNEL_NAME.into(),
