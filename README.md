@@ -40,5 +40,6 @@ make run
 
 ```
 cp bot.yaml.example bot.yaml
-cargo run --release <subcommand>
+cargo build --release
+./target/release/bot <subcommand>
 ```
