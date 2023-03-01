@@ -4,6 +4,8 @@ discord:
   token: xxxx
   application_id: 0
   guild_id: 0
+  disabled_commands:
+    - hogehoge
 slack:
   username: slack bot user
   icon_emoji: hoge

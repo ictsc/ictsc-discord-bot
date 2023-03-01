@@ -1,6 +1,5 @@
 use crate::*;
 
-
 use std::collections::HashMap;
 
 use crate::commands::ask::AskCommand;
@@ -60,6 +59,7 @@ pub struct Configuration {
     pub token: String,
     pub guild_id: u64,
     pub application_id: u64,
+    pub disabled_commands: Vec<String>,
     pub staff: StaffConfiguration,
     pub recreate_service: RecreateServiceConfiguration,
     pub teams: Vec<TeamConfiguration>,
@@ -158,45 +158,59 @@ fn setup_global_application_command_definitions() -> CommandDefinitions<'static>
     definitions
 }
 
-fn setup_application_command_definitions() -> CommandDefinitions<'static> {
+fn setup_application_command_definitions(
+    disabled_commands: &[String],
+) -> CommandDefinitions<'static> {
     let mut definitions = CommandDefinitions::new();
 
-    definitions.insert(
-        "ping",
-        Box::new(|command| command.name("ping").description("botの生存確認をします。")),
-    );
+    if disabled_commands.contains(&"ping".to_string()) {
+        tracing::info!("disabled discord command definition ping");
+    } else {
+        definitions.insert(
+            "ping",
+            Box::new(|command| command.name("ping").description("botの生存確認をします。")),
+        );
+    };
 
-    definitions.insert(
-        "ask",
-        Box::new(|command| {
-            command
-                .name("ask")
-                .description("運営への質問スレッドを開始します")
-                .create_option(|option| {
-                    option
-                        .name("summary")
-                        .description("質問内容の簡潔な説明（例：問題〇〇について, ...）")
-                        .kind(ApplicationCommandOptionType::String)
-                        .required(true)
-                })
-        }),
-    );
+    if disabled_commands.contains(&"ask".to_string()) {
+        tracing::info!("disabled discord command definition ask");
+    } else {
+        definitions.insert(
+            "ask",
+            Box::new(|command| {
+                command
+                    .name("ask")
+                    .description("運営への質問スレッドを開始します")
+                    .create_option(|option| {
+                        option
+                            .name("title")
+                            .description("質問タイトル")
+                            .kind(ApplicationCommandOptionType::String)
+                            .required(true)
+                    })
+            }),
+        );
+    };
 
-    definitions.insert(
-        "recreate",
-        Box::new(|command| {
-            command
-                .name("recreate")
-                .description("問題環境を再作成します。")
-                .create_option(|option| {
-                    option
-                        .name("problem_code")
-                        .description("問題コード")
-                        .kind(ApplicationCommandOptionType::String)
-                        .required(true)
-                })
-        }),
-    );
+    if disabled_commands.contains(&"recreate".to_string()) {
+        tracing::info!("disabled discord command definition recreate");
+    } else {
+        definitions.insert(
+            "recreate",
+            Box::new(|command| {
+                command
+                    .name("recreate")
+                    .description("問題環境を再作成します。")
+                    .create_option(|option| {
+                        option
+                            .name("problem_code")
+                            .description("問題コード")
+                            .kind(ApplicationCommandOptionType::String)
+                            .required(true)
+                    })
+            }),
+        );
+    };
 
     definitions
 }
@@ -568,7 +582,7 @@ impl Bot {
     }
 
     async fn setup_application_command(&self, ctx: Context, guild: Guild) {
-        let definitions = setup_application_command_definitions();
+        let definitions = setup_application_command_definitions(&self.config.disabled_commands);
 
         let commands = guild.get_application_commands(&ctx.http).await.unwrap();
         for command in &commands {
@@ -612,8 +626,8 @@ impl Bot {
 
     #[tracing::instrument(skip_all)]
     async fn handle_command_ask(&self, ctx: &ApplicationCommandContext) -> Result<()> {
-        let summary = InteractionHelper::value_of_as_str(&ctx.command, "summary").unwrap();
-        self.ask_command.run(ctx, summary.into()).await
+        let title = InteractionHelper::value_of_as_str(&ctx.command, "title").unwrap();
+        self.ask_command.run(ctx, title.into()).await
     }
 
     #[tracing::instrument(skip_all)]
@@ -642,12 +656,17 @@ impl Bot {
         tracing::debug!("sending acknowledgement");
         InteractionHelper::defer(&ctx.context.http, &ctx.command).await;
 
-        let result = match name {
-            "ping" => self.handle_command_ping(&ctx).await,
-            "ask" => self.handle_command_ask(&ctx).await,
-            "join" => self.handle_command_join(&ctx).await,
-            "recreate" => self.handle_command_recreate(&ctx).await,
-            _ => Err(errors::SystemError::UnhandledCommand(String::from(name)).into()),
+        let result = if self.config.disabled_commands.contains(&name.to_string()) {
+            tracing::info!(?name, "the command is disabled.");
+            Err(errors::SystemError::UnhandledCommand(String::from(name)).into())
+        } else {
+            match name {
+                "ping" => self.handle_command_ping(&ctx).await,
+                "ask" => self.handle_command_ask(&ctx).await,
+                "join" => self.handle_command_join(&ctx).await,
+                "recreate" => self.handle_command_recreate(&ctx).await,
+                _ => Err(errors::SystemError::UnhandledCommand(String::from(name)).into()),
+            }
         };
 
         match result {
