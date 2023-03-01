@@ -60,6 +60,7 @@ pub struct Configuration {
     pub token: String,
     pub guild_id: u64,
     pub application_id: u64,
+    pub disabled_commands: Vec<String>,
     pub staff: StaffConfiguration,
     pub recreate_service: RecreateServiceConfiguration,
     pub teams: Vec<TeamConfiguration>,

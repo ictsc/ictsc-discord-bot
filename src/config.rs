@@ -28,6 +28,7 @@ pub struct DiscordConfiguration {
     pub token: String,
     pub application_id: u64,
     pub guild_id: u64,
+    pub disabled_commands: Option<Vec<String>>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -74,6 +75,7 @@ impl From<Configuration> for bot::Configuration {
             token: config.discord.token,
             guild_id: config.discord.guild_id,
             application_id: config.discord.application_id,
+            disabled_commands: config.discord.disabled_commands.unwrap_or_default(),
             staff: config.staff.into(),
             recreate_service: config.recreate.into(),
             teams: config.teams.into_iter().map(|team| team.into()).collect(),
