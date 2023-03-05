@@ -20,8 +20,8 @@ type CommandCreator =
     Box<dyn FnOnce(&mut CreateApplicationCommand) -> &mut CreateApplicationCommand + Send>;
 type CommandDefinitions<'a> = HashMap<&'a str, CommandCreator>;
 
-static STAFF_CATEGORY_NAME: &str = "ICTSC2021 Staff";
-static STAFF_ROLE_NAME: &str = "ICTSC2021 Staff";
+static STAFF_CATEGORY_NAME: &str = "ICTSC2022 Staff";
+static STAFF_ROLE_NAME: &str = "ICTSC2022 Staff";
 static EVERYONE_ROLE_NAME: &str = "@everyone";
 static GUIDANCE_CHANNEL_NAME: &str = "guidance";
 static ANNOUNCE_CHANNEL_NAME: &str = "announce";

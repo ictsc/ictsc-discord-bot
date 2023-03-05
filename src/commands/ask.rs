@@ -4,7 +4,7 @@ use crate::*;
 use serenity::http::CacheHttp;
 use serenity::model::prelude::*;
 
-static STAFF_ROLE_NAME: &str = "ICTSC2021 Staff";
+static STAFF_ROLE_NAME: &str = "ICTSC2022 Staff";
 
 pub struct AskCommand<F, C>
 where
