@@ -154,7 +154,7 @@ impl InteractionTableResponder for InteractionHelper {
                 response
                     .kind(InteractionResponseType::ChannelMessageWithSource)
                     .interaction_response_data(|data| {
-                        data.create_embed(|embed| {
+                        data.embed(|embed| {
                             for (key, value) in table {
                                 embed.field(key, value, false);
                             }
