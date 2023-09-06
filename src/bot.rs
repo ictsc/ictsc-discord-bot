@@ -23,7 +23,6 @@ type CommandDefinitions<'a> = HashMap<&'a str, CommandCreator>;
 static STAFF_CATEGORY_NAME: &str = "ICTSC2022 Staff";
 static STAFF_ROLE_NAME: &str = "ICTSC2022 Staff";
 static EVERYONE_ROLE_NAME: &str = "@everyone";
-static GUIDANCE_CHANNEL_NAME: &str = "guidance";
 static ANNOUNCE_CHANNEL_NAME: &str = "announce";
 static RANDOM_CHANNEL_NAME: &str = "random";
 static TEXT_CHANNEL_NAME: &str = "text";
@@ -106,7 +105,7 @@ impl Bot {
     pub fn new(config: Configuration) -> Self {
         let guild_id = GuildId(config.guild_id);
 
-        let problemRecreateManager = ProblemRecreateManager::new(
+        let problem_recreate_manager = ProblemRecreateManager::new(
             config.recreate_service.baseurl.clone(),
             config.recreate_service.username.clone(),
             config.recreate_service.password.clone(),
@@ -122,7 +121,7 @@ impl Bot {
         let join_command = JoinCommand::new(RoleManager, guild_id, team_mapping);
         let recreate_command = RecreateCommand::new(
             RoleManager,
-            problemRecreateManager,
+            problem_recreate_manager,
             &config.teams,
             &config.problems,
         );
@@ -337,7 +336,7 @@ impl Bot {
 
         tracing::info!("deleting all roles");
 
-        RoleManager.delete_all(http, guild_id).await;
+        RoleManager.delete_all(http, guild_id).await?;
 
         tracing::info!("delete all roles completed");
 
@@ -531,7 +530,7 @@ impl Bot {
 
         tracing::info!("deleting all channels");
 
-        ChannelManager.delete_all(http, guild_id).await;
+        ChannelManager.delete_all(http, guild_id).await?;
 
         tracing::info!("delete all channels completed");
 
@@ -603,18 +602,6 @@ impl Bot {
                 .unwrap();
         }
     }
-
-    async fn teardown_application_command(&self, ctx: Context, guild: Guild) {
-        let commands = guild.get_application_commands(&ctx.http).await.unwrap();
-
-        for command in &commands {
-            tracing::debug!(?command, "delete application command");
-            guild
-                .delete_application_command(&ctx.http, command.id)
-                .await
-                .unwrap();
-        }
-    }
 }
 
 impl Bot {
@@ -654,7 +641,7 @@ impl Bot {
         let name = ctx.command.data.name.as_str();
 
         tracing::debug!("sending acknowledgement");
-        InteractionHelper::defer(&ctx.context.http, &ctx.command).await;
+        let _ = InteractionHelper::defer(&ctx.context.http, &ctx.command).await;
 
         let result = if self.config.disabled_commands.contains(&name.to_string()) {
             tracing::info!(?name, "the command is disabled.");

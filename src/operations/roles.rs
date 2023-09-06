@@ -191,7 +191,7 @@ impl RoleGranter for RoleManager {
         role_id: RoleId,
     ) -> Result<()> {
         let mut member = guild_id.member(http, user_id).await?;
-        member.add_role(http, role_id).await;
+        member.add_role(http, role_id).await?;
         Ok(())
     }
 }
@@ -206,7 +206,7 @@ impl RoleRevoker for RoleManager {
         role_id: RoleId,
     ) -> Result<()> {
         let mut member = guild_id.member(http, user_id).await?;
-        member.remove_role(http, role_id).await;
+        member.remove_role(http, role_id).await?;
         Ok(())
     }
 }
