@@ -176,7 +176,7 @@ where
                 .filter(|channel| {
                     channel.name == input.name
                         && channel.kind == input.kind
-                        && channel.category_id == input.category_id
+                        && channel.parent_id == input.category_id
                 })
                 .collect();
 

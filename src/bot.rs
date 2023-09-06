@@ -12,7 +12,7 @@ use serenity::http::Http;
 
 use crate::commands::recreate::RecreateCommand;
 use crate::SystemError::{NoSuchCategory, NoSuchRole};
-use serenity::model::prelude::application_command::*;
+use serenity::model::prelude::command::*;
 use serenity::model::prelude::*;
 use serenity::prelude::*;
 
@@ -28,30 +28,27 @@ static RANDOM_CHANNEL_NAME: &str = "random";
 static TEXT_CHANNEL_NAME: &str = "text";
 static VOICE_CHANNEL_NAME: &str = "voice";
 
-const PERMISSIONS_READONLY: Permissions = Permissions {
-    bits: Permissions::ADD_REACTIONS.bits
-        | Permissions::READ_MESSAGE_HISTORY.bits
-        | Permissions::READ_MESSAGES.bits,
-};
+fn get_readonly_permissions() -> Permissions {
+    Permissions::ADD_REACTIONS
+        | Permissions::READ_MESSAGE_HISTORY
+}
 
-pub const PERMISSIONS_TEAM: Permissions = Permissions {
-    bits: Permissions::ADD_REACTIONS.bits
-        | Permissions::ATTACH_FILES.bits
-        | Permissions::CHANGE_NICKNAME.bits
-        | Permissions::CONNECT.bits
-        | Permissions::CREATE_INVITE.bits
-        | Permissions::EMBED_LINKS.bits
-        | Permissions::MENTION_EVERYONE.bits
-        | Permissions::READ_MESSAGE_HISTORY.bits
-        | Permissions::READ_MESSAGES.bits
-        | Permissions::SEND_MESSAGES.bits
-        | Permissions::SEND_MESSAGES_IN_THREADS.bits
-        | Permissions::SEND_TTS_MESSAGES.bits
-        | Permissions::SPEAK.bits
-        | Permissions::USE_EXTERNAL_EMOJIS.bits
-        | Permissions::USE_VAD.bits
-        | Permissions::USE_SLASH_COMMANDS.bits,
-};
+fn get_team_permissions() -> Permissions {
+    Permissions::ADD_REACTIONS
+        | Permissions::ATTACH_FILES
+        | Permissions::CHANGE_NICKNAME
+        | Permissions::CONNECT
+        | Permissions::EMBED_LINKS
+        | Permissions::MENTION_EVERYONE
+        | Permissions::READ_MESSAGE_HISTORY
+        | Permissions::SEND_MESSAGES
+        | Permissions::SEND_MESSAGES_IN_THREADS
+        | Permissions::SEND_TTS_MESSAGES
+        | Permissions::SPEAK
+        | Permissions::USE_EXTERNAL_EMOJIS
+        | Permissions::USE_VAD
+        | Permissions::USE_SLASH_COMMANDS
+}
 
 #[derive(Debug, Clone)]
 pub struct Configuration {
@@ -148,7 +145,7 @@ fn setup_global_application_command_definitions() -> CommandDefinitions<'static>
                     option
                         .name("invitation_code")
                         .description("招待コード")
-                        .kind(ApplicationCommandOptionType::String)
+                        .kind(CommandOptionType::String)
                         .required(true)
                 })
         }),
@@ -184,7 +181,7 @@ fn setup_application_command_definitions(
                         option
                             .name("title")
                             .description("質問タイトル")
-                            .kind(ApplicationCommandOptionType::String)
+                            .kind(CommandOptionType::String)
                             .required(true)
                     })
             }),
@@ -204,7 +201,7 @@ fn setup_application_command_definitions(
                         option
                             .name("problem_code")
                             .description("問題コード")
-                            .kind(ApplicationCommandOptionType::String)
+                            .kind(CommandOptionType::String)
                             .required(true)
                     })
             }),
@@ -273,7 +270,9 @@ impl Bot {
         let token = &self.config.token;
         let application_id = self.config.application_id;
 
-        let mut client = Client::builder(token)
+        // TODO: review GatewayIntents
+        // ref: https://docs.rs/serenity/latest/serenity/model/prelude/struct.GatewayIntents.html
+        let mut client = Client::builder(token, GatewayIntents::all())
             .application_id(application_id)
             .event_handler(self)
             .await?;
@@ -287,7 +286,7 @@ impl Bot {
 
         (
             GuildId::from(self.config.guild_id),
-            Http::new_with_token_application_id(token, application_id),
+            Http::new_with_application_id(token, application_id),
         )
     }
 
@@ -319,7 +318,7 @@ impl Bot {
                 color: 0,
                 hoist: true,
                 mentionable: true,
-                permissions: PERMISSIONS_TEAM,
+                permissions: get_team_permissions(),
             })
         }
 
@@ -406,7 +405,7 @@ impl Bot {
 
             let mut permissions = default_permissions.clone();
             permissions.push(PermissionOverwrite {
-                allow: PERMISSIONS_TEAM,
+                allow: get_team_permissions(),
                 deny: Permissions::empty(),
                 kind: PermissionOverwriteType::Role(team_role_id),
             });
@@ -441,8 +440,8 @@ impl Bot {
                 kind: PermissionOverwriteType::Role(staff_role_id),
             },
             PermissionOverwrite {
-                allow: PERMISSIONS_READONLY,
-                deny: PERMISSIONS_READONLY.complement(),
+                allow: get_readonly_permissions(),
+                deny: get_readonly_permissions().complement(),
                 kind: PermissionOverwriteType::Role(everyone_role_id),
             },
         ];
@@ -496,7 +495,7 @@ impl Bot {
 
             let mut permissions = default_permissions.clone();
             permissions.push(PermissionOverwrite {
-                allow: PERMISSIONS_TEAM,
+                allow: get_team_permissions(),
                 deny: Permissions::empty(),
                 kind: PermissionOverwriteType::Role(team_role_id),
             });
@@ -560,13 +559,13 @@ impl Bot {
     async fn setup_global_application_command(&self, ctx: Context) {
         let definitions = setup_global_application_command_definitions();
 
-        let commands = ApplicationCommand::get_global_application_commands(&ctx.http)
+        let commands = Command::get_global_application_commands(&ctx.http)
             .await
             .unwrap();
         for command in &commands {
             if !definitions.contains_key(command.name.as_str()) {
                 tracing::debug!(?command, "delete global application command");
-                ApplicationCommand::delete_global_application_command(&ctx.http, command.id)
+                Command::delete_global_application_command(&ctx.http, command.id)
                     .await
                     .unwrap();
             }
@@ -574,7 +573,7 @@ impl Bot {
 
         for (name, handler) in definitions {
             tracing::debug!(?name, "create global application command");
-            ApplicationCommand::create_global_application_command(&ctx.http, handler)
+            Command::create_global_application_command(&ctx.http, handler)
                 .await
                 .unwrap();
         }
