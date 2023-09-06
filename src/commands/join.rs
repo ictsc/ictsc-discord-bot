@@ -1,10 +1,9 @@
 use crate::commands::ApplicationCommandContext;
 use crate::*;
 
+use serenity::futures::lock::Mutex;
 use serenity::model::prelude::*;
 use std::collections::HashMap;
-use serenity::futures::lock::Mutex;
-use serenity::http::CacheHttp;
 
 pub struct JoinCommand<Repository>
 where
@@ -42,19 +41,25 @@ where
         match *guard {
             Some(ref cache) => {
                 tracing::debug!("cache found");
-                Ok(cache.get(&role_name)
+                Ok(cache
+                    .get(&role_name)
                     .ok_or(SystemError::NoSuchRole(role_name))?
                     .clone())
-            },
+            }
             None => {
                 tracing::debug!("cache not found, fetching");
-                let roles_mapping: HashMap<_, _> = self.repository.find_all(http, guild_id).await?
+                let roles_mapping: HashMap<_, _> = self
+                    .repository
+                    .find_all(http, guild_id)
+                    .await?
                     .into_iter()
                     .map(|r| (r.name.clone(), r))
                     .collect();
 
-                let role = roles_mapping.get(&role_name)
-                    .ok_or(SystemError::NoSuchRole(role_name))?.clone();
+                let role = roles_mapping
+                    .get(&role_name)
+                    .ok_or(SystemError::NoSuchRole(role_name))?
+                    .clone();
 
                 *guard = Some(roles_mapping);
 
@@ -88,7 +93,7 @@ where
             .grant(http, guild_id, user_id, target_role.id)
             .await?;
 
-        InteractionHelper::defer_respond(http, command, "チームに参加しました。").await;
+        InteractionHelper::defer_respond(http, command, "チームに参加しました。").await?;
 
         tracing::debug!("deleting old roles");
         let granted_roles = self

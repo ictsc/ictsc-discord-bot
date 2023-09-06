@@ -15,8 +15,8 @@ where
     RoleRepository: RoleFinder + Send,
     ProblemRepository: ProblemRecreater + Send,
 {
-    roleRepository: RoleRepository,
-    problemRepository: ProblemRepository,
+    role_repository: RoleRepository,
+    problem_repository: ProblemRepository,
     teams: HashMap<String, TeamConfiguration>,
     problems: HashMap<String, ProblemConfiguration>,
     ok_reaction: ReactionType,
@@ -38,8 +38,8 @@ where
     ProblemRepository: ProblemRecreater + Send,
 {
     pub fn new(
-        roleRepository: RoleRepository,
-        problemRepository: ProblemRepository,
+        role_repository: RoleRepository,
+        problem_repository: ProblemRepository,
         teams: &[TeamConfiguration],
         problems: &[ProblemConfiguration],
     ) -> Self {
@@ -54,8 +54,8 @@ where
         });
 
         Self {
-            roleRepository,
-            problemRepository,
+            role_repository,
+            problem_repository,
             teams: ts,
             problems: ps,
             ok_reaction: ReactionType::Unicode(OK_REACTION.into()),
@@ -80,7 +80,7 @@ where
         tracing::debug!(?problem, "found problem, finding user's team");
 
         let roles = self
-            .roleRepository
+            .role_repository
             .find_by_user(&ctx.context.http, guild_id, user.id)
             .await?;
 
@@ -100,8 +100,8 @@ where
 
         let message =
             InteractionHelper::defer_respond(&ctx.context.http, &ctx.command, content).await?;
-        InteractionHelper::react(&ctx.context.http, &ctx.command, self.ok_reaction.clone()).await;
-        InteractionHelper::react(&ctx.context.http, &ctx.command, self.ng_reaction.clone()).await;
+        InteractionHelper::react(&ctx.context.http, &ctx.command, self.ok_reaction.clone()).await?;
+        InteractionHelper::react(&ctx.context.http, &ctx.command, self.ng_reaction.clone()).await?;
 
         let message_id = *message.id.as_u64();
         let request = RecreateRequest {
@@ -160,7 +160,7 @@ where
         }
 
         let result = self
-            .problemRepository
+            .problem_repository
             .recreate(request.team_id, request.problem_id)
             .await;
 

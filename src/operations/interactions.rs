@@ -113,7 +113,7 @@ impl InteractionDeferredResponder for InteractionHelper {
     {
         command
             .edit_original_interaction_response(http, |message| message.content(msg))
-            .await;
+            .await?;
         Ok(command.get_interaction_response(http).await?)
     }
 }
