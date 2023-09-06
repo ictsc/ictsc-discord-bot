@@ -1,4 +1,4 @@
-# ictsc-kana
+# ictsc-discord-bot
 
 ```
 USAGE:
