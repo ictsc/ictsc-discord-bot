@@ -20,7 +20,7 @@ recreate:
 
 teams:
 - id: hogeID
-  channel_name: hogeChannel
+  category_name: hogeChannel
   role_name: hogeRole
   invitation_code: hogeInvitation
   user_group_id: hogeUG

@@ -48,7 +48,7 @@ pub struct RecreateServiceConfiguration {
 #[derive(Debug, Deserialize)]
 pub struct TeamConfiguration {
     pub id: String,
-    pub channel_name: String,
+    pub category_name: String,
     pub role_name: String,
     pub invitation_code: String,
     pub user_group_id: String,
@@ -108,7 +108,7 @@ impl From<TeamConfiguration> for bot::TeamConfiguration {
     fn from(team: TeamConfiguration) -> Self {
         Self {
             id: team.id,
-            channel_name: team.channel_name,
+            category_name: team.category_name,
             role_name: team.role_name,
             invitation_code: team.invitation_code,
             user_group_id: team.user_group_id,

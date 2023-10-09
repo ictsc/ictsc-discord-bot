@@ -77,7 +77,7 @@ pub struct RecreateServiceConfiguration {
 #[derive(Debug, Clone)]
 pub struct TeamConfiguration {
     pub id: String,
-    pub channel_name: String,
+    pub category_name: String,
     pub role_name: String,
     pub invitation_code: String,
     pub user_group_id: String,
@@ -403,7 +403,7 @@ impl Bot {
             });
 
             inputs.push(CreateChannelInput {
-                name: team.channel_name.clone(),
+                name: team.category_name.clone(),
                 kind: ChannelType::Category,
                 permissions,
                 ..CreateChannelInput::default()
@@ -478,8 +478,8 @@ impl Bot {
 
         for team in &self.config.teams {
             let team_category_id = *categories
-                .get(&team.channel_name)
-                .ok_or(NoSuchCategory(team.channel_name.clone()))?;
+                .get(&team.category_name)
+                .ok_or(NoSuchCategory(team.category_name.clone()))?;
 
             let team_role_id = *roles
                 .get(&team.role_name)
