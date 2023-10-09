@@ -532,16 +532,23 @@ impl Bot {
     pub async fn delete_commands(&self) -> Result<()> {
         let (guild_id, ref http) = self.setup_client();
 
-        tracing::info!("deleting all commands");
+        tracing::info!("deleting global application commands...");
 
-        for command in guild_id.get_application_commands(http).await? {
-            tracing::debug!(?command, "deleting command");
-            guild_id
-                .delete_application_command(http, command.id)
+        for command in http.get_global_application_commands().await? {
+            tracing::debug!(?command, "delete global application command");
+            http
+                .delete_global_application_command(command.id.0)
                 .await?;
         }
 
-        tracing::info!("delete all commands completed");
+        tracing::info!("deleting guild application commands...");
+
+        for command in http.get_guild_application_commands(guild_id.0).await ? {
+            tracing::debug!(?command, "deleting guild application command");
+            http
+                .delete_guild_application_command(guild_id.0, command.id.0)
+                .await?;
+        }
 
         Ok(())
     }
