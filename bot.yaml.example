@@ -8,11 +8,6 @@ discord:
   disabled_commands:
   - hogehoge
 
-slack:
-  username: slack bot user
-  icon_emoji: hoge
-  webhook_url: https://example.com
-
 recreate:
   baseurl: https://example.com
   username: hoge
