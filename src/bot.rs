@@ -220,6 +220,22 @@ impl EventHandler for Bot {
         self.setup_application_command(ctx, guild).await;
     }
 
+    #[tracing::instrument(skip_all, fields(
+        guild_id = ?reaction.guild_id,
+        message_id = ?reaction.message_id,
+        user_id = ?reaction.user_id,
+        channel_id = ?reaction.channel_id,
+    ))]
+    async fn reaction_add(&self, ctx: Context, reaction: Reaction) {
+        tracing::debug!("called reaction_add");
+
+        self.handle_reaction(ReactionContext {
+            context: ctx,
+            reaction,
+        })
+        .await;
+    }
+
     #[tracing::instrument(skip_all)]
     async fn ready(&self, ctx: Context, _: Ready) {
         tracing::info!("bot is ready");
@@ -244,22 +260,6 @@ impl EventHandler for Bot {
             }
             _ => {}
         };
-    }
-
-    #[tracing::instrument(skip_all, fields(
-        guild_id = ?reaction.guild_id,
-        message_id = ?reaction.message_id,
-        user_id = ?reaction.user_id,
-        channel_id = ?reaction.channel_id,
-    ))]
-    async fn reaction_add(&self, ctx: Context, reaction: Reaction) {
-        tracing::debug!("called reaction_add");
-
-        self.handle_reaction(ReactionContext {
-            context: ctx,
-            reaction,
-        })
-        .await;
     }
 }
 
