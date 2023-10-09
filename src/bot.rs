@@ -343,16 +343,10 @@ impl Bot {
     }
 
     fn create_topic(&self, team: &TeamConfiguration) -> String {
-        format!("**__踏み台サーバ__**
-
-ホスト名：{id}.bastion.ictsc.net
-ユーザ名：user
-パスワード：{invitation_code}
-
-**__スコアサーバ__**
+        format!("**__スコアサーバ__**
 
 ユーザ登録URL：https://contest.ictsc.net/signup?invitation_code={invitation_code}&user_group_id={user_group_id}",
-                id = team.id, invitation_code = team.invitation_code, user_group_id = team.user_group_id)
+                invitation_code = team.invitation_code, user_group_id = team.user_group_id)
     }
 
     #[tracing::instrument(skip_all)]
