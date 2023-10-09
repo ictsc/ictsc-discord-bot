@@ -1,5 +1,4 @@
 mod bot;
-pub mod commands;
 mod errors;
 mod operations;
 

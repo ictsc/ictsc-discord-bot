@@ -17,10 +17,10 @@ struct Arguments {
 #[derive(Debug, Subcommand)]
 enum Commands {
     Start,
-    CreateRoles,
-    DeleteRoles,
-    CreateChannels,
-    DeleteChannels,
+    // CreateRoles,
+    // DeleteRoles,
+    // CreateChannels,
+    // DeleteChannels,
     DeleteCommands,
 }
 
@@ -37,14 +37,18 @@ async fn main() {
         }
     };
 
-    let bot = bot::Bot::new(config.into());
+    let bot = bot::Bot::new(
+        config.discord.token,
+        config.discord.application_id,
+        config.discord.guild_id,
+    );
 
     let result = match args.command {
         Commands::Start => bot.start().await,
-        Commands::CreateRoles => bot.create_roles().await,
-        Commands::DeleteRoles => bot.delete_roles().await,
-        Commands::CreateChannels => bot.create_channels().await,
-        Commands::DeleteChannels => bot.delete_channels().await,
+        // Commands::CreateRoles => bot.create_roles().await,
+        // Commands::DeleteRoles => bot.delete_roles().await,
+        // Commands::CreateChannels => bot.create_channels().await,
+        // Commands::DeleteChannels => bot.delete_channels().await,
         Commands::DeleteCommands => bot.delete_commands().await,
     };
 

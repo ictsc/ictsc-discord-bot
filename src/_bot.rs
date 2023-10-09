@@ -9,7 +9,6 @@ use crate::Result;
 use serenity::async_trait;
 use serenity::builder::*;
 use serenity::http::Http;
-
 use crate::commands::recreate::RecreateCommand;
 use crate::SystemError::{NoSuchCategory, NoSuchRole};
 use serenity::model::prelude::command::*;
@@ -524,31 +523,6 @@ impl Bot {
         ChannelManager.delete_all(http, guild_id).await?;
 
         tracing::info!("delete all channels completed");
-
-        Ok(())
-    }
-
-    #[tracing::instrument(skip_all)]
-    pub async fn delete_commands(&self) -> Result<()> {
-        let (guild_id, ref http) = self.setup_client();
-
-        tracing::info!("deleting global application commands...");
-
-        for command in http.get_global_application_commands().await? {
-            tracing::debug!(?command, "delete global application command");
-            http
-                .delete_global_application_command(command.id.0)
-                .await?;
-        }
-
-        tracing::info!("deleting guild application commands...");
-
-        for command in http.get_guild_application_commands(guild_id.0).await ? {
-            tracing::debug!(?command, "deleting guild application command");
-            http
-                .delete_guild_application_command(guild_id.0, command.id.0)
-                .await?;
-        }
 
         Ok(())
     }
