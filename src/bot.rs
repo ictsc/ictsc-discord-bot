@@ -77,8 +77,6 @@ pub struct RecreateServiceConfiguration {
 #[derive(Debug, Clone)]
 pub struct TeamConfiguration {
     pub id: String,
-    pub name: String,
-    pub organization: String,
     pub channel_name: String,
     pub role_name: String,
     pub invitation_code: String,
