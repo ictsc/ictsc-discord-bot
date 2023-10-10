@@ -30,7 +30,7 @@ impl Bot {
         roles.push(RoleDefinitionBuilder::default()
             .name(EVERYONE_ROLE_NAME.to_string())
             .permissions(Permissions::empty())
-            .mentionable(false)
+            .mentionable(true)
             .build()?
         );
 
@@ -42,6 +42,16 @@ impl Bot {
             .mentionable(true)
             .build()?
         );
+
+        for team in self.teams.iter() {
+            roles.push(RoleDefinitionBuilder::default()
+                .name(team.role_name.clone())
+                .permissions(Permissions::empty())
+                .hoist(true)
+                .mentionable(true)
+                .build()?
+            );
+        }
 
         self._sync_roles(roles).await?;
 
@@ -57,7 +67,6 @@ impl Bot {
 }
 
 impl Bot {
-    #[tracing::instrument(skip_all)]
     async fn _sync_roles<T: AsRef<[RoleDefinition]>>(&self, definitions: T) -> CommandResult<()> {
         tracing::debug!("fetch current roles");
         let roles = self.discord_client

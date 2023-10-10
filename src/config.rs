@@ -3,6 +3,7 @@ use std::path::Path;
 
 use anyhow::Result;
 use serde_derive::Deserialize;
+use bot::Team;
 
 #[derive(Debug, Deserialize)]
 pub struct Configuration {
@@ -64,5 +65,14 @@ impl Configuration {
     pub fn load<P: AsRef<Path>>(path: P) -> Result<Configuration> {
         let file = File::open(path)?;
         Ok(serde_yaml::from_reader(file)?)
+    }
+
+    pub fn teams(&self) -> Vec<Team> {
+        self.teams
+            .iter()
+            .map(|c| Team {
+                role_name: c.role_name.clone()
+            })
+            .collect()
     }
 }

@@ -37,10 +37,13 @@ async fn main() {
         }
     };
 
+    let teams = config.teams();
+
     let bot = bot::Bot::new(
         config.discord.token,
         config.discord.application_id,
         config.discord.guild_id,
+        teams,
     );
 
     let result = match args.command {

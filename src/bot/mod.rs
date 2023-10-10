@@ -13,11 +13,16 @@ pub struct Bot {
     token: String,
     application_id: ApplicationId,
     guild_id: GuildId,
+    teams: Vec<Team>,
     discord_client: Http,
 }
 
+pub struct Team {
+    pub role_name: String,
+}
+
 impl Bot {
-    pub fn new(token: String, application_id: u64, guild_id: u64) -> Self {
+    pub fn new(token: String, application_id: u64, guild_id: u64, teams: Vec<Team>) -> Self {
         let application_id = ApplicationId(application_id);
         let guild_id = GuildId(guild_id);
         let discord_client = Http::new_with_application_id(&token, application_id.0);
@@ -25,6 +30,7 @@ impl Bot {
             token,
             application_id,
             guild_id,
+            teams,
             discord_client,
         }
     }
