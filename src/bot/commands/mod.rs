@@ -1,9 +1,9 @@
 mod ping;
 
-use crate::errors::*;
+use crate::CommandResult;
 
 use super::Bot;
-use crate::errors::*;
+use crate::error::*;
 use crate::{InteractionDeferredResponder, InteractionHelper};
 use serenity::async_trait;
 use serenity::client::{Context, EventHandler};
@@ -29,7 +29,7 @@ impl Bot {
     }
 
     #[tracing::instrument(skip_all)]
-    pub async fn delete_commands(&self) -> Result<()> {
+    pub async fn delete_commands(&self) -> CommandResult<()> {
         tracing::info!("delete global application commands");
         let commands = self
             .discord_client
@@ -46,13 +46,13 @@ impl Bot {
         tracing::info!("delete guild application commands");
         let commands = self
             .discord_client
-            .get_guild_application_commands(self.guild_id)
+            .get_guild_application_commands(self.guild_id.0)
             .await?;
 
         for command in commands {
             tracing::debug!(?command, "delete guild application command");
             self.discord_client
-                .delete_guild_application_command(self.guild_id, command.id.0)
+                .delete_guild_application_command(self.guild_id.0, command.id.0)
                 .await?;
         }
 

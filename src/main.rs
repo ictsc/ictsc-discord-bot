@@ -17,10 +17,10 @@ struct Arguments {
 #[derive(Debug, Subcommand)]
 enum Commands {
     Start,
-    // CreateRoles,
-    // DeleteRoles,
+    SyncRoles,
+    DeleteRoles,
     // CreateChannels,
-    // DeleteChannels,
+    DeleteChannels,
     DeleteCommands,
 }
 
@@ -45,10 +45,10 @@ async fn main() {
 
     let result = match args.command {
         Commands::Start => bot.start().await,
-        // Commands::CreateRoles => bot.create_roles().await,
-        // Commands::DeleteRoles => bot.delete_roles().await,
+        Commands::SyncRoles => bot.sync_roles().await,
+        Commands::DeleteRoles => bot.delete_roles().await,
         // Commands::CreateChannels => bot.create_channels().await,
-        // Commands::DeleteChannels => bot.delete_channels().await,
+        Commands::DeleteChannels => bot.delete_channels().await,
         Commands::DeleteCommands => bot.delete_commands().await,
     };
 

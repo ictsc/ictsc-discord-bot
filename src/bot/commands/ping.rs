@@ -1,5 +1,5 @@
 use super::Bot;
-use crate::errors::*;
+use crate::error::*;
 
 use crate::{InteractionDeferredResponder, InteractionHelper};
 use serenity::builder::CreateApplicationCommand;

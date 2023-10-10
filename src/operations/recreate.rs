@@ -1,4 +1,4 @@
-use crate::{errors, Result};
+use crate::{error, Result};
 use async_trait::async_trait;
 use reqwest::header::{HeaderMap, AUTHORIZATION, CONTENT_TYPE};
 use reqwest::{Client, StatusCode};
@@ -54,14 +54,14 @@ impl ProblemRecreater for ProblemRecreateManager {
                     String::from_utf8(data).unwrap()
                 ))
             }
-            StatusCode::BAD_REQUEST => Err(errors::UserError::RequestInQueue.into()),
-            StatusCode::NOT_FOUND => Err(errors::UserError::OutOfCompetitionTime.into()),
+            StatusCode::BAD_REQUEST => Err(error::UserError::RequestInQueue.into()),
+            StatusCode::NOT_FOUND => Err(error::UserError::OutOfCompetitionTime.into()),
             _ => {
                 let message = format!(
                     "recreate server returns unexpected status code: {:?}",
                     response.status()
                 );
-                Err(errors::SystemError::UnexpectedError(message).into())
+                Err(error::SystemError::UnexpectedError(message).into())
             }
         }
     }

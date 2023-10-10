@@ -1,7 +1,8 @@
+mod channels;
 mod commands;
+mod roles;
 
-use crate::errors::*;
-
+use anyhow::Result;
 use serenity::client::Client;
 use serenity::client::EventHandler;
 use serenity::http::Http;
@@ -10,14 +11,16 @@ use serenity::model::prelude::*;
 
 pub struct Bot {
     token: String,
-    application_id: u64,
-    guild_id: u64,
+    application_id: ApplicationId,
+    guild_id: GuildId,
     discord_client: Http,
 }
 
 impl Bot {
     pub fn new(token: String, application_id: u64, guild_id: u64) -> Self {
-        let discord_client = Http::new_with_application_id(&token, application_id);
+        let application_id = ApplicationId(application_id);
+        let guild_id = GuildId(guild_id);
+        let discord_client = Http::new_with_application_id(&token, application_id.0);
         Bot {
             token,
             application_id,
@@ -36,7 +39,7 @@ impl Bot {
             | GatewayIntents::DIRECT_MESSAGES;
 
         let mut client = Client::builder(token, intents)
-            .application_id(application_id)
+            .application_id(application_id.0)
             .event_handler(self)
             .await?;
 

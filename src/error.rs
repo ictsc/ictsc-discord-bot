@@ -1,5 +1,7 @@
 use thiserror::Error;
 
+pub type CommandResult<T> = anyhow::Result<T>;
+
 pub type Result<T> = std::result::Result<T, Error>;
 
 #[derive(Debug, Error)]
@@ -12,6 +14,8 @@ pub enum Error {
     SerenityError(#[from] serenity::Error),
     #[error("不明なエラーが発生しました。")]
     ReqwestError(#[from] reqwest::Error),
+    #[error("不明なエラーが発生しました。")]
+    Error(#[from] Box<dyn std::error::Error>),
 }
 
 #[derive(Debug, Error)]

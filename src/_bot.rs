@@ -20,8 +20,7 @@ type CommandCreator =
 type CommandDefinitions<'a> = HashMap<&'a str, CommandCreator>;
 
 static STAFF_CATEGORY_NAME: &str = "ICTSC2023 Staff";
-static STAFF_ROLE_NAME: &str = "ICTSC2023 Staff";
-static EVERYONE_ROLE_NAME: &str = "@everyone";
+
 static ANNOUNCE_CHANNEL_NAME: &str = "announce";
 static RANDOM_CHANNEL_NAME: &str = "random";
 static TEXT_CHANNEL_NAME: &str = "text";
@@ -326,19 +325,6 @@ impl Bot {
         Ok(())
     }
 
-    #[tracing::instrument(skip_all)]
-    pub async fn delete_roles(&self) -> Result<()> {
-        let (guild_id, ref http) = self.setup_client();
-
-        tracing::info!("deleting all roles");
-
-        RoleManager.delete_all(http, guild_id).await?;
-
-        tracing::info!("delete all roles completed");
-
-        Ok(())
-    }
-
     fn create_topic(&self, team: &TeamConfiguration) -> String {
         format!("**__スコアサーバ__**
 
@@ -510,19 +496,6 @@ impl Bot {
         }
 
         ChannelManager.sync(http, guild_id, inputs).await?;
-
-        Ok(())
-    }
-
-    #[tracing::instrument(skip_all)]
-    pub async fn delete_channels(&self) -> Result<()> {
-        let (guild_id, ref http) = self.setup_client();
-
-        tracing::info!("deleting all channels");
-
-        ChannelManager.delete_all(http, guild_id).await?;
-
-        tracing::info!("delete all channels completed");
 
         Ok(())
     }
