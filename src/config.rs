@@ -2,8 +2,8 @@ use std::fs::File;
 use std::path::Path;
 
 use anyhow::Result;
-use serde_derive::Deserialize;
 use bot::Team;
+use serde_derive::Deserialize;
 
 #[derive(Debug, Deserialize)]
 pub struct Configuration {
@@ -71,7 +71,7 @@ impl Configuration {
         self.teams
             .iter()
             .map(|c| Team {
-                role_name: c.role_name.clone()
+                role_name: c.role_name.clone(),
             })
             .collect()
     }
