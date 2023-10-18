@@ -19,7 +19,7 @@ enum Commands {
     Start,
     SyncRoles,
     DeleteRoles,
-    // CreateChannels,
+    SyncChannels,
     DeleteChannels,
     DeleteCommands,
 }
@@ -51,7 +51,7 @@ async fn main() {
         Commands::Start => bot.start().await,
         Commands::SyncRoles => bot.sync_roles().await,
         Commands::DeleteRoles => bot.delete_roles().await,
-        // Commands::CreateChannels => bot.create_channels().await,
+        Commands::SyncChannels => bot.sync_channels().await,
         Commands::DeleteChannels => bot.delete_channels().await,
         Commands::DeleteCommands => bot.delete_commands().await,
     };

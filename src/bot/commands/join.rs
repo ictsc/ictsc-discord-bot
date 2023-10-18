@@ -1,6 +1,6 @@
 use super::Bot;
-use crate::*;
 use crate::bot::roles;
+use crate::*;
 
 use crate::{InteractionArgumentExtractor, InteractionDeferredResponder, InteractionHelper};
 use serenity::builder::CreateApplicationCommand;
@@ -100,7 +100,7 @@ impl Bot {
     fn find_role_name_by_invitation_code(&self, invitation_code: &str) -> Result<Option<String>> {
         // TODO: staffの招待はまた後で考える
         if invitation_code == self.infra_password {
-            return Ok(Some(roles::STAFF_ROLE_NAME.to_string()))
+            return Ok(Some(roles::STAFF_ROLE_NAME.to_string()));
         }
 
         for team in &self.teams {

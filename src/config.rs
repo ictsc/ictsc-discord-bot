@@ -49,7 +49,7 @@ pub struct RecreateServiceConfiguration {
 #[derive(Debug, Deserialize)]
 pub struct TeamConfiguration {
     // pub id: String,
-    // pub category_name: String,
+    pub category_name: String,
     pub role_name: String,
     pub invitation_code: String,
     // pub user_group_id: String,
@@ -72,6 +72,7 @@ impl Configuration {
             .iter()
             .map(|c| Team {
                 role_name: c.role_name.clone(),
+                category_name: c.category_name.clone(),
                 invitation_code: c.invitation_code.clone(),
             })
             .collect()
