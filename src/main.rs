@@ -43,6 +43,7 @@ async fn main() {
         config.discord.token,
         config.discord.application_id,
         config.discord.guild_id,
+        config.staff.password,
         teams,
     );
 
