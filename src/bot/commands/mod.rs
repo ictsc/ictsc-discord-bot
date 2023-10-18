@@ -87,9 +87,10 @@ impl EventHandler for Bot {
     async fn reaction_add(&self, _ctx: Context, _add_reaction: Reaction) {}
 
     #[tracing::instrument(skip_all, fields(
-        application = ?_ready.application,
+        application_id = ?_ready.application.id,
         session_id = ?_ready.session_id,
-        user = ?_ready.user,
+        user_id = ?_ready.user.id,
+        user_name = ?_ready.user.name,
     ))]
     async fn ready(&self, _: Context, _ready: Ready) {
         tracing::info!("bot is ready!");
@@ -116,12 +117,13 @@ impl Bot {
         kind = ?interaction.kind,
         guild_id = ?interaction.guild_id,
         channel_id = ?interaction.channel_id,
-        user = ?interaction.user,
+        user_id = ?interaction.user.id,
+        user_name = ?interaction.user.name,
     ))]
     async fn handle_application_command(&self, interaction: &ApplicationCommandInteraction) {
         let name = interaction.data.name.as_str();
 
-        tracing::debug!("send acknowledgement");
+        tracing::trace!("send acknowledgement");
         let _ = InteractionHelper::defer(&self.discord_client, interaction).await;
 
         let result = match name {
