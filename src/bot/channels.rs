@@ -29,6 +29,7 @@ impl Bot {
 
         let mut categories = Vec::new();
 
+
         // Define staff category
         categories.push(
             GuildChannelDefinitionBuilder::default()
@@ -51,25 +52,29 @@ impl Bot {
 
         tracing::info!("sync channels");
 
-        let mut channels = Vec::new();
-
         let category_map: HashMap<_, _> = self.get_channels(&[ChannelType::Category]).await?
             .into_iter()
             .map(|category| (category.name.clone(), category.id))
             .collect();
 
+        let mut channels = Vec::new();
+
         // Define public channels
+        let permissions_for_announce_channel = self.get_permission_overwrites_for_announce_channel().await?;
         channels.push(
             GuildChannelDefinitionBuilder::default()
                 .name(ANNOUNCE_CHANNEL_NAME.to_string())
                 .kind(ChannelType::Text)
+                .permissions(permissions_for_announce_channel)
                 .build()?,
         );
 
+        let permissions_for_random_channel = self.get_permission_overwrites_for_random_channel().await?;
         channels.push(
             GuildChannelDefinitionBuilder::default()
                 .name(RANDOM_CHANNEL_NAME.to_string())
                 .kind(ChannelType::Text)
+                .permissions(permissions_for_random_channel)
                 .build()?,
         );
 
@@ -100,11 +105,16 @@ impl Bot {
                 .get(&team.category_name)
                 .ok_or(anyhow::anyhow!("failed to get team category"))?;
 
+            let permissions_for_team_channel = self
+                .get_permission_overwrites_for_team_channel(team)
+                .await?;
+
             channels.push(
                 GuildChannelDefinitionBuilder::default()
                     .name(TEXT_CHANNEL_NAME.to_string())
                     .kind(ChannelType::Text)
                     .category(Some(team_category_id))
+                    .permissions(permissions_for_team_channel.clone())
                     .build()?,
             );
 
@@ -113,6 +123,7 @@ impl Bot {
                     .name(VOICE_CHANNEL_NAME.to_string())
                     .kind(ChannelType::Voice)
                     .category(Some(team_category_id))
+                    .permissions(permissions_for_team_channel.clone())
                     .build()?,
             );
         }
@@ -213,7 +224,9 @@ impl Bot {
         channel.kind == definition.kind
             && channel.name == definition.name
             && channel.parent_id == definition.category
-            && channel.permission_overwrites == definition.permissions
+            // Discordはpermission_overwritesを順不同で返すため、順序を無視して比較する
+            && channel.permission_overwrites.iter().all(|overwrite| definition.permissions.contains(overwrite))
+            && definition.permissions.iter().all(|permission| channel.permission_overwrites.contains(permission))
     }
 }
 
@@ -239,7 +252,8 @@ impl Bot {
     }
 
     #[tracing::instrument(skip_all)]
-    async fn get_channels<T: AsRef<[ChannelType]>>(&self, kinds: T) -> CommandResult<Vec<GuildChannel>> {
+    async fn get_channels<T: AsRef<[ChannelType]>>(&self, kinds: T,
+    ) -> CommandResult<Vec<GuildChannel>> {
         Ok(self
             .guild_id
             .channels(&self.discord_client)

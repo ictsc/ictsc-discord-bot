@@ -1,5 +1,6 @@
 mod channels;
 mod commands;
+mod permissions;
 mod roles;
 
 use anyhow::Result;

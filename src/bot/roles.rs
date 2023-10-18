@@ -2,10 +2,13 @@ use crate::CommandResult;
 use serenity::model::prelude::*;
 use serenity::model::Permissions;
 
+use std::collections::HashMap;
+
 use super::Bot;
 
-static EVERYONE_ROLE_NAME: &str = "@everyone";
+pub static EVERYONE_ROLE_NAME: &str = "@everyone";
 pub static STAFF_ROLE_NAME: &str = "ICTSC2023 Staff";
+
 static STAFF_ROLE_COLOUR: u32 = 14942278;
 
 #[derive(Clone, Debug, derive_builder::Builder)]
@@ -20,6 +23,94 @@ struct RoleDefinition {
     mentionable: bool,
 }
 
+// Roleに対するCRUD操作の実装
+// READ権限のみは他のモジュールとも関連するため、publicにする
+impl Bot {
+    #[tracing::instrument(skip_all, fields(
+        definition = ?definition,
+    ))]
+    async fn create_role(&self, definition: &RoleDefinition) -> CommandResult<()> {
+        tracing::trace!("create role called");
+        let definition = definition.clone();
+        self.guild_id
+            .create_role(&self.discord_client, |edit| {
+                edit.name(definition.name)
+                    .permissions(definition.permissions)
+                    .colour(definition.colour as u64)
+                    .hoist(definition.hoist)
+                    .mentionable(definition.mentionable)
+            })
+            .await?;
+
+        Ok(())
+    }
+
+    #[tracing::instrument(skip_all)]
+    pub async fn get_roles(&self) -> CommandResult<Vec<Role>> {
+        tracing::trace!("get roles");
+        Ok(self
+            .guild_id
+            .roles(&self.discord_client)
+            .await?
+            .into_values()
+            .collect())
+    }
+
+    #[tracing::instrument(skip_all)]
+    pub async fn get_role_map(&self) -> CommandResult<HashMap<String, Role>> {
+        tracing::trace!("get role map");
+        Ok(self.get_roles()
+            .await?
+            .into_iter()
+            .map(|role| (role.name.clone(), role))
+            .collect())
+    }
+
+    #[tracing::instrument(skip_all, fields(
+        name = ?name,
+    ))]
+    pub async fn find_roles_by_name(&self, name: &str) -> CommandResult<Vec<Role>> {
+        tracing::trace!("find role by name");
+        Ok(self
+            .get_roles()
+            .await?
+            .into_iter()
+            .filter(|role| role.name == name)
+            .collect())
+    }
+
+    #[tracing::instrument(skip_all, fields(
+        role = ?role,
+        definition = ?definition,
+    ))]
+    async fn edit_role(&self, role: &Role, definition: &RoleDefinition) -> CommandResult<()> {
+        tracing::trace!("edit role called");
+        let definition = definition.clone();
+        self.guild_id
+            .edit_role(&self.discord_client, role.id.0, |edit| {
+                edit.name(definition.name)
+                    .permissions(definition.permissions)
+                    .colour(definition.colour as u64)
+                    .hoist(definition.hoist)
+                    .mentionable(definition.mentionable)
+            })
+            .await?;
+        Ok(())
+    }
+
+    #[tracing::instrument(skip_all, fields(
+        role = ?role,
+    ))]
+    async fn delete_role(&self, role: &Role) -> CommandResult<()> {
+        tracing::trace!("delete role called");
+        self.guild_id
+            .delete_role(&self.discord_client, role.id.0)
+            .await?;
+        Ok(())
+    }
+
+}
+
 impl Bot {
     #[tracing::instrument(skip_all)]
     pub async fn sync_roles(&self) -> CommandResult<()> {
@@ -30,7 +121,7 @@ impl Bot {
         roles.push(
             RoleDefinitionBuilder::default()
                 .name(EVERYONE_ROLE_NAME.to_string())
-                .permissions(Permissions::empty())
+                .permissions(self.get_permissions_for_everyone())
                 .mentionable(true)
                 .build()?,
         );
@@ -38,7 +129,7 @@ impl Bot {
         roles.push(
             RoleDefinitionBuilder::default()
                 .name(STAFF_ROLE_NAME.to_string())
-                .permissions(Permissions::all())
+                .permissions(self.get_permissions_for_staff())
                 .colour(STAFF_ROLE_COLOUR)
                 .hoist(true)
                 .mentionable(true)
@@ -49,7 +140,7 @@ impl Bot {
             roles.push(
                 RoleDefinitionBuilder::default()
                     .name(team.role_name.clone())
-                    .permissions(Permissions::empty())
+                    .permissions(self.get_permissions_for_team())
                     .hoist(true)
                     .mentionable(true)
                     .build()?,
@@ -135,77 +226,5 @@ impl Bot {
             && role.hoist == definition.hoist
             && role.mentionable == definition.mentionable
     }
-
-    #[tracing::instrument(skip_all, fields(
-        definition = ?definition,
-    ))]
-    async fn create_role(&self, definition: &RoleDefinition) -> CommandResult<()> {
-        tracing::trace!("create role called");
-        let definition = definition.clone();
-        self.guild_id
-            .create_role(&self.discord_client, |edit| {
-                edit.name(definition.name)
-                    .permissions(definition.permissions)
-                    .colour(definition.colour as u64)
-                    .hoist(definition.hoist)
-                    .mentionable(definition.mentionable)
-            })
-            .await?;
-
-        Ok(())
-    }
-
-    #[tracing::instrument(skip_all, fields(
-        role = ?role,
-        definition = ?definition,
-    ))]
-    async fn edit_role(&self, role: &Role, definition: &RoleDefinition) -> CommandResult<()> {
-        tracing::trace!("edit role called");
-        let definition = definition.clone();
-        self.guild_id
-            .edit_role(&self.discord_client, role.id.0, |edit| {
-                edit.name(definition.name)
-                    .permissions(definition.permissions)
-                    .colour(definition.colour as u64)
-                    .hoist(definition.hoist)
-                    .mentionable(definition.mentionable)
-            })
-            .await?;
-        Ok(())
-    }
-
-    #[tracing::instrument(skip_all, fields(
-        role = ?role,
-    ))]
-    async fn delete_role(&self, role: &Role) -> CommandResult<()> {
-        tracing::trace!("delete role called");
-        self.guild_id
-            .delete_role(&self.discord_client, role.id.0)
-            .await?;
-        Ok(())
-    }
-
-    #[tracing::instrument(skip_all, fields(
-        name = ?name,
-    ))]
-    pub async fn find_roles_by_name(&self, name: &str) -> CommandResult<Vec<Role>> {
-        tracing::trace!("find role by name");
-        Ok(self
-            .get_roles()
-            .await?
-            .into_iter()
-            .filter(|role| role.name == name)
-            .collect())
-    }
-
-    #[tracing::instrument(skip_all)]
-    async fn get_roles(&self) -> CommandResult<Vec<Role>> {
-        tracing::trace!("get roles");
-        Ok(self
-            .guild_id
-            .roles(&self.discord_client)
-            .await?
-            .into_values()
-            .collect())
-    }
 }
+
