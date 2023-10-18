@@ -134,16 +134,7 @@ fn setup_global_application_command_definitions() -> CommandDefinitions<'static>
     definitions.insert(
         "join",
         Box::new(|command| {
-            command
-                .name("join")
-                .description("チームに参加します。")
-                .create_option(|option| {
-                    option
-                        .name("invitation_code")
-                        .description("招待コード")
-                        .kind(CommandOptionType::String)
-                        .required(true)
-                })
+
         }),
     );
 

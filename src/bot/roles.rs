@@ -5,7 +5,7 @@ use serenity::model::Permissions;
 use super::Bot;
 
 static EVERYONE_ROLE_NAME: &str = "@everyone";
-static STAFF_ROLE_NAME: &str = "ICTSC2023 Staff";
+pub static STAFF_ROLE_NAME: &str = "ICTSC2023 Staff";
 static STAFF_ROLE_COLOUR: u32 = 14942278;
 
 #[derive(Clone, Debug, derive_builder::Builder)]
@@ -183,5 +183,29 @@ impl Bot {
             .delete_role(&self.discord_client, role.id.0)
             .await?;
         Ok(())
+    }
+
+    #[tracing::instrument(skip_all, fields(
+        name = ?name,
+    ))]
+    pub async fn find_roles_by_name(&self, name: &str) -> CommandResult<Vec<Role>> {
+        tracing::trace!("find role by name");
+        Ok(self
+            .get_roles()
+            .await?
+            .into_iter()
+            .filter(|role| role.name == name)
+            .collect())
+    }
+
+    #[tracing::instrument(skip_all)]
+    async fn get_roles(&self) -> CommandResult<Vec<Role>> {
+        tracing::trace!("get roles");
+        Ok(self
+            .guild_id
+            .roles(&self.discord_client)
+            .await?
+            .into_values()
+            .collect())
     }
 }

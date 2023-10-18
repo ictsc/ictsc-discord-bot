@@ -4,9 +4,7 @@ mod roles;
 
 use anyhow::Result;
 use serenity::client::Client;
-use serenity::client::EventHandler;
 use serenity::http::Http;
-use serenity::model::prelude::*;
 use serenity::model::prelude::*;
 
 pub struct Bot {
@@ -19,6 +17,7 @@ pub struct Bot {
 
 pub struct Team {
     pub role_name: String,
+    pub invitation_code: String,
 }
 
 impl Bot {

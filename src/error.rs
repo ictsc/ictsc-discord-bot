@@ -15,11 +15,13 @@ pub enum Error {
     #[error("不明なエラーが発生しました。")]
     ReqwestError(#[from] reqwest::Error),
     #[error("不明なエラーが発生しました。")]
-    Error(#[from] Box<dyn std::error::Error>),
+    Error(#[from] Box<dyn std::error::Error + Send + Sync>),
 }
 
 #[derive(Debug, Error)]
 pub enum UserError {
+    #[error("ICTSC Discordチャンネルにまだ参加していません。参加してから再度お試しください。")]
+    NotJoinedGuild,
     #[error("招待コード `{0}` に対応するチームはありません。招待コードを再度お確かめください。")]
     InvalidInvitationCode(String),
     #[error("問題コード `{0}` に対応する問題がありません。問題コードを再度お確かめください。")]

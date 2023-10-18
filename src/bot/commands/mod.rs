@@ -1,3 +1,4 @@
+mod join;
 mod ping;
 
 use crate::CommandResult;
@@ -9,7 +10,6 @@ use serenity::async_trait;
 use serenity::client::{Context, EventHandler};
 use serenity::model::application::command::Command;
 use serenity::model::prelude::application_command::ApplicationCommandInteraction;
-use serenity::model::prelude::command::*;
 use serenity::model::prelude::*;
 
 impl Bot {
@@ -18,6 +18,10 @@ impl Bot {
 
         tracing::debug!("sync ping command");
         Command::create_global_application_command(&self.discord_client, Bot::create_ping_command)
+            .await?;
+
+        tracing::debug!("sync join command");
+        Command::create_global_application_command(&self.discord_client, Bot::create_join_command)
             .await?;
 
         Ok(())
@@ -83,11 +87,11 @@ impl EventHandler for Bot {
     async fn reaction_add(&self, _ctx: Context, _add_reaction: Reaction) {}
 
     #[tracing::instrument(skip_all, fields(
-        application = ?ready.application,
-        session_id = ?ready.session_id,
-        user = ?ready.user,
+        application = ?_ready.application,
+        session_id = ?_ready.session_id,
+        user = ?_ready.user,
     ))]
-    async fn ready(&self, _: Context, ready: Ready) {
+    async fn ready(&self, _: Context, _ready: Ready) {
         tracing::info!("bot is ready!");
         if let Err(err) = self.sync_global_application_commands().await {
             tracing::error!(?err, "failed to sync global application commands")
@@ -122,7 +126,18 @@ impl Bot {
 
         let result = match name {
             "ping" => self.handle_ping_command(interaction).await,
+            "join" => self.handle_join_command(interaction).await,
             _ => Ok(()),
         };
+
+        if let Err(err) = result {
+            tracing::error!(?err, "failed to handle application command");
+            let _ = InteractionHelper::defer_respond(
+                &self.discord_client,
+                interaction,
+                format!("エラーが発生しました: {}", err),
+            )
+            .await;
+        }
     }
 }
