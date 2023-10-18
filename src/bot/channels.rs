@@ -7,10 +7,18 @@ use super::Bot;
 
 static STAFF_CATEGORY_NAME: &str = "ICTSC2023 Staff";
 
+static ANNOUNCE_CHANNEL_NAME: &str = "announce";
+static RANDOM_CHANNEL_NAME: &str = "random";
+static TEXT_CHANNEL_NAME: &str = "text";
+static VOICE_CHANNEL_NAME: &str = "voice";
+
 #[derive(Clone, Debug, derive_builder::Builder)]
 struct GuildChannelDefinition {
     name: String,
     kind: ChannelType,
+    #[builder(default)]
+    category: Option<ChannelId>,
+    #[builder(default)]
     permissions: Vec<PermissionOverwrite>,
 }
 
@@ -21,18 +29,20 @@ impl Bot {
 
         let mut categories = Vec::new();
 
+        // Define staff category
         categories.push(
             GuildChannelDefinitionBuilder::default()
                 .name(STAFF_CATEGORY_NAME.to_string())
-                .permissions(Vec::new())
+                .kind(ChannelType::Category)
                 .build()?,
         );
 
+        // Define team categories
         for team in &self.teams {
             categories.push(
                 GuildChannelDefinitionBuilder::default()
                     .name(team.category_name.clone())
-                    .permissions(Vec::new())
+                    .kind(ChannelType::Category)
                     .build()?,
             );
         }
@@ -41,10 +51,73 @@ impl Bot {
 
         tracing::info!("sync channels");
 
-        let _: HashMap<_, _> = self.get_channels(&[ChannelType::Category]).await?
+        let mut channels = Vec::new();
+
+        let category_map: HashMap<_, _> = self.get_channels(&[ChannelType::Category]).await?
             .into_iter()
-            .map(|category| (category.name.clone(), category))
+            .map(|category| (category.name.clone(), category.id))
             .collect();
+
+        // Define public channels
+        channels.push(
+            GuildChannelDefinitionBuilder::default()
+                .name(ANNOUNCE_CHANNEL_NAME.to_string())
+                .kind(ChannelType::Text)
+                .build()?,
+        );
+
+        channels.push(
+            GuildChannelDefinitionBuilder::default()
+                .name(RANDOM_CHANNEL_NAME.to_string())
+                .kind(ChannelType::Text)
+                .build()?,
+        );
+
+        // Define staff channels
+        let staff_category_id = *category_map
+            .get(STAFF_CATEGORY_NAME)
+            .ok_or(anyhow::anyhow!("failed to get staff category"))?;
+
+        channels.push(
+            GuildChannelDefinitionBuilder::default()
+                .name(TEXT_CHANNEL_NAME.to_string())
+                .kind(ChannelType::Text)
+                .category(Some(staff_category_id))
+                .build()?,
+        );
+
+        channels.push(
+            GuildChannelDefinitionBuilder::default()
+                .name(VOICE_CHANNEL_NAME.to_string())
+                .kind(ChannelType::Voice)
+                .category(Some(staff_category_id))
+                .build()?,
+        );
+
+        // Define team channels
+        for team in &self.teams {
+            let team_category_id = *category_map
+                .get(&team.category_name)
+                .ok_or(anyhow::anyhow!("failed to get team category"))?;
+
+            channels.push(
+                GuildChannelDefinitionBuilder::default()
+                    .name(TEXT_CHANNEL_NAME.to_string())
+                    .kind(ChannelType::Text)
+                    .category(Some(team_category_id))
+                    .build()?,
+            );
+
+            channels.push(
+                GuildChannelDefinitionBuilder::default()
+                    .name(VOICE_CHANNEL_NAME.to_string())
+                    .kind(ChannelType::Voice)
+                    .category(Some(team_category_id))
+                    .build()?,
+            );
+        }
+
+        self._sync_channels(&[ChannelType::Text, ChannelType::Voice], channels).await?;
 
         Ok(())
     }
@@ -79,7 +152,7 @@ impl Bot {
 
             let matched_channels: Vec<_> = channels
                 .iter_mut()
-                .filter(|c| c.name == definition.name)
+                .filter(|c| c.name == definition.name && c.parent_id == definition.category)
                 .collect();
 
             if matched_channels.len() == 1 {
@@ -134,12 +207,13 @@ impl Bot {
 
     fn check_channel_synced(
         &self,
-        category: &GuildChannel,
+        channel: &GuildChannel,
         definition: &GuildChannelDefinition,
     ) -> bool {
-        category.kind == ChannelType::Category
-            && category.name == definition.name
-            && category.permission_overwrites == definition.permissions
+        channel.kind == definition.kind
+            && channel.name == definition.name
+            && channel.parent_id == definition.category
+            && channel.permission_overwrites == definition.permissions
     }
 }
 
@@ -153,7 +227,12 @@ impl Bot {
                 channel
                     .name(definition.name)
                     .kind(definition.kind)
-                    .permissions(definition.permissions)
+                    .permissions(definition.permissions);
+
+                match definition.category {
+                    Some(category_id) => channel.category(category_id),
+                    None => channel,
+                }
             })
             .await?;
         Ok(())
@@ -197,6 +276,7 @@ impl Bot {
         category
             .edit(&self.discord_client, |edit| {
                 edit.name(&definition.name)
+                    .category(definition.category)
                     .permissions(definition.permissions.clone())
             })
             .await?;
