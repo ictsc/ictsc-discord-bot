@@ -1,7 +1,6 @@
 use super::Bot;
 use crate::error::*;
 
-use crate::{InteractionDeferredResponder, InteractionHelper};
 use serenity::builder::CreateApplicationCommand;
 use serenity::model::prelude::application_command::ApplicationCommandInteraction;
 
@@ -17,9 +16,8 @@ impl Bot {
         interaction: &ApplicationCommandInteraction,
     ) -> Result<()> {
         tracing::trace!("send acknowledgement");
-        let _ = InteractionHelper::defer(&self.discord_client, interaction).await;
-
-        InteractionHelper::defer_respond(&self.discord_client, &interaction, "pong!").await?;
+        self.reply(interaction, |data| data.content("pong!"))
+            .await?;
         Ok(())
     }
 }

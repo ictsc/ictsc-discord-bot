@@ -1,5 +1,5 @@
-mod ask;
 mod archive;
+mod ask;
 mod join;
 mod ping;
 mod recreate;
@@ -8,7 +8,6 @@ use crate::CommandResult;
 
 use super::Bot;
 use crate::error::*;
-use crate::{InteractionDeferredResponder, InteractionHelper};
 use serenity::async_trait;
 use serenity::client::{Context, EventHandler};
 use serenity::model::application::command::Command;
@@ -139,7 +138,11 @@ impl Bot {
         user_id = ?interaction.user.id,
         user_name = ?interaction.user.name,
     ))]
-    async fn handle_application_command(&self, ctx: &Context, interaction: &ApplicationCommandInteraction) {
+    async fn handle_application_command(
+        &self,
+        ctx: &Context,
+        interaction: &ApplicationCommandInteraction,
+    ) {
         let name = interaction.data.name.as_str();
 
         let result = match name {
@@ -153,12 +156,6 @@ impl Bot {
 
         if let Err(err) = result {
             tracing::error!(?err, "failed to handle application command");
-            let _ = InteractionHelper::defer_respond(
-                &self.discord_client,
-                interaction,
-                format!("エラーが発生しました: {}", err),
-            )
-            .await;
         };
     }
 }

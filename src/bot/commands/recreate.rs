@@ -5,7 +5,7 @@ use crate::*;
 
 use serenity::builder::CreateApplicationCommand;
 use serenity::model::prelude::application_command::ApplicationCommandInteraction;
-use serenity::model::prelude::{command::*, InteractionResponseType, ReactionType};
+use serenity::model::prelude::{command::*, ReactionType};
 use serenity::prelude::*;
 
 const OK_REACTION: &str = "🙆\u{200d}♂\u{fe0f}";
@@ -33,8 +33,7 @@ impl Bot {
         ctx: &Context,
         interaction: &ApplicationCommandInteraction,
     ) -> Result<()> {
-        let problem_code =
-            InteractionHelper::value_of_as_str(interaction, "problem_code").unwrap();
+        let problem_code = self.get_option_as_str(interaction, "problem_code").unwrap();
 
         let sender = &interaction.user;
 
@@ -46,27 +45,29 @@ impl Bot {
         let problem = match problem {
             Some(problem) => problem,
             None => {
-                interaction.create_interaction_response(&self.discord_client, |response| {
-                    response.kind(InteractionResponseType::ChannelMessageWithSource);
-                    response.interaction_response_data(|data| {
-                        data.ephemeral(true).content(format!("問題コード `{}` に対応する問題はありません。", problem_code))
-                    })
-                }).await?;
+                self.reply(interaction, |data| {
+                    data.ephemeral(true).content(format!(
+                        "問題コード `{}` に対応する問題はありません。",
+                        problem_code
+                    ))
+                })
+                .await?;
                 return Ok(());
             }
         };
 
-        interaction.create_interaction_response(&self.discord_client, |response| {
-            response.kind(InteractionResponseType::ChannelMessageWithSource);
-            response.interaction_response_data(|data| {
-                data.content(format!("問題 `{}` を再作成しますか？", problem.name))
-            })
-        }).await?;
+        self.reply(interaction, |data| {
+            data.ephemeral(true)
+                .content(format!("問題 `{}` を再作成しますか？", problem.name))
+        })
+        .await?;
 
         let ok_reaction = ReactionType::Unicode(OK_REACTION.to_string());
         let ng_reaction = ReactionType::Unicode(NG_REACTION.to_string());
 
-        let message = interaction.get_interaction_response(&self.discord_client).await?;
+        let message = interaction
+            .get_interaction_response(&self.discord_client)
+            .await?;
 
         message.react(&self.discord_client, ok_reaction).await?;
         message.react(&self.discord_client, ng_reaction).await?;
@@ -89,25 +90,31 @@ impl Bot {
         let reaction = match reaction {
             Some(reaction) => reaction,
             None => {
-                message.reply(&self.discord_client, "タイムアウトしました。").await?;
+                message
+                    .reply(&self.discord_client, "タイムアウトしました。")
+                    .await?;
                 return Ok(());
             }
         };
 
         let should_be_recreated = match &reaction.as_inner_ref().emoji {
-            ReactionType::Unicode(emoji) => {
-                emoji == OK_REACTION
-            },
+            ReactionType::Unicode(emoji) => emoji == OK_REACTION,
             _ => {
-                message.reply(&self.discord_client, "予期しない状態です").await?;
+                message
+                    .reply(&self.discord_client, "予期しない状態です")
+                    .await?;
                 return Ok(());
             }
         };
 
         if should_be_recreated {
-            message.reply(&self.discord_client, "再作成を開始します。").await?;
+            message
+                .reply(&self.discord_client, "再作成を開始します。")
+                .await?;
         } else {
-            message.reply(&self.discord_client, "再作成を中断します。").await?;
+            message
+                .reply(&self.discord_client, "再作成を中断します。")
+                .await?;
         }
 
         Ok(())

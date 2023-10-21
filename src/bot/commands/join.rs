@@ -2,10 +2,9 @@ use super::Bot;
 use crate::bot::roles;
 use crate::*;
 
-use crate::{InteractionArgumentExtractor, InteractionDeferredResponder, InteractionHelper};
 use serenity::builder::CreateApplicationCommand;
 use serenity::model::prelude::application_command::ApplicationCommandInteraction;
-use serenity::model::prelude::{command::*, InteractionResponseType};
+use serenity::model::prelude::command::*;
 
 impl Bot {
     pub fn create_join_command(
@@ -30,20 +29,20 @@ impl Bot {
         // joinコマンドはGlobalCommandなので、どこからでも呼び出すことは可能である。
         // だが、間違ってrandomチャンネル等で呼び出されてしまうことを防ぐため、DM以外からの呼び出しはエラーとする。
         if interaction.guild_id.is_some() {
-            interaction.create_interaction_response(&self.discord_client, |response| {
-                response.kind(InteractionResponseType::ChannelMessageWithSource);
-                response.interaction_response_data(|data| {
-                    data.ephemeral(true).content("このコマンドはDM以外から呼び出すことはできません。")
-                })
-            }).await?;
+            self.reply(interaction, |data| {
+                data.ephemeral(true)
+                    .content("このコマンドはDM以外から呼び出すことはできません。")
+            })
+            .await?;
             return Ok(());
         }
 
         tracing::trace!("send acknowledgement");
-        let _ = InteractionHelper::defer(&self.discord_client, interaction).await;
+        self.defer_reply(interaction).await?;
 
-        let invitation_code =
-            InteractionHelper::value_of_as_str(interaction, "invitation_code").unwrap();
+        let invitation_code = self
+            .get_option_as_str(interaction, "invitation_code")
+            .unwrap();
 
         let sender = &interaction.user;
         let mut sender_member = self
@@ -103,11 +102,9 @@ impl Bot {
             .await
             .map_err(|err| SystemError::UnexpectedError(err.to_string()))?;
 
-        InteractionHelper::defer_respond(
-            &self.discord_client,
-            &interaction,
-            format!("チーム `{}` に参加しました。", role_name),
-        )
+        self.edit_reply(interaction, |data| {
+            data.content(format!("チーム `{}` に参加しました。", role_name))
+        })
         .await?;
         Ok(())
     }
