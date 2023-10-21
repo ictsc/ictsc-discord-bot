@@ -1,4 +1,5 @@
 mod ask;
+mod archive;
 mod join;
 mod ping;
 
@@ -30,8 +31,15 @@ impl Bot {
 
     async fn sync_guild_application_commands(&self) -> Result<()> {
         tracing::info!("sync guild application commands");
+
+        tracing::debug!("sync ask command");
         self.guild_id
             .create_application_command(&self.discord_client, Bot::create_ask_command)
+            .await?;
+
+        tracing::debug!("sync archive command");
+        self.guild_id
+            .create_application_command(&self.discord_client, Bot::create_archive_command)
             .await?;
         Ok(())
     }
@@ -128,9 +136,10 @@ impl Bot {
         let name = interaction.data.name.as_str();
 
         let result = match name {
-            "ping" => self.handle_ping_command(interaction).await,
-            "join" => self.handle_join_command(interaction).await,
             "ask" => self.handle_ask_command(interaction).await,
+            "archive" => self.handle_archive_command(interaction).await,
+            "join" => self.handle_join_command(interaction).await,
+            "ping" => self.handle_ping_command(interaction).await,
             _ => Ok(()),
         };
 
