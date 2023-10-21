@@ -2,7 +2,7 @@ use std::fs::File;
 use std::path::Path;
 
 use anyhow::Result;
-use bot::Team;
+use bot::{Team, Problem};
 use serde_derive::Deserialize;
 
 #[derive(Debug, Deserialize)]
@@ -57,7 +57,7 @@ pub struct TeamConfiguration {
 
 #[derive(Debug, Deserialize)]
 pub struct ProblemConfiguration {
-    pub id: String,
+    pub code: String,
     pub name: String,
 }
 
@@ -74,6 +74,16 @@ impl Configuration {
                 role_name: c.role_name.clone(),
                 category_name: c.category_name.clone(),
                 invitation_code: c.invitation_code.clone(),
+            })
+            .collect()
+    }
+
+    pub fn problems(&self) -> Vec<Problem> {
+        self.problems
+            .iter()
+            .map(|c| Problem {
+                code: c.code.clone(),
+                name: c.name.clone(),
             })
             .collect()
     }

@@ -38,6 +38,7 @@ async fn main() {
     };
 
     let teams = config.teams();
+    let problems = config.problems();
 
     let bot = bot::Bot::new(
         config.discord.token,
@@ -45,6 +46,7 @@ async fn main() {
         config.discord.guild_id,
         config.staff.password,
         teams,
+        problems,
     );
 
     let result = match args.command {

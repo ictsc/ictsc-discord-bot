@@ -2,6 +2,7 @@ mod ask;
 mod archive;
 mod join;
 mod ping;
+mod recreate;
 
 use crate::CommandResult;
 
@@ -32,15 +33,21 @@ impl Bot {
     async fn sync_guild_application_commands(&self) -> Result<()> {
         tracing::info!("sync guild application commands");
 
+        tracing::debug!("sync archive command");
+        self.guild_id
+            .create_application_command(&self.discord_client, Bot::create_archive_command)
+            .await?;
+
         tracing::debug!("sync ask command");
         self.guild_id
             .create_application_command(&self.discord_client, Bot::create_ask_command)
             .await?;
 
-        tracing::debug!("sync archive command");
+        tracing::debug!("sync recreate command");
         self.guild_id
-            .create_application_command(&self.discord_client, Bot::create_archive_command)
+            .create_application_command(&self.discord_client, Bot::create_recreate_command)
             .await?;
+
         Ok(())
     }
 
@@ -112,10 +119,10 @@ impl EventHandler for Bot {
     }
 
     #[tracing::instrument(skip_all)]
-    async fn interaction_create(&self, _: Context, interaction: Interaction) {
+    async fn interaction_create(&self, ctx: Context, interaction: Interaction) {
         match interaction {
             Interaction::ApplicationCommand(interaction) => {
-                self.handle_application_command(&interaction).await
+                self.handle_application_command(&ctx, &interaction).await
             }
             _ => {}
         };
@@ -132,14 +139,15 @@ impl Bot {
         user_id = ?interaction.user.id,
         user_name = ?interaction.user.name,
     ))]
-    async fn handle_application_command(&self, interaction: &ApplicationCommandInteraction) {
+    async fn handle_application_command(&self, ctx: &Context, interaction: &ApplicationCommandInteraction) {
         let name = interaction.data.name.as_str();
 
         let result = match name {
-            "ask" => self.handle_ask_command(interaction).await,
             "archive" => self.handle_archive_command(interaction).await,
+            "ask" => self.handle_ask_command(interaction).await,
             "join" => self.handle_join_command(interaction).await,
             "ping" => self.handle_ping_command(interaction).await,
+            "recreate" => self.handle_recreate_command(ctx, interaction).await,
             _ => Ok(()),
         };
 

@@ -15,12 +15,18 @@ pub struct Bot {
     discord_client: Http,
     infra_password: String,
     teams: Vec<Team>,
+    problems: Vec<Problem>,
 }
 
 pub struct Team {
     pub role_name: String,
     pub category_name: String,
     pub invitation_code: String,
+}
+
+pub struct Problem {
+    pub code: String,
+    pub name: String,
 }
 
 impl Bot {
@@ -30,6 +36,7 @@ impl Bot {
         guild_id: u64,
         infra_password: String,
         teams: Vec<Team>,
+        problems: Vec<Problem>,
     ) -> Self {
         let application_id = ApplicationId(application_id);
         let guild_id = GuildId(guild_id);
@@ -41,6 +48,7 @@ impl Bot {
             discord_client,
             infra_password,
             teams,
+            problems,
         }
     }
 
