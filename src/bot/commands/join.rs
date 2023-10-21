@@ -5,7 +5,7 @@ use crate::*;
 use crate::{InteractionArgumentExtractor, InteractionDeferredResponder, InteractionHelper};
 use serenity::builder::CreateApplicationCommand;
 use serenity::model::prelude::application_command::ApplicationCommandInteraction;
-use serenity::model::prelude::command::*;
+use serenity::model::prelude::{command::*, InteractionResponseType};
 
 impl Bot {
     pub fn create_join_command(
@@ -27,6 +27,18 @@ impl Bot {
         &self,
         interaction: &ApplicationCommandInteraction,
     ) -> Result<()> {
+        // joinコマンドはGlobalCommandなので、どこからでも呼び出すことは可能である。
+        // だが、間違ってrandomチャンネル等で呼び出されてしまうことを防ぐため、DM以外からの呼び出しはエラーとする。
+        if interaction.guild_id.is_some() {
+            interaction.create_interaction_response(&self.discord_client, |response| {
+                response.kind(InteractionResponseType::ChannelMessageWithSource);
+                response.interaction_response_data(|data| {
+                    data.ephemeral(true).content("このコマンドはDM以外から呼び出すことはできません。")
+                })
+            }).await?;
+            return Ok(());
+        }
+
         tracing::trace!("send acknowledgement");
         let _ = InteractionHelper::defer(&self.discord_client, interaction).await;
 
@@ -101,7 +113,6 @@ impl Bot {
     }
 
     fn find_role_name_by_invitation_code(&self, invitation_code: &str) -> Result<Option<String>> {
-        // TODO: staffの招待はまた後で考える
         if invitation_code == self.infra_password {
             return Ok(Some(roles::STAFF_ROLE_NAME.to_string()));
         }
