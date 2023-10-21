@@ -56,6 +56,8 @@ where
             .create(http, channel_id, summary, content)
             .await?;
 
+        
+
         InteractionHelper::defer_respond(
             &ctx.context.http,
             &ctx.command,

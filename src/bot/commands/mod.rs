@@ -1,3 +1,4 @@
+mod ask;
 mod join;
 mod ping;
 
@@ -29,6 +30,7 @@ impl Bot {
 
     async fn sync_guild_application_commands(&self) -> Result<()> {
         tracing::info!("sync guild application commands");
+        self.guild_id.create_application_command(&self.discord_client, Bot::create_ask_command).await?;
         Ok(())
     }
 
@@ -129,6 +131,7 @@ impl Bot {
         let result = match name {
             "ping" => self.handle_ping_command(interaction).await,
             "join" => self.handle_join_command(interaction).await,
+            "ask" => self.handle_ask_command(interaction).await,
             _ => Ok(()),
         };
 
@@ -140,6 +143,6 @@ impl Bot {
                 format!("エラーが発生しました: {}", err),
             )
             .await;
-        }
+        };
     }
 }
