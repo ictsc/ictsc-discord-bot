@@ -16,6 +16,9 @@ impl Bot {
         &self,
         interaction: &ApplicationCommandInteraction,
     ) -> Result<()> {
+        tracing::trace!("send acknowledgement");
+        let _ = InteractionHelper::defer(&self.discord_client, interaction).await;
+
         InteractionHelper::defer_respond(&self.discord_client, &interaction, "pong!").await?;
         Ok(())
     }

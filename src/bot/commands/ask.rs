@@ -3,9 +3,9 @@ use crate::*;
 
 use crate::{InteractionArgumentExtractor, InteractionHelper};
 use serenity::builder::CreateApplicationCommand;
-use serenity::model::prelude::application_command::{ApplicationCommandInteraction, ResolvedTarget};
-use serenity::model::prelude::*;
+use serenity::model::prelude::application_command::ApplicationCommandInteraction;
 use serenity::model::prelude::command::*;
+use serenity::model::prelude::*;
 
 impl Bot {
     pub fn create_ask_command(
@@ -27,29 +27,38 @@ impl Bot {
         &self,
         interaction: &ApplicationCommandInteraction,
     ) -> Result<()> {
-        let title =
-            InteractionHelper::value_of_as_str(interaction, "title").unwrap();
+        tracing::trace!("send acknowledgement");
+        let _ = InteractionHelper::defer(&self.discord_client, interaction).await;
+
+        let title = InteractionHelper::value_of_as_str(interaction, "title").unwrap();
 
         let channel_id = interaction.channel_id;
-        let message = interaction.get_interaction_response(&self.discord_client).await?;
+        let message = interaction
+            .get_interaction_response(&self.discord_client)
+            .await?;
 
         let channel = channel_id.to_channel(&self.discord_client).await?;
         match channel {
             Channel::Guild(channel) => {
-                if channel.kind == ChannelType::PublicThread || channel.kind == ChannelType::PrivateThread {
-                    interaction.create_followup_message(&self.discord_client, |message| {
-                        message.content("aaa").ephemeral(true)
-                    }).await?;
-                    return Ok(())
+                if channel.kind == ChannelType::PublicThread
+                    || channel.kind == ChannelType::PrivateThread
+                {
+                    interaction
+                        .create_followup_message(&self.discord_client, |message| {
+                            message.content("aaa").ephemeral(true)
+                        })
+                        .await?;
+                    return Ok(());
                 }
-            },
+            }
             _ => {
                 InteractionHelper::defer_respond(
-                    &self.discord_client, 
-                    interaction, 
-                    "このコマンドはサーバー内でのみ使用できます。"
-                ).await?;
-                return Ok(())
+                    &self.discord_client,
+                    interaction,
+                    "このコマンドはサーバー内でのみ使用できます。",
+                )
+                .await?;
+                return Ok(());
             }
         };
 
@@ -67,12 +76,22 @@ impl Bot {
             .map(|role| Mention::from(role.id).to_string())
             .collect();
 
-        InteractionHelper::defer_respond(&self.discord_client, interaction, 
-            format!("{} {} 質問内容を入力してください。", sender_mention, staff_mensions.join(" "))).await?;
+        InteractionHelper::defer_respond(
+            &self.discord_client,
+            interaction,
+            format!(
+                "{} {} 質問内容を入力してください。",
+                sender_mention,
+                staff_mensions.join(" ")
+            ),
+        )
+        .await?;
 
-        channel_id.create_public_thread(&self.discord_client, message.id, |thread| {
-            thread.name(title)
-        }).await?;
+        channel_id
+            .create_public_thread(&self.discord_client, message.id, |thread| {
+                thread.name(title)
+            })
+            .await?;
 
         Ok(())
     }

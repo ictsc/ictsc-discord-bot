@@ -29,7 +29,6 @@ impl Bot {
 
         let mut categories = Vec::new();
 
-
         // Define staff category
         categories.push(
             GuildChannelDefinitionBuilder::default()
@@ -48,11 +47,14 @@ impl Bot {
             );
         }
 
-        self._sync_channels(&[ChannelType::Category], categories).await?;
+        self._sync_channels(&[ChannelType::Category], categories)
+            .await?;
 
         tracing::info!("sync channels");
 
-        let category_map: HashMap<_, _> = self.get_channels(&[ChannelType::Category]).await?
+        let category_map: HashMap<_, _> = self
+            .get_channels(&[ChannelType::Category])
+            .await?
             .into_iter()
             .map(|category| (category.name.clone(), category.id))
             .collect();
@@ -60,7 +62,9 @@ impl Bot {
         let mut channels = Vec::new();
 
         // Define public channels
-        let permissions_for_announce_channel = self.get_permission_overwrites_for_announce_channel().await?;
+        let permissions_for_announce_channel = self
+            .get_permission_overwrites_for_announce_channel()
+            .await?;
         channels.push(
             GuildChannelDefinitionBuilder::default()
                 .name(ANNOUNCE_CHANNEL_NAME.to_string())
@@ -69,7 +73,8 @@ impl Bot {
                 .build()?,
         );
 
-        let permissions_for_random_channel = self.get_permission_overwrites_for_random_channel().await?;
+        let permissions_for_random_channel =
+            self.get_permission_overwrites_for_random_channel().await?;
         channels.push(
             GuildChannelDefinitionBuilder::default()
                 .name(RANDOM_CHANNEL_NAME.to_string())
@@ -128,7 +133,8 @@ impl Bot {
             );
         }
 
-        self._sync_channels(&[ChannelType::Text, ChannelType::Voice], channels).await?;
+        self._sync_channels(&[ChannelType::Text, ChannelType::Voice], channels)
+            .await?;
 
         Ok(())
     }
@@ -145,11 +151,7 @@ impl Bot {
 }
 
 impl Bot {
-    async fn _sync_channels<K, T>(
-        &self,
-        kinds: K,
-        definitions: T,
-    ) -> CommandResult<()> 
+    async fn _sync_channels<K, T>(&self, kinds: K, definitions: T) -> CommandResult<()>
     where
         K: AsRef<[ChannelType]>,
         T: AsRef<[GuildChannelDefinition]>,
@@ -252,7 +254,9 @@ impl Bot {
     }
 
     #[tracing::instrument(skip_all)]
-    async fn get_channels<T: AsRef<[ChannelType]>>(&self, kinds: T,
+    async fn get_channels<T: AsRef<[ChannelType]>>(
+        &self,
+        kinds: T,
     ) -> CommandResult<Vec<GuildChannel>> {
         Ok(self
             .guild_id

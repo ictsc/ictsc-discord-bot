@@ -59,7 +59,8 @@ impl Bot {
     #[tracing::instrument(skip_all)]
     pub async fn get_role_map(&self) -> CommandResult<HashMap<String, Role>> {
         tracing::trace!("get role map");
-        Ok(self.get_roles()
+        Ok(self
+            .get_roles()
             .await?
             .into_iter()
             .map(|role| (role.name.clone(), role))
@@ -108,7 +109,6 @@ impl Bot {
             .await?;
         Ok(())
     }
-
 }
 
 impl Bot {
@@ -227,4 +227,3 @@ impl Bot {
             && role.mentionable == definition.mentionable
     }
 }
-

@@ -30,7 +30,9 @@ impl Bot {
 
     async fn sync_guild_application_commands(&self) -> Result<()> {
         tracing::info!("sync guild application commands");
-        self.guild_id.create_application_command(&self.discord_client, Bot::create_ask_command).await?;
+        self.guild_id
+            .create_application_command(&self.discord_client, Bot::create_ask_command)
+            .await?;
         Ok(())
     }
 
@@ -124,9 +126,6 @@ impl Bot {
     ))]
     async fn handle_application_command(&self, interaction: &ApplicationCommandInteraction) {
         let name = interaction.data.name.as_str();
-
-        tracing::trace!("send acknowledgement");
-        let _ = InteractionHelper::defer(&self.discord_client, interaction).await;
 
         let result = match name {
             "ping" => self.handle_ping_command(interaction).await,

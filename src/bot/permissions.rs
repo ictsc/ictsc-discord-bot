@@ -25,9 +25,7 @@ impl Bot {
 
     // Readonlyなpublic channelに設定される権限
     pub fn get_permissions_for_readonly_channel_member(&self) -> Permissions {
-        Permissions::VIEW_CHANNEL
-            | Permissions::READ_MESSAGE_HISTORY
-            | Permissions::ADD_REACTIONS
+        Permissions::VIEW_CHANNEL | Permissions::READ_MESSAGE_HISTORY | Permissions::ADD_REACTIONS
     }
 
     // 投稿可能なpublic channelに設定される権限
@@ -109,7 +107,7 @@ impl Bot {
                 deny: Permissions::empty(),
                 kind: PermissionOverwriteType::Role(team_role.id),
             });
-        } 
+        }
 
         Ok(permissions)
     }
@@ -122,10 +120,10 @@ impl Bot {
     ) -> CommandResult<Vec<PermissionOverwrite>> {
         tracing::trace!("get permission overrides for random channel");
 
-        let team_roles = self.find_roles_by_name(&team.role_name)
-            .await?;
+        let team_roles = self.find_roles_by_name(&team.role_name).await?;
 
-        Ok(team_roles.into_iter()
+        Ok(team_roles
+            .into_iter()
             .map(|role| PermissionOverwrite {
                 allow: self.get_permissions_for_team_channel_member(),
                 deny: Permissions::empty(),

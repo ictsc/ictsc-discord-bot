@@ -27,6 +27,9 @@ impl Bot {
         &self,
         interaction: &ApplicationCommandInteraction,
     ) -> Result<()> {
+        tracing::trace!("send acknowledgement");
+        let _ = InteractionHelper::defer(&self.discord_client, interaction).await;
+
         let invitation_code =
             InteractionHelper::value_of_as_str(interaction, "invitation_code").unwrap();
 
