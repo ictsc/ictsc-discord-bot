@@ -29,7 +29,7 @@ impl Bot {
         // joinコマンドはGlobalCommandなので、どこからでも呼び出すことは可能である。
         // だが、間違ってrandomチャンネル等で呼び出されてしまうことを防ぐため、DM以外からの呼び出しはエラーとする。
         if interaction.guild_id.is_some() {
-            self.reply(interaction, |data| {
+            self.respond(interaction, |data| {
                 data.ephemeral(true)
                     .content("このコマンドはDM以外から呼び出すことはできません。")
             })
@@ -38,7 +38,7 @@ impl Bot {
         }
 
         tracing::trace!("send acknowledgement");
-        self.defer_reply(interaction).await?;
+        self.defer_response(interaction).await?;
 
         let invitation_code = self
             .get_option_as_str(interaction, "invitation_code")
@@ -102,7 +102,7 @@ impl Bot {
             .await
             .map_err(|err| SystemError::UnexpectedError(err.to_string()))?;
 
-        self.edit_reply(interaction, |data| {
+        self.edit_response(interaction, |data| {
             data.content(format!("チーム `{}` に参加しました。", role_name))
         })
         .await?;

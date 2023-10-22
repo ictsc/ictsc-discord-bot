@@ -45,7 +45,7 @@ impl Bot {
         let problem = match problem {
             Some(problem) => problem,
             None => {
-                self.reply(interaction, |data| {
+                self.respond(interaction, |data| {
                     data.ephemeral(true).content(format!(
                         "問題コード `{}` に対応する問題はありません。",
                         problem_code
@@ -56,7 +56,7 @@ impl Bot {
             }
         };
 
-        self.reply(interaction, |data| {
+        self.respond(interaction, |data| {
             data.ephemeral(true)
                 .content(format!("問題 `{}` を再作成しますか？", problem.name))
         })

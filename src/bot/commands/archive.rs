@@ -24,7 +24,7 @@ impl Bot {
         let guild_channel = match channel {
             Channel::Guild(guild_channel) => guild_channel,
             _ => {
-                self.reply(interaction, |data| {
+                self.respond(interaction, |data| {
                     data.ephemeral(true)
                         .content("このコマンドはスレッド内でのみ使用できます。")
                 })
@@ -34,7 +34,7 @@ impl Bot {
         };
 
         if guild_channel.kind != ChannelType::PublicThread {
-            self.reply(interaction, |data| {
+            self.respond(interaction, |data| {
                 data.ephemeral(true)
                     .content("このコマンドはスレッド内でのみ使用できます。")
             })
@@ -43,13 +43,13 @@ impl Bot {
         }
 
         tracing::trace!("send acknowledgement");
-        self.defer_reply(interaction).await?;
+        self.defer_response(interaction).await?;
 
         channel_id
             .edit_thread(&self.discord_client, |thread| thread.archived(true))
             .await?;
 
-        self.edit_reply(interaction, |response| {
+        self.edit_response(interaction, |response| {
             response.content("質問スレッドを終了しました。")
         })
         .await?;

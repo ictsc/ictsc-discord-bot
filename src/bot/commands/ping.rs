@@ -16,7 +16,7 @@ impl Bot {
         interaction: &ApplicationCommandInteraction,
     ) -> Result<()> {
         tracing::trace!("send acknowledgement");
-        self.reply(interaction, |data| data.content("pong!"))
+        self.respond(interaction, |data| data.content("pong!"))
             .await?;
         Ok(())
     }

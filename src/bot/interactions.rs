@@ -6,7 +6,8 @@ use serenity::model::prelude::application_command::ApplicationCommandInteraction
 use serenity::model::prelude::{InteractionResponseType, Message};
 
 impl Bot {
-    pub async fn reply<F>(&self, interaction: &ApplicationCommandInteraction, f: F) -> Result<()>
+    // ユーザからのinteractionに即時応答するメソッド
+    pub async fn respond<F>(&self, interaction: &ApplicationCommandInteraction, f: F) -> Result<()>
     where
         for<'a, 'b> F: FnOnce(
             &'a mut CreateInteractionResponseData<'b>,
@@ -21,12 +22,14 @@ impl Bot {
         Ok(())
     }
 
-    pub async fn defer_reply(&self, interaction: &ApplicationCommandInteraction) -> Result<()> {
+    // ユーザからのinteractionの応答を保留するメソッド
+    pub async fn defer_response(&self, interaction: &ApplicationCommandInteraction) -> Result<()> {
         interaction.defer(&self.discord_client).await?;
         Ok(())
     }
 
-    pub async fn edit_reply<F>(
+    // ユーザからのinteractionの応答を編集するメソッド
+    pub async fn edit_response<F>(
         &self,
         interaction: &ApplicationCommandInteraction,
         f: F,
@@ -40,7 +43,8 @@ impl Bot {
         Ok(())
     }
 
-    pub async fn get_response_message(
+    // ユーザからのinteractionの応答をMessageとして取得するメソッド
+    pub async fn get_response(
         &self,
         interaction: &ApplicationCommandInteraction,
     ) -> Result<Message> {

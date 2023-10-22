@@ -35,7 +35,7 @@ impl Bot {
         match channel {
             Channel::Guild(channel) => {
                 if channel.kind == ChannelType::PublicThread {
-                    self.reply(interaction, |data| {
+                    self.respond(interaction, |data| {
                         data.ephemeral(true)
                             .content("質問スレッド内でこのコマンドを使用することはできません。")
                     })
@@ -44,7 +44,7 @@ impl Bot {
                 }
             }
             _ => {
-                self.reply(interaction, |data| {
+                self.respond(interaction, |data| {
                     data.ephemeral(true)
                         .content("このコマンドはサーバ内でのみ使用できます。")
                 })
@@ -54,7 +54,7 @@ impl Bot {
         };
 
         tracing::trace!("send acknowledgement");
-        self.defer_reply(interaction).await?;
+        self.defer_response(interaction).await?;
 
         let sender = &interaction.user;
         let staff_roles = self
@@ -68,7 +68,7 @@ impl Bot {
             .map(|role| Mention::from(role.id).to_string())
             .collect();
 
-        self.edit_reply(interaction, |data| {
+        self.edit_response(interaction, |data| {
             data.content(format!(
                 "{} {} 質問内容を入力してください。",
                 sender_mention,
@@ -77,7 +77,7 @@ impl Bot {
         })
         .await?;
 
-        let message = self.get_response_message(interaction).await?;
+        let message = self.get_response(interaction).await?;
         channel_id
             .create_public_thread(&self.discord_client, message.id, |thread| {
                 thread.name(title)
