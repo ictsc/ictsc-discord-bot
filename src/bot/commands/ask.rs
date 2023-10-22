@@ -8,7 +8,7 @@ use serenity::model::prelude::*;
 
 #[derive(Debug, thiserror::Error)]
 enum AskCommandError {
-    #[error("質問タイトルが長すぎます。「問題〇〇の初期条件について」など、簡潔にまとめて再度お試しください。")]
+    #[error("質問のタイトルは32文字以内でなければなりません。「問題〇〇の初期条件について」など、簡潔にまとめて再度お試しください。")]
     TitleTooLongError,
 
     #[error("このコマンドはテキストチャンネル以外から呼び出すことはできません。")]
@@ -60,7 +60,7 @@ impl Bot {
         let title = self.get_option_as_str(interaction, "title").unwrap();
 
         // 可読性や識別性から、質問タイトルは32文字以内に制限している。
-        if title.len() > 32 {
+        if title.chars().count() > 32 {
             return Err(AskCommandError::TitleTooLongError);
         }
 
