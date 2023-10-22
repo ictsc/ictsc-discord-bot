@@ -1,6 +1,6 @@
 // This module manages entire permissions for ICTSC Discord channels.
 
-use crate::bot;
+use crate::bot::*;
 
 use super::Bot;
 use crate::CommandResult;
@@ -64,7 +64,7 @@ impl Bot {
         let mut permissions = Vec::new();
 
         let everyone_role = role_map
-            .get(bot::roles::EVERYONE_ROLE_NAME)
+            .get(roles::EVERYONE_ROLE_NAME)
             .ok_or(anyhow::anyhow!("@everyone role not found"))?;
 
         permissions.push(PermissionOverwrite {
@@ -88,7 +88,7 @@ impl Bot {
         let mut permissions = Vec::new();
 
         let everyone_role = role_map
-            .get(bot::roles::EVERYONE_ROLE_NAME)
+            .get(roles::EVERYONE_ROLE_NAME)
             .ok_or(anyhow::anyhow!("@everyone role not found"))?;
 
         permissions.push(PermissionOverwrite {
@@ -116,7 +116,7 @@ impl Bot {
     #[tracing::instrument(skip_all)]
     pub async fn get_permission_overwrites_for_team_channel(
         &self,
-        team: &bot::Team,
+        team: &crate::bot::Team,
     ) -> CommandResult<Vec<PermissionOverwrite>> {
         tracing::trace!("get permission overrides for random channel");
 

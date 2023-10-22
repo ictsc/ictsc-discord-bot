@@ -1,4 +1,7 @@
+use anyhow::Result;
+
 use crate::CommandResult;
+use crate::bot::*;
 use serenity::model::prelude::*;
 use serenity::model::Permissions;
 
@@ -29,7 +32,7 @@ impl Bot {
     #[tracing::instrument(skip_all, fields(
         definition = ?definition,
     ))]
-    async fn create_role(&self, definition: &RoleDefinition) -> CommandResult<()> {
+    async fn create_role(&self, definition: &RoleDefinition) -> Result<()> {
         tracing::trace!("create role called");
         let definition = definition.clone();
         self.guild_id
@@ -46,7 +49,7 @@ impl Bot {
     }
 
     #[tracing::instrument(skip_all)]
-    pub async fn get_roles(&self) -> CommandResult<Vec<Role>> {
+    pub async fn get_roles(&self) -> Result<Vec<Role>> {
         tracing::trace!("get roles");
         Ok(self
             .guild_id
@@ -57,7 +60,7 @@ impl Bot {
     }
 
     #[tracing::instrument(skip_all)]
-    pub async fn get_role_map(&self) -> CommandResult<HashMap<String, Role>> {
+    pub async fn get_role_map(&self) -> Result<HashMap<String, Role>> {
         tracing::trace!("get role map");
         Ok(self
             .get_roles()
@@ -70,7 +73,7 @@ impl Bot {
     #[tracing::instrument(skip_all, fields(
         name = ?name,
     ))]
-    pub async fn find_roles_by_name(&self, name: &str) -> CommandResult<Vec<Role>> {
+    pub async fn find_roles_by_name(&self, name: &str) -> Result<Vec<Role>> {
         tracing::trace!("find role by name");
         Ok(self
             .get_roles()
@@ -84,7 +87,7 @@ impl Bot {
         role = ?role,
         definition = ?definition,
     ))]
-    async fn edit_role(&self, role: &Role, definition: &RoleDefinition) -> CommandResult<()> {
+    async fn edit_role(&self, role: &Role, definition: &RoleDefinition) -> Result<()> {
         tracing::trace!("edit role called");
         let definition = definition.clone();
         self.guild_id
@@ -102,7 +105,7 @@ impl Bot {
     #[tracing::instrument(skip_all, fields(
         role = ?role,
     ))]
-    async fn delete_role(&self, role: &Role) -> CommandResult<()> {
+    async fn delete_role(&self, role: &Role) -> Result<()> {
         tracing::trace!("delete role called");
         self.guild_id
             .delete_role(&self.discord_client, role.id.0)
