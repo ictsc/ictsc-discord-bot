@@ -6,6 +6,20 @@ use serenity::model::prelude::application_command::ApplicationCommandInteraction
 use serenity::model::prelude::command::*;
 use serenity::model::prelude::*;
 
+#[derive(Debug, thiserror::Error)]
+enum AskCommandError {
+    #[error("質問タイトルが長すぎます。「問題〇〇の初期条件について」など、簡潔にまとめて再度お試しください。")]
+    TitleTooLongError,
+
+    #[error("このコマンドはテキストチャンネル以外から呼び出すことはできません。")]
+    InvalidChannelTypeError,
+
+    #[error("予期しないエラーが発生しました。")]
+    Error(#[from] Box<dyn std::error::Error + Send + Sync + 'static>),
+}
+
+type AskCommandResult<T> = std::result::Result<T, AskCommandError>;
+
 impl Bot {
     pub fn create_ask_command(
         command: &mut CreateApplicationCommand,
@@ -22,47 +36,50 @@ impl Bot {
             })
     }
 
-    pub async fn handle_ask_command(
+    async fn validate_ask_command<'t>(
         &self,
-        interaction: &ApplicationCommandInteraction,
-    ) -> Result<()> {
-        let title = self.get_option_as_str(interaction, "title").unwrap();
+        interaction: &'t ApplicationCommandInteraction,
+    ) -> AskCommandResult<&'t str> {
+        let channel = interaction
+            .channel_id
+            .to_channel(&self.discord_client)
+            .await
+            .map_err(|err| AskCommandError::Error(err.into()))?;
 
-        // TODO: スレッドタイトルの長さチェック
-
-        let channel_id = interaction.channel_id;
-        let channel = channel_id.to_channel(&self.discord_client).await?;
         match channel {
             Channel::Guild(channel) => {
-                if channel.kind == ChannelType::PublicThread {
-                    self.respond(interaction, |data| {
-                        data.ephemeral(true)
-                            .content("質問スレッド内でこのコマンドを使用することはできません。")
-                    })
-                    .await?;
-                    return Ok(());
+                // Textチャンネル以外ではスレッドは作成できないので、エラーを返す。
+                if channel.kind != ChannelType::Text {
+                    return Err(AskCommandError::InvalidChannelTypeError);
                 }
+                channel
             }
-            _ => {
-                self.respond(interaction, |data| {
-                    data.ephemeral(true)
-                        .content("このコマンドはサーバ内でのみ使用できます。")
-                })
-                .await?;
-                return Ok(());
-            }
+            _ => return Err(AskCommandError::InvalidChannelTypeError),
         };
 
-        tracing::trace!("send acknowledgement");
-        self.defer_response(interaction).await?;
+        let title = self.get_option_as_str(interaction, "title").unwrap();
 
+        // 可読性や識別性から、質問タイトルは32文字以内に制限している。
+        if title.len() > 32 {
+            return Err(AskCommandError::TitleTooLongError);
+        }
+
+        Ok(title)
+    }
+
+    async fn do_ask_command(
+        &self,
+        interaction: &ApplicationCommandInteraction,
+        title: &str,
+    ) -> AskCommandResult<()> {
         let sender = &interaction.user;
+        let sender_mention = Mention::from(sender.id).to_string();
+
         let staff_roles = self
             .find_roles_by_name(bot::roles::STAFF_ROLE_NAME)
             .await
-            .map_err(|err| SystemError::UnexpectedError(err.to_string()))?;
+            .map_err(|err| AskCommandError::Error(err.into()))?;
 
-        let sender_mention = Mention::from(sender.id).to_string();
         let staff_mensions: Vec<_> = staff_roles
             .into_iter()
             .map(|role| Mention::from(role.id).to_string())
@@ -75,14 +92,48 @@ impl Bot {
                 staff_mensions.join(" ")
             ))
         })
-        .await?;
+        .await
+        .map_err(|err| AskCommandError::Error(err.into()))?;
 
-        let message = self.get_response(interaction).await?;
-        channel_id
+        let message = self
+            .get_response(interaction)
+            .await
+            .map_err(|err| AskCommandError::Error(err.into()))?;
+
+        interaction
+            .channel_id
             .create_public_thread(&self.discord_client, message.id, |thread| {
                 thread.name(title)
             })
-            .await?;
+            .await
+            .map_err(|err| AskCommandError::Error(err.into()))?;
+
+        Ok(())
+    }
+
+    pub async fn handle_ask_command(
+        &self,
+        interaction: &ApplicationCommandInteraction,
+    ) -> Result<()> {
+        let title = match self.validate_ask_command(interaction).await {
+            Ok(v) => v,
+            Err(err) => {
+                self.respond(interaction, |data| {
+                    data.ephemeral(true).content(err.to_string())
+                })
+                .await?;
+                return Ok(());
+            }
+        };
+
+        tracing::trace!("send acknowledgement");
+        self.defer_response(interaction).await?;
+
+        if let Err(err) = self.do_ask_command(interaction, title).await {
+            tracing::error!(?err, "failed to do ask command");
+            self.edit_response(interaction, |data| data.content(err.to_string()))
+                .await?;
+        }
 
         Ok(())
     }

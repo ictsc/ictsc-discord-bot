@@ -87,7 +87,7 @@ impl Bot {
             .member(&self.discord_client, sender.id)
             .await
             .map_err(|_| JoinCommandError::UserNotInGuildError)?;
-        
+
         let sender_member_role_id_set = HashSet::from_iter(sender_member.roles.clone());
 
         let target_role_id_set: HashSet<_> = self
