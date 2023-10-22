@@ -1,7 +1,7 @@
 use anyhow::Result;
 
 use crate::CommandResult;
-use crate::bot::*;
+
 use serenity::model::prelude::*;
 use serenity::model::Permissions;
 

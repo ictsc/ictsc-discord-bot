@@ -39,7 +39,10 @@ impl Bot {
             })
     }
 
-    fn validate_join_command<'t>(&self, interaction: &'t ApplicationCommandInteraction) -> JoinCommandResult<'t, &str> {
+    fn validate_join_command<'t>(
+        &self,
+        interaction: &'t ApplicationCommandInteraction,
+    ) -> JoinCommandResult<'t, &str> {
         // joinコマンドはGlobalCommandなので、どこからでも呼び出すことは可能である。
         // だが、間違ってrandomチャンネル等で呼び出されてしまうことを防ぐため、DM以外からの呼び出しはエラーとする。
         if interaction.guild_id.is_some() {
@@ -51,7 +54,9 @@ impl Bot {
             .unwrap();
 
         self.find_role_name_by_invitation_code(invitation_code)
-            .ok_or(JoinCommandError::InvalidInvitationCodeError(invitation_code))
+            .ok_or(JoinCommandError::InvalidInvitationCodeError(
+                invitation_code,
+            ))
     }
 
     fn find_role_name_by_invitation_code(&self, invitation_code: &str) -> Option<&str> {
@@ -82,14 +87,10 @@ impl Bot {
             .member(&self.discord_client, sender.id)
             .await
             .map_err(|_| JoinCommandError::UserNotInGuildError)?;
+        
+        let sender_member_role_id_set = HashSet::from_iter(sender_member.roles.clone());
 
-        let sender_member_role_ids: HashSet<_> = sender_member
-            .roles
-            .clone()
-            .into_iter()
-            .collect();
-
-        let target_role_ids: HashSet<_> = self
+        let target_role_id_set: HashSet<_> = self
             .find_roles_by_name(&role_name)
             .await
             .map_err(|err| JoinCommandError::Error(err.into()))?
@@ -97,8 +98,15 @@ impl Bot {
             .map(|role| role.id)
             .collect();
 
-        let role_ids_added: Vec<_> = target_role_ids.difference(&sender_member_role_ids).map(|id| id.clone()).collect();
-        let role_ids_removed: Vec<_> = sender_member_role_ids.difference(&target_role_ids).map(|id| id.clone()).collect();
+        let role_ids_added: Vec<_> = target_role_id_set
+            .difference(&sender_member_role_id_set)
+            .map(|id| id.clone())
+            .collect();
+
+        let role_ids_removed: Vec<_> = sender_member_role_id_set
+            .difference(&target_role_id_set)
+            .map(|id| id.clone())
+            .collect();
 
         sender_member
             .add_roles(&self.discord_client, &role_ids_added)
@@ -115,6 +123,7 @@ impl Bot {
         })
         .await
         .map_err(|err| JoinCommandError::Error(err.into()))?;
+
         Ok(())
     }
 
@@ -126,8 +135,7 @@ impl Bot {
             Ok(role_name) => role_name,
             Err(err) => {
                 self.respond(interaction, |data| {
-                    data.ephemeral(true)
-                        .content(err.to_string())
+                    data.ephemeral(true).content(err.to_string())
                 })
                 .await?;
                 return Ok(());
@@ -139,12 +147,10 @@ impl Bot {
 
         if let Err(err) = self.do_join_command(interaction, role_name).await {
             tracing::error!(?err, "failed to do join command");
-            self.edit_response(interaction, |data| {
-                data.content(err.to_string())
-            }).await?;
+            self.edit_response(interaction, |data| data.content(err.to_string()))
+                .await?;
         }
 
         Ok(())
     }
-
 }
