@@ -1,7 +1,5 @@
 use anyhow::Result;
 
-use crate::CommandResult;
-
 use serenity::model::prelude::*;
 use serenity::model::Permissions;
 
@@ -116,7 +114,7 @@ impl Bot {
 
 impl Bot {
     #[tracing::instrument(skip_all)]
-    pub async fn sync_roles(&self) -> CommandResult<()> {
+    pub async fn sync_roles(&self) -> Result<()> {
         tracing::info!("sync roles");
 
         let mut roles = Vec::new();
@@ -156,7 +154,7 @@ impl Bot {
     }
 
     #[tracing::instrument(skip_all)]
-    pub async fn delete_roles(&self) -> CommandResult<()> {
+    pub async fn delete_roles(&self) -> Result<()> {
         tracing::info!("delete all roles");
         self._sync_roles(&[]).await?;
         Ok(())
@@ -164,7 +162,7 @@ impl Bot {
 }
 
 impl Bot {
-    async fn _sync_roles<T: AsRef<[RoleDefinition]>>(&self, definitions: T) -> CommandResult<()> {
+    async fn _sync_roles<T: AsRef<[RoleDefinition]>>(&self, definitions: T) -> Result<()> {
         tracing::debug!("fetch current roles");
         let roles = self.discord_client.get_guild_roles(self.guild_id.0).await?;
 

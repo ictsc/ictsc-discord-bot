@@ -4,10 +4,9 @@ mod join;
 mod ping;
 mod recreate;
 
-use crate::CommandResult;
-
 use super::Bot;
-use crate::error::*;
+
+use anyhow::Result;
 use serenity::async_trait;
 use serenity::client::{Context, EventHandler};
 use serenity::model::application::command::Command;
@@ -51,7 +50,7 @@ impl Bot {
     }
 
     #[tracing::instrument(skip_all)]
-    pub async fn delete_commands(&self) -> CommandResult<()> {
+    pub async fn delete_commands(&self) -> Result<()> {
         tracing::info!("delete global application commands");
         let commands = self
             .discord_client

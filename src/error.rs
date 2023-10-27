@@ -1,7 +1,5 @@
 use thiserror::Error;
 
-pub type CommandResult<T> = anyhow::Result<T>;
-
 pub type Result<T> = std::result::Result<T, Error>;
 
 #[derive(Debug, Error)]

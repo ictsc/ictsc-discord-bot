@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::CommandResult;
+use anyhow::Result;
 use serenity::model::prelude::*;
 
 use super::Bot;
@@ -24,7 +24,7 @@ struct GuildChannelDefinition {
 
 impl Bot {
     #[tracing::instrument(skip_all)]
-    pub async fn sync_channels(&self) -> CommandResult<()> {
+    pub async fn sync_channels(&self) -> Result<()> {
         tracing::info!("sync categories");
 
         let mut categories = Vec::new();
@@ -140,7 +140,7 @@ impl Bot {
     }
 
     #[tracing::instrument(skip_all)]
-    pub async fn delete_channels(&self) -> CommandResult<()> {
+    pub async fn delete_channels(&self) -> Result<()> {
         tracing::info!("delete all channels");
         for (channel_id, channel) in self.guild_id.channels(&self.discord_client).await? {
             tracing::debug!(?channel, "delete channel");
@@ -151,7 +151,7 @@ impl Bot {
 }
 
 impl Bot {
-    async fn _sync_channels<K, T>(&self, kinds: K, definitions: T) -> CommandResult<()>
+    async fn _sync_channels<K, T>(&self, kinds: K, definitions: T) -> Result<()>
     where
         K: AsRef<[ChannelType]>,
         T: AsRef<[GuildChannelDefinition]>,
@@ -235,7 +235,7 @@ impl Bot {
 // CRUD operation for category
 impl Bot {
     #[tracing::instrument(skip_all, fields(definition = ?definition))]
-    async fn create_channel(&self, definition: &GuildChannelDefinition) -> CommandResult<()> {
+    async fn create_channel(&self, definition: &GuildChannelDefinition) -> Result<()> {
         let definition = definition.clone();
         self.guild_id
             .create_channel(&self.discord_client, |channel| {
@@ -254,10 +254,7 @@ impl Bot {
     }
 
     #[tracing::instrument(skip_all)]
-    async fn get_channels<T: AsRef<[ChannelType]>>(
-        &self,
-        kinds: T,
-    ) -> CommandResult<Vec<GuildChannel>> {
+    async fn get_channels<T: AsRef<[ChannelType]>>(&self, kinds: T) -> Result<Vec<GuildChannel>> {
         Ok(self
             .guild_id
             .channels(&self.discord_client)
@@ -268,7 +265,7 @@ impl Bot {
     }
 
     #[tracing::instrument(skip_all)]
-    async fn get_categories(&self) -> CommandResult<Vec<GuildChannel>> {
+    async fn get_categories(&self) -> Result<Vec<GuildChannel>> {
         Ok(self
             .guild_id
             .channels(&self.discord_client)
@@ -286,7 +283,7 @@ impl Bot {
         &self,
         category: &mut GuildChannel,
         definition: &GuildChannelDefinition,
-    ) -> CommandResult<()> {
+    ) -> Result<()> {
         if category.kind != definition.kind {
             anyhow::anyhow!("failed to edit category: kind is not matched");
         }
@@ -302,7 +299,7 @@ impl Bot {
     }
 
     #[tracing::instrument(skip_all, fields(category = ?category))]
-    async fn delete_channel(&self, category: &mut GuildChannel) -> CommandResult<()> {
+    async fn delete_channel(&self, category: &mut GuildChannel) -> Result<()> {
         category.delete(&self.discord_client).await?;
         Ok(())
     }

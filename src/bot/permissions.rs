@@ -3,7 +3,6 @@
 use crate::bot::*;
 
 use super::Bot;
-use crate::CommandResult;
 
 use serenity::model::prelude::*;
 
@@ -56,7 +55,7 @@ impl Bot {
     #[tracing::instrument(skip_all)]
     pub async fn get_permission_overwrites_for_announce_channel(
         &self,
-    ) -> CommandResult<Vec<PermissionOverwrite>> {
+    ) -> Result<Vec<PermissionOverwrite>> {
         tracing::trace!("get permission overrides for announce channel");
 
         let role_map = self.get_role_map().await?;
@@ -80,7 +79,7 @@ impl Bot {
     #[tracing::instrument(skip_all)]
     pub async fn get_permission_overwrites_for_random_channel(
         &self,
-    ) -> CommandResult<Vec<PermissionOverwrite>> {
+    ) -> Result<Vec<PermissionOverwrite>> {
         tracing::trace!("get permission overrides for random channel");
 
         let role_map = self.get_role_map().await?;
@@ -117,7 +116,7 @@ impl Bot {
     pub async fn get_permission_overwrites_for_team_channel(
         &self,
         team: &crate::bot::Team,
-    ) -> CommandResult<Vec<PermissionOverwrite>> {
+    ) -> Result<Vec<PermissionOverwrite>> {
         tracing::trace!("get permission overrides for random channel");
 
         let team_roles = self.find_roles_by_name(&team.role_name).await?;
