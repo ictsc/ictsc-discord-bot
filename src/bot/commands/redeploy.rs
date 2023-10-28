@@ -1,8 +1,10 @@
 use std::time::Duration;
 
-use super::Bot;
-use crate::*;
+use crate::services::redeploy::{RedeployError, RedeployTarget};
 
+use super::Bot;
+
+use anyhow::Result;
 use serenity::builder::CreateApplicationCommand;
 use serenity::model::prelude::application_command::ApplicationCommandInteraction;
 use serenity::model::prelude::{command::*, ReactionType};
@@ -12,12 +14,12 @@ const OK_REACTION: &str = "🙆\u{200d}♂\u{fe0f}";
 const NG_REACTION: &str = "🙅\u{200d}♂\u{fe0f}";
 
 impl Bot {
-    pub fn create_recreate_command(
+    pub fn create_redeploy_command(
         command: &mut CreateApplicationCommand,
     ) -> &mut CreateApplicationCommand {
         command
-            .name("recreate")
-            .description("問題環境を再作成します。")
+            .name("redeploy")
+            .description("問題環境を再展開します。")
             .create_option(|option| {
                 option
                     .name("problem_code")
@@ -28,7 +30,7 @@ impl Bot {
     }
 
     // TODO: いろいろガバガバなので修正する
-    pub async fn handle_recreate_command(
+    pub async fn handle_redeploy_command(
         &self,
         ctx: &Context,
         interaction: &ApplicationCommandInteraction,
@@ -57,8 +59,7 @@ impl Bot {
         };
 
         self.respond(interaction, |data| {
-            data.ephemeral(true)
-                .content(format!("問題 `{}` を再作成しますか？", problem.name))
+            data.content(format!("問題 `{}` を再展開しますか？", problem.name))
         })
         .await?;
 
@@ -108,12 +109,40 @@ impl Bot {
         };
 
         if should_be_recreated {
-            message
-                .reply(&self.discord_client, "再作成を開始します。")
-                .await?;
+            let result = self
+                .redeploy_service
+                .redeploy(RedeployTarget {
+                    // Team IDを引っ張ってきて
+                    team_id: "dummy".into(),
+                    problem_id: problem.code.clone(),
+                })
+                .await;
+
+            match result {
+                Ok(_) => {
+                    message
+                        .reply(&self.discord_client, "再展開を開始します。")
+                        .await?;
+                }
+                Err(RedeployError::AnotherRedeployJobInQueue) => {
+                    message
+                        .reply(&self.discord_client, "再展開に失敗しました。")
+                        .await?;
+                }
+                Err(RedeployError::OutOfCompetitionTime) => {
+                    message
+                        .reply(&self.discord_client, "再展開に失敗しました。")
+                        .await?;
+                }
+                Err(_) => {
+                    message
+                        .reply(&self.discord_client, "再展開に失敗しました。")
+                        .await?;
+                }
+            }
         } else {
             message
-                .reply(&self.discord_client, "再作成を中断します。")
+                .reply(&self.discord_client, "再展開を中断します。")
                 .await?;
         }
 

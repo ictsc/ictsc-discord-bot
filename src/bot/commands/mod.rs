@@ -2,7 +2,7 @@ mod archive;
 mod ask;
 mod join;
 mod ping;
-mod recreate;
+mod redeploy;
 
 use super::Bot;
 
@@ -43,7 +43,7 @@ impl Bot {
 
         tracing::debug!("sync recreate command");
         self.guild_id
-            .create_application_command(&self.discord_client, Bot::create_recreate_command)
+            .create_application_command(&self.discord_client, Bot::create_redeploy_command)
             .await?;
 
         Ok(())
@@ -149,8 +149,8 @@ impl Bot {
             "ask" => self.handle_ask_command(interaction).await,
             "join" => self.handle_join_command(interaction).await,
             "ping" => self.handle_ping_command(interaction).await,
-            "recreate" => self.handle_recreate_command(ctx, interaction).await,
-            _ => Ok(()),
+            "redeploy" => self.handle_redeploy_command(ctx, interaction).await,
+            _ => Err(anyhow::anyhow!("unknown command: {}", name)),
         };
 
         if let Err(err) = result {

@@ -1,6 +1,7 @@
 use super::Bot;
 use crate::*;
 
+use anyhow::Result;
 use serenity::builder::CreateApplicationCommand;
 use serenity::model::prelude::application_command::ApplicationCommandInteraction;
 use serenity::model::prelude::command::*;

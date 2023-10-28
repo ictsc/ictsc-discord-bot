@@ -4,6 +4,8 @@ mod interactions;
 mod permissions;
 mod roles;
 
+use crate::services::redeploy::RedeployService;
+
 use anyhow::Result;
 use serenity::client::Client;
 use serenity::http::Http;
@@ -17,6 +19,7 @@ pub struct Bot {
     infra_password: String,
     teams: Vec<Team>,
     problems: Vec<Problem>,
+    redeploy_service: Box<dyn RedeployService + Send + Sync>,
 }
 
 pub struct Team {
@@ -38,6 +41,7 @@ impl Bot {
         infra_password: String,
         teams: Vec<Team>,
         problems: Vec<Problem>,
+        redeploy_service: Box<dyn RedeployService + Send + Sync>,
     ) -> Self {
         let application_id = ApplicationId(application_id);
         let guild_id = GuildId(guild_id);
@@ -50,6 +54,7 @@ impl Bot {
             infra_password,
             teams,
             problems,
+            redeploy_service,
         }
     }
 

@@ -1,5 +1,6 @@
 mod config;
 
+use bot::services;
 use config::*;
 
 use clap::{Parser, Subcommand};
@@ -40,6 +41,8 @@ async fn main() {
     let teams = config.teams();
     let problems = config.problems();
 
+    let redeploy_service = services::redeploy::FakeRedeployService;
+
     let bot = bot::Bot::new(
         config.discord.token,
         config.discord.application_id,
@@ -47,6 +50,7 @@ async fn main() {
         config.staff.password,
         teams,
         problems,
+        Box::new(redeploy_service),
     );
 
     let result = match args.command {

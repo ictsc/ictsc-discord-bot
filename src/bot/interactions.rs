@@ -1,6 +1,6 @@
 use crate::bot::Bot;
-use crate::*;
 
+use anyhow::Result;
 use serenity::builder::{CreateInteractionResponseData, EditInteractionResponse};
 use serenity::model::prelude::application_command::ApplicationCommandInteraction;
 use serenity::model::prelude::{InteractionResponseType, Message};

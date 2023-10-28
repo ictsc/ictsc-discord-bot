@@ -1,6 +1,6 @@
 use super::Bot;
-use crate::error::*;
 
+use anyhow::Result;
 use serenity::builder::CreateApplicationCommand;
 use serenity::model::prelude::application_command::ApplicationCommandInteraction;
 
