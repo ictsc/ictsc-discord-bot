@@ -90,8 +90,9 @@ impl EventHandler for Bot {
     ))]
     async fn guild_create(&self, _: Context, guild: Guild) {
         tracing::debug!("guild_create called");
+
         if guild.id != self.guild_id {
-            tracing::warn!("target guild is not for contest, skipped");
+            tracing::info!("target guild is not for contest, skipped");
             return;
         }
 
