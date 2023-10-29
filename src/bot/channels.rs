@@ -1,9 +1,9 @@
+use crate::bot::*;
+
 use std::collections::HashMap;
 
 use anyhow::Result;
 use serenity::model::prelude::*;
-
-use super::Bot;
 
 static STAFF_CATEGORY_NAME: &str = "ICTSC2023 Staff";
 

@@ -1,4 +1,4 @@
-use super::Bot;
+use crate::bot::*;
 
 use anyhow::Result;
 use serenity::builder::CreateApplicationCommand;

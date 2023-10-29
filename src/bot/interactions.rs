@@ -1,4 +1,4 @@
-use crate::bot::Bot;
+use crate::bot::*;
 
 use anyhow::Result;
 use serenity::builder::{CreateInteractionResponseData, EditInteractionResponse};

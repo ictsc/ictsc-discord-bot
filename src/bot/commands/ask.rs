@@ -1,5 +1,4 @@
-use super::Bot;
-use crate::*;
+use crate::bot::*;
 
 use anyhow::Result;
 use serenity::builder::CreateApplicationCommand;
@@ -77,7 +76,7 @@ impl Bot {
         let sender_mention = Mention::from(sender.id).to_string();
 
         let staff_roles = self
-            .find_roles_by_name(bot::roles::STAFF_ROLE_NAME)
+            .find_roles_by_name(roles::STAFF_ROLE_NAME)
             .await
             .map_err(|err| AskCommandError::Error(err.into()))?;
 

@@ -4,7 +4,7 @@ mod join;
 mod ping;
 mod redeploy;
 
-use super::Bot;
+use crate::bot::*;
 
 use anyhow::Result;
 use serenity::async_trait;

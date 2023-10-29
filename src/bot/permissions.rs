@@ -1,8 +1,5 @@
 // This module manages entire permissions for ICTSC Discord channels.
-
 use crate::bot::*;
-
-use super::Bot;
 
 use serenity::model::prelude::*;
 

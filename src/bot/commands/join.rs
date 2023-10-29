@@ -1,7 +1,6 @@
-use std::collections::HashSet;
+use crate::bot::*;
 
-use super::Bot;
-use crate::bot::roles;
+use std::collections::HashSet;
 
 use anyhow::Result;
 use serenity::builder::CreateApplicationCommand;

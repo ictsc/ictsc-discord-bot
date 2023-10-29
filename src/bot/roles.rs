@@ -1,11 +1,10 @@
-use anyhow::Result;
-
-use serenity::model::prelude::*;
-use serenity::model::Permissions;
+use crate::bot::*;
 
 use std::collections::HashMap;
 
-use super::Bot;
+use anyhow::Result;
+use serenity::model::prelude::*;
+use serenity::model::Permissions;
 
 pub static EVERYONE_ROLE_NAME: &str = "@everyone";
 pub static STAFF_ROLE_NAME: &str = "ICTSC2023 Staff";

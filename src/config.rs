@@ -1,8 +1,9 @@
+use crate::bot::{Problem, Team};
+
 use std::fs::File;
 use std::path::Path;
 
 use anyhow::Result;
-use bot::{Problem, Team};
 use serde_derive::Deserialize;
 
 #[derive(Debug, Deserialize)]
