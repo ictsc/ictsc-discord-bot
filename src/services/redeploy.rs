@@ -28,21 +28,19 @@ pub enum RedeployError {
 }
 
 // TODO: 後でいい感じの名前に変える
-pub struct DefaultRedeployService {
-    config: DefaultRedeployServiceConfig,
+pub struct RState {
+    config: RStateConfig,
     client: Client,
 }
 
-pub struct DefaultRedeployServiceConfig {
+pub struct RStateConfig {
     pub baseurl: String,
     pub username: String,
     pub password: String,
 }
 
-impl DefaultRedeployService {
-    pub fn new(config: DefaultRedeployServiceConfig) -> Result<Self> {
-        // application/x-www-form-urlencoded
-
+impl RState {
+    pub fn new(config: RStateConfig) -> Result<Self> {
         let client = ClientBuilder::new()
             .user_agent("ICTSC Discord Bot")
             .build()?;
@@ -51,8 +49,14 @@ impl DefaultRedeployService {
     }
 }
 
+#[derive(Debug, serde::Serialize)]
+struct DefaultRedeployServiceRedeployRequest {
+    team_id: String,
+    prob_id: String,
+}
+
 #[async_trait]
-impl RedeployService for DefaultRedeployService {
+impl RedeployService for RState {
     #[tracing::instrument(skip_all, fields(target = ?target))]
     async fn redeploy(&self, target: RedeployTarget) -> RedeployResult {
         tracing::info!("redeploy request received");
@@ -60,10 +64,10 @@ impl RedeployService for DefaultRedeployService {
         let response = self
             .client
             .post(format!("{}/admin/postJob", self.config.baseurl))
-            .body(format!(
-                "team_id={}&prob_id={}",
-                target.team_id, target.problem_id
-            ))
+            .form(&DefaultRedeployServiceRedeployRequest {
+                team_id: target.team_id,
+                prob_id: target.problem_id,
+            })
             .basic_auth(&self.config.username, Some(&self.config.password))
             .send()
             .await?;
