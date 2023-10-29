@@ -4,6 +4,7 @@ mod interactions;
 mod permissions;
 mod roles;
 
+use crate::config::{Team, Problem};
 use crate::services::redeploy::RedeployService;
 
 use anyhow::Result;
@@ -20,17 +21,6 @@ pub struct Bot {
     teams: Vec<Team>,
     problems: Vec<Problem>,
     redeploy_service: Box<dyn RedeployService + Send + Sync>,
-}
-
-pub struct Team {
-    pub role_name: String,
-    pub category_name: String,
-    pub invitation_code: String,
-}
-
-pub struct Problem {
-    pub code: String,
-    pub name: String,
 }
 
 impl Bot {

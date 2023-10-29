@@ -37,9 +37,6 @@ async fn main() {
         }
     };
 
-    let teams = config.teams();
-    let problems = config.problems();
-
     let redeploy_service = FakeRedeployService;
 
     let bot = Bot::new(
@@ -47,8 +44,8 @@ async fn main() {
         config.discord.application_id,
         config.discord.guild_id,
         config.staff.password,
-        teams,
-        problems,
+        config.teams,
+        config.problems,
         Box::new(redeploy_service),
     );
 

@@ -1,10 +1,22 @@
-use crate::bot::{Problem, Team};
-
 use std::fs::File;
 use std::path::Path;
 
 use anyhow::Result;
 use serde_derive::Deserialize;
+
+#[derive(Debug, Deserialize)]
+pub struct Team {
+    pub role_name: String,
+    pub category_name: String,
+    pub invitation_code: String,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct Problem {
+    pub code: String,
+    pub name: String,
+}
+
 
 #[derive(Debug, Deserialize)]
 pub struct Configuration {
@@ -14,52 +26,10 @@ pub struct Configuration {
     pub recreate: RecreateServiceConfiguration,
 
     #[serde(default)]
-    pub teams: Vec<TeamConfiguration>,
+    pub teams: Vec<Team>,
 
     #[serde(default)]
-    pub problems: Vec<ProblemConfiguration>,
-}
-
-#[derive(Debug, Deserialize)]
-pub struct StaffConfiguration {
-    pub password: String,
-}
-
-#[derive(Debug, Deserialize)]
-pub struct DiscordConfiguration {
-    pub token: String,
-    pub application_id: u64,
-    pub guild_id: u64,
-    pub disabled_commands: Option<Vec<String>>,
-}
-
-#[derive(Debug, Deserialize)]
-pub struct SlackConfiguration {
-    pub username: String,
-    pub icon_emoji: String,
-    pub webhook_url: String,
-}
-
-#[derive(Debug, Deserialize)]
-pub struct RecreateServiceConfiguration {
-    pub baseurl: String,
-    pub username: String,
-    pub password: String,
-}
-
-#[derive(Debug, Deserialize)]
-pub struct TeamConfiguration {
-    // pub id: String,
-    pub category_name: String,
-    pub role_name: String,
-    pub invitation_code: String,
-    // pub user_group_id: String,
-}
-
-#[derive(Debug, Deserialize)]
-pub struct ProblemConfiguration {
-    pub code: String,
-    pub name: String,
+    pub problems: Vec<Problem>,
 }
 
 impl Configuration {
@@ -88,4 +58,31 @@ impl Configuration {
             })
             .collect()
     }
+}
+
+#[derive(Debug, Deserialize)]
+pub struct StaffConfiguration {
+    pub password: String,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct DiscordConfiguration {
+    pub token: String,
+    pub application_id: u64,
+    pub guild_id: u64,
+    pub disabled_commands: Option<Vec<String>>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct SlackConfiguration {
+    pub username: String,
+    pub icon_emoji: String,
+    pub webhook_url: String,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct RecreateServiceConfiguration {
+    pub baseurl: String,
+    pub username: String,
+    pub password: String,
 }
