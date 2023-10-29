@@ -1,4 +1,4 @@
-use bot::bot::Bot;
+use bot::Bot;
 use bot::config::Configuration;
 use bot::services::redeploy::FakeRedeployService;
 
