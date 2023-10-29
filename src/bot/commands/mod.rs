@@ -101,9 +101,6 @@ impl EventHandler for Bot {
         }
     }
 
-    #[tracing::instrument(skip_all)]
-    async fn reaction_add(&self, _ctx: Context, _add_reaction: Reaction) {}
-
     #[tracing::instrument(skip_all, fields(
         application_id = ?_ready.application.id,
         session_id = ?_ready.session_id,
