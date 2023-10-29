@@ -22,7 +22,6 @@ pub struct Problem {
 pub struct Configuration {
     pub staff: StaffConfiguration,
     pub discord: DiscordConfiguration,
-    pub slack: Option<SlackConfiguration>,
     pub recreate: RecreateServiceConfiguration,
 
     #[serde(default)]
@@ -71,13 +70,6 @@ pub struct DiscordConfiguration {
     pub application_id: u64,
     pub guild_id: u64,
     pub disabled_commands: Option<Vec<String>>,
-}
-
-#[derive(Debug, Deserialize)]
-pub struct SlackConfiguration {
-    pub username: String,
-    pub icon_emoji: String,
-    pub webhook_url: String,
 }
 
 #[derive(Debug, Deserialize)]
