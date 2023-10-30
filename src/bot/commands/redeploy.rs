@@ -1,5 +1,5 @@
 use crate::bot::*;
-use crate::services::redeploy::{RedeployError, RedeployTarget};
+use crate::services::redeploy::RedeployTarget;
 
 use std::time::Duration;
 

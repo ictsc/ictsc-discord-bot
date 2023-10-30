@@ -17,7 +17,6 @@ pub struct Problem {
     pub name: String,
 }
 
-
 #[derive(Debug, Deserialize)]
 pub struct Configuration {
     pub staff: StaffConfiguration,

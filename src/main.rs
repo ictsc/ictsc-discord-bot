@@ -1,6 +1,6 @@
-use bot::Bot;
 use bot::config::Configuration;
 use bot::services::redeploy::FakeRedeployService;
+use bot::Bot;
 
 use clap::{Parser, Subcommand};
 

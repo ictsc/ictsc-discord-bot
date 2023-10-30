@@ -86,7 +86,7 @@ impl RedeployService for RState {
                 }
 
                 Err(RedeployError::AnotherJobInQueue(data))
-            },
+            }
             _ => Err(RedeployError::Unexpected(
                 anyhow::anyhow!("unexpected status code: {}", response.status()).into(),
             )),

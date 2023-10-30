@@ -4,7 +4,7 @@ mod interactions;
 mod permissions;
 mod roles;
 
-use crate::config::{Team, Problem};
+use crate::config::{Problem, Team};
 use crate::services::redeploy::RedeployService;
 
 use anyhow::Result;
