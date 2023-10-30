@@ -9,8 +9,8 @@ static STAFF_CATEGORY_NAME: &str = "ICTSC2023 Staff";
 
 static ANNOUNCE_CHANNEL_NAME: &str = "announce";
 static RANDOM_CHANNEL_NAME: &str = "random";
-static TEXT_CHANNEL_NAME: &str = "text";
-static VOICE_CHANNEL_NAME: &str = "voice";
+static TEXT_CHANNEL_NAME_SUFFIX: &str = "text";
+static VOICE_CHANNEL_NAME_SUFFIX: &str = "voice";
 
 #[derive(Clone, Debug, derive_builder::Builder)]
 struct GuildChannelDefinition {
@@ -27,6 +27,8 @@ impl Bot {
     pub async fn sync_channels(&self) -> Result<()> {
         tracing::info!("sync categories");
 
+        self.update_role_cache().await?;
+
         let mut categories = Vec::new();
 
         // Define staff category
@@ -41,7 +43,7 @@ impl Bot {
         for team in &self.teams {
             categories.push(
                 GuildChannelDefinitionBuilder::default()
-                    .name(team.category_name.clone())
+                    .name(team.id.clone())
                     .kind(ChannelType::Category)
                     .build()?,
             );
@@ -90,7 +92,7 @@ impl Bot {
 
         channels.push(
             GuildChannelDefinitionBuilder::default()
-                .name(TEXT_CHANNEL_NAME.to_string())
+                .name(format!("staff-{}", TEXT_CHANNEL_NAME_SUFFIX))
                 .kind(ChannelType::Text)
                 .category(Some(staff_category_id))
                 .build()?,
@@ -98,7 +100,7 @@ impl Bot {
 
         channels.push(
             GuildChannelDefinitionBuilder::default()
-                .name(VOICE_CHANNEL_NAME.to_string())
+                .name(format!("staff-{}", VOICE_CHANNEL_NAME_SUFFIX))
                 .kind(ChannelType::Voice)
                 .category(Some(staff_category_id))
                 .build()?,
@@ -107,7 +109,7 @@ impl Bot {
         // Define team channels
         for team in &self.teams {
             let team_category_id = *category_map
-                .get(&team.category_name)
+                .get(&team.id)
                 .ok_or(anyhow::anyhow!("failed to get team category"))?;
 
             let permissions_for_team_channel = self
@@ -116,7 +118,7 @@ impl Bot {
 
             channels.push(
                 GuildChannelDefinitionBuilder::default()
-                    .name(TEXT_CHANNEL_NAME.to_string())
+                    .name(format!("{}-{}", team.id, TEXT_CHANNEL_NAME_SUFFIX))
                     .kind(ChannelType::Text)
                     .category(Some(team_category_id))
                     .permissions(permissions_for_team_channel.clone())
@@ -125,7 +127,7 @@ impl Bot {
 
             channels.push(
                 GuildChannelDefinitionBuilder::default()
-                    .name(VOICE_CHANNEL_NAME.to_string())
+                    .name(format!("{}-{}", team.id, VOICE_CHANNEL_NAME_SUFFIX))
                     .kind(ChannelType::Voice)
                     .category(Some(team_category_id))
                     .permissions(permissions_for_team_channel.clone())
