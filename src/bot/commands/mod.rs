@@ -96,6 +96,10 @@ impl EventHandler for Bot {
             return;
         }
 
+        if let Err(err) = self.update_role_cache().await {
+            tracing::error!(?err, "failed to update role cache");
+        }
+
         if let Err(err) = self.sync_guild_application_commands().await {
             tracing::error!(?err, "failed to sync guild application commands");
         }

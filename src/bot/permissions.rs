@@ -55,7 +55,7 @@ impl Bot {
     ) -> Result<Vec<PermissionOverwrite>> {
         tracing::trace!("get permission overrides for announce channel");
 
-        let role_map = self.get_role_map().await?;
+        let role_map = self.get_role_map_cached().await?;
 
         let mut permissions = Vec::new();
 
@@ -79,7 +79,7 @@ impl Bot {
     ) -> Result<Vec<PermissionOverwrite>> {
         tracing::trace!("get permission overrides for random channel");
 
-        let role_map = self.get_role_map().await?;
+        let role_map = self.get_role_map_cached().await?;
 
         let mut permissions = Vec::new();
 
@@ -116,7 +116,7 @@ impl Bot {
     ) -> Result<Vec<PermissionOverwrite>> {
         tracing::trace!("get permission overrides for random channel");
 
-        let team_roles = self.find_roles_by_name(&team.role_name).await?;
+        let team_roles = self.find_roles_by_name_cached(&team.role_name).await?;
 
         Ok(team_roles
             .into_iter()

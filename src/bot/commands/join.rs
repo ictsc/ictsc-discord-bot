@@ -90,7 +90,7 @@ impl Bot {
         let sender_member_role_id_set = HashSet::from_iter(sender_member.roles.clone());
 
         let target_role_id_set: HashSet<_> = self
-            .find_roles_by_name(&role_name)
+            .find_roles_by_name_cached(&role_name)
             .await
             .map_err(|err| JoinCommandError::Error(err.into()))?
             .into_iter()

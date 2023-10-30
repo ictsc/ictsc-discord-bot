@@ -56,30 +56,6 @@ impl Bot {
             .collect())
     }
 
-    #[tracing::instrument(skip_all)]
-    pub async fn get_role_map(&self) -> Result<HashMap<String, Role>> {
-        tracing::trace!("get role map");
-        Ok(self
-            .get_roles()
-            .await?
-            .into_iter()
-            .map(|role| (role.name.clone(), role))
-            .collect())
-    }
-
-    #[tracing::instrument(skip_all, fields(
-        name = ?name,
-    ))]
-    pub async fn find_roles_by_name(&self, name: &str) -> Result<Vec<Role>> {
-        tracing::trace!("find role by name");
-        Ok(self
-            .get_roles()
-            .await?
-            .into_iter()
-            .filter(|role| role.name == name)
-            .collect())
-    }
-
     #[tracing::instrument(skip_all, fields(
         role = ?role,
         definition = ?definition,
@@ -112,13 +88,59 @@ impl Bot {
 }
 
 impl Bot {
+    pub async fn update_role_cache(&self) -> Result<()> {
+        tracing::trace!("update local role cache");
+        let roles = self.get_roles().await?;
+        let mut guard = self.role_cache.write().await;
+        *guard = Some(roles);
+        Ok(())
+    }
+
+    #[tracing::instrument(skip_all)]
+    pub async fn get_roles_cached(&self) -> Result<Vec<Role>> {
+        tracing::trace!("get roles cached");
+        let guard = self.role_cache.read().await;
+        match guard.as_ref() {
+            Some(roles) => Ok(roles.clone()),
+            None => Err(anyhow::anyhow!("role cache is not found")),
+        }
+    }
+
+    #[tracing::instrument(skip_all)]
+    pub async fn get_role_map_cached(&self) -> Result<HashMap<String, Role>> {
+        tracing::trace!("get role map cached");
+        Ok(self
+            .get_roles_cached()
+            .await?
+            .into_iter()
+            .map(|role| (role.name.clone(), role))
+            .collect())
+    }
+
+    #[tracing::instrument(skip_all, fields(
+        name = ?name,
+    ))]
+    pub async fn find_roles_by_name_cached(&self, name: &str) -> Result<Vec<Role>> {
+        tracing::trace!("find role by name cached");
+        Ok(self
+            .get_roles_cached()
+            .await?
+            .into_iter()
+            .filter(|role| role.name == name)
+            .collect())
+    }
+}
+
+impl Bot {
     #[tracing::instrument(skip_all)]
     pub async fn sync_roles(&self) -> Result<()> {
         tracing::info!("sync roles");
 
-        let mut roles = Vec::new();
+        self.update_role_cache().await?;
 
-        roles.push(
+        let mut definitions = Vec::new();
+
+        definitions.push(
             RoleDefinitionBuilder::default()
                 .name(EVERYONE_ROLE_NAME.to_string())
                 .permissions(self.get_permissions_for_everyone())
@@ -126,7 +148,7 @@ impl Bot {
                 .build()?,
         );
 
-        roles.push(
+        definitions.push(
             RoleDefinitionBuilder::default()
                 .name(STAFF_ROLE_NAME.to_string())
                 .permissions(self.get_permissions_for_staff())
@@ -137,7 +159,7 @@ impl Bot {
         );
 
         for team in self.teams.iter() {
-            roles.push(
+            definitions.push(
                 RoleDefinitionBuilder::default()
                     .name(team.role_name.clone())
                     .permissions(self.get_permissions_for_team())
@@ -147,7 +169,7 @@ impl Bot {
             );
         }
 
-        self._sync_roles(roles).await?;
+        self._sync_roles(definitions).await?;
 
         Ok(())
     }
@@ -155,15 +177,18 @@ impl Bot {
     #[tracing::instrument(skip_all)]
     pub async fn delete_roles(&self) -> Result<()> {
         tracing::info!("delete all roles");
+        self.update_role_cache().await?;
         self._sync_roles(&[]).await?;
         Ok(())
     }
 }
 
 impl Bot {
+    // 与えられたRoleDefinitionのリストを基に、競技用ギルドのロールを同期する。
+    // 実行前に、self.update_role_cache()を呼び出して、ロールキャッシュを更新しておく必要がある。
     async fn _sync_roles<T: AsRef<[RoleDefinition]>>(&self, definitions: T) -> Result<()> {
         tracing::debug!("fetch current roles");
-        let roles = self.discord_client.get_guild_roles(self.guild_id.0).await?;
+        let roles = self.get_roles_cached().await?;
 
         tracing::debug!("sync defined roles");
         for definition in definitions.as_ref() {

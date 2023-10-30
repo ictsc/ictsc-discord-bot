@@ -7,6 +7,8 @@ mod roles;
 use crate::config::{Problem, Team};
 use crate::services::redeploy::RedeployService;
 
+use tokio::sync::RwLock;
+
 use anyhow::Result;
 use serenity::client::Client;
 use serenity::http::Http;
@@ -21,6 +23,8 @@ pub struct Bot {
     teams: Vec<Team>,
     problems: Vec<Problem>,
     redeploy_service: Box<dyn RedeployService + Send + Sync>,
+
+    role_cache: RwLock<Option<Vec<Role>>>,
 }
 
 impl Bot {
@@ -45,6 +49,7 @@ impl Bot {
             teams,
             problems,
             redeploy_service,
+            role_cache: RwLock::new(None),
         }
     }
 
