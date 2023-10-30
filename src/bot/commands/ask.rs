@@ -30,7 +30,7 @@ impl Bot {
             .create_option(|option| {
                 option
                     .name("title")
-                    .description("質問タイトル")
+                    .description("質問タイトル（32文字以内）")
                     .kind(CommandOptionType::String)
                     .required(true)
             })
