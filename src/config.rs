@@ -5,16 +5,57 @@ use anyhow::Result;
 use serde_derive::Deserialize;
 
 #[derive(Debug, Deserialize)]
+pub struct Team {
+    pub role_name: String,
+    pub category_name: String,
+    pub invitation_code: String,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct Problem {
+    pub code: String,
+    pub name: String,
+}
+
+#[derive(Debug, Deserialize)]
 pub struct Configuration {
     pub staff: StaffConfiguration,
     pub discord: DiscordConfiguration,
     pub recreate: RecreateServiceConfiguration,
 
     #[serde(default)]
-    pub teams: Vec<TeamConfiguration>,
+    pub teams: Vec<Team>,
 
     #[serde(default)]
-    pub problems: Vec<ProblemConfiguration>,
+    pub problems: Vec<Problem>,
+}
+
+impl Configuration {
+    pub fn load<P: AsRef<Path>>(path: P) -> Result<Configuration> {
+        let file = File::open(path)?;
+        Ok(serde_yaml::from_reader(file)?)
+    }
+
+    pub fn teams(&self) -> Vec<Team> {
+        self.teams
+            .iter()
+            .map(|c| Team {
+                role_name: c.role_name.clone(),
+                category_name: c.category_name.clone(),
+                invitation_code: c.invitation_code.clone(),
+            })
+            .collect()
+    }
+
+    pub fn problems(&self) -> Vec<Problem> {
+        self.problems
+            .iter()
+            .map(|c| Problem {
+                code: c.code.clone(),
+                name: c.name.clone(),
+            })
+            .collect()
+    }
 }
 
 #[derive(Debug, Deserialize)]
@@ -35,84 +76,4 @@ pub struct RecreateServiceConfiguration {
     pub baseurl: String,
     pub username: String,
     pub password: String,
-}
-
-#[derive(Debug, Deserialize)]
-pub struct TeamConfiguration {
-    pub id: String,
-    pub channel_name: String,
-    pub role_name: String,
-    pub invitation_code: String,
-    pub user_group_id: String,
-}
-
-#[derive(Debug, Deserialize)]
-pub struct ProblemConfiguration {
-    pub id: String,
-    pub name: String,
-}
-
-impl Configuration {
-    pub fn load<P: AsRef<Path>>(path: P) -> Result<Configuration> {
-        let file = File::open(path)?;
-        Ok(serde_yaml::from_reader(file)?)
-    }
-}
-
-impl From<Configuration> for bot::Configuration {
-    fn from(config: Configuration) -> Self {
-        Self {
-            token: config.discord.token,
-            guild_id: config.discord.guild_id,
-            application_id: config.discord.application_id,
-            disabled_commands: config.discord.disabled_commands.unwrap_or_default(),
-            staff: config.staff.into(),
-            recreate_service: config.recreate.into(),
-            teams: config.teams.into_iter().map(|team| team.into()).collect(),
-            problems: config
-                .problems
-                .into_iter()
-                .map(|prob| prob.into())
-                .collect(),
-        }
-    }
-}
-
-impl From<StaffConfiguration> for bot::StaffConfiguration {
-    fn from(config: StaffConfiguration) -> Self {
-        Self {
-            password: config.password,
-        }
-    }
-}
-
-impl From<RecreateServiceConfiguration> for bot::RecreateServiceConfiguration {
-    fn from(config: RecreateServiceConfiguration) -> Self {
-        Self {
-            baseurl: config.baseurl,
-            username: config.username,
-            password: config.password,
-        }
-    }
-}
-
-impl From<TeamConfiguration> for bot::TeamConfiguration {
-    fn from(team: TeamConfiguration) -> Self {
-        Self {
-            id: team.id,
-            channel_name: team.channel_name,
-            role_name: team.role_name,
-            invitation_code: team.invitation_code,
-            user_group_id: team.user_group_id,
-        }
-    }
-}
-
-impl From<ProblemConfiguration> for bot::ProblemConfiguration {
-    fn from(problem: ProblemConfiguration) -> Self {
-        Self {
-            id: problem.id,
-            name: problem.name,
-        }
-    }
 }
