@@ -2,7 +2,7 @@ use anyhow::Result;
 use async_trait::async_trait;
 use reqwest::{Client, ClientBuilder, StatusCode};
 
-type RedeployResult = Result<(), RedeployError>;
+type RedeployResult = Result<String, RedeployError>;
 
 #[async_trait]
 pub trait RedeployService {
@@ -17,17 +17,16 @@ pub struct RedeployTarget {
 
 #[derive(Debug, thiserror::Error)]
 pub enum RedeployError {
-    #[error("another redeploy job is in queue")]
-    AnotherRedeployJobInQueue,
-    #[error("out of competition time")]
-    OutOfCompetitionTime,
+    #[error("invalid parameters")]
+    InvalidParameters,
+    #[error("another job is in queue")]
+    AnotherJobInQueue(String),
     #[error("reqwest error: {0}")]
-    ReqwestError(#[from] reqwest::Error),
+    Reqwest(#[from] reqwest::Error),
     #[error("unexpected error occured: {0}")]
-    UnexpectedError(String),
+    Unexpected(#[from] Box<dyn std::error::Error + Send + Sync + 'static>),
 }
 
-// TODO: 後でいい感じの名前に変える
 pub struct RState {
     config: RStateConfig,
     client: Client,
@@ -74,20 +73,23 @@ impl RedeployService for RState {
 
         match response.status() {
             StatusCode::OK => {
-                // let data = response.bytes().await?.to_vec();
-                // Ok(format!(
-                //     "{}{}",
-                //     self.baseurl,
-                //     String::from_utf8(data).unwrap()
-                // ))
-                Ok(())
+                let url = String::from_utf8(response.bytes().await?.to_vec())
+                    .map_err(|err| RedeployError::Unexpected(Box::new(err)))?;
+                Ok(url)
             }
-            StatusCode::BAD_REQUEST => Err(RedeployError::AnotherRedeployJobInQueue),
-            StatusCode::NOT_FOUND => Err(RedeployError::OutOfCompetitionTime),
-            _ => Err(RedeployError::UnexpectedError(format!(
-                "unexpected status code {} returned from upstream server",
-                response.status()
-            ))),
+            StatusCode::BAD_REQUEST => {
+                let data = String::from_utf8(response.bytes().await?.to_vec())
+                    .map_err(|err| RedeployError::Unexpected(Box::new(err)))?;
+
+                if data == "BadRequest!" {
+                    return Err(RedeployError::InvalidParameters);
+                }
+
+                Err(RedeployError::AnotherJobInQueue(data))
+            },
+            _ => Err(RedeployError::Unexpected(
+                anyhow::anyhow!("unexpected status code: {}", response.status()).into(),
+            )),
         }
     }
 }
@@ -99,6 +101,6 @@ impl RedeployService for FakeRedeployService {
     #[tracing::instrument(skip_all, fields(target = ?_target))]
     async fn redeploy(&self, _target: RedeployTarget) -> RedeployResult {
         tracing::info!("redeploy request received");
-        Ok(())
+        Ok(String::from("https://example.com"))
     }
 }

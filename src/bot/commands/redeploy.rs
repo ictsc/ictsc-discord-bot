@@ -123,16 +123,6 @@ impl Bot {
                         .reply(&self.discord_client, "再展開を開始します。")
                         .await?;
                 }
-                Err(RedeployError::AnotherRedeployJobInQueue) => {
-                    message
-                        .reply(&self.discord_client, "再展開に失敗しました。")
-                        .await?;
-                }
-                Err(RedeployError::OutOfCompetitionTime) => {
-                    message
-                        .reply(&self.discord_client, "再展開に失敗しました。")
-                        .await?;
-                }
                 Err(_) => {
                     message
                         .reply(&self.discord_client, "再展開に失敗しました。")
