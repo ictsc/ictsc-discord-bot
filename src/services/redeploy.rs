@@ -1,7 +1,7 @@
 use anyhow::Result;
 use async_trait::async_trait;
 use reqwest::{Client, ClientBuilder, StatusCode};
-use serenity::{http::Http, model::webhook::Webhook};
+use serenity::{http::Http, model::{webhook::Webhook, prelude::Embed}, utils::Colour};
 
 type RedeployResult = Result<String, RedeployError>;
 
@@ -140,10 +140,27 @@ impl RedeployNotifier for DiscordRedeployNotifier {
 
 impl DiscordRedeployNotifier {
     async fn _notify(&self, target: &RedeployTarget, result: &RedeployResult) -> Result<()> {
+        let embed = match result {
+            Ok(url) => Embed::fake(|e| {
+                e.title("AAA")
+                    .colour(Colour::from_rgb(40, 167, 65))
+                    .field("チームID", &target.team_id, true)
+                    .field("問題コード", &target.problem_id, true)
+                    .field("再展開進捗URL", url, true)
+            }),
+            Err(err) => Embed::fake(|e| {
+                e.title("AAA")
+                    .colour(Colour::from_rgb(236, 76, 82))
+                    .field("チームID", &target.team_id, true)
+                    .field("問題コード", &target.problem_id, true)
+                    .field("エラー", err, true)
+            }),
+        };
+
         let result = self
             .webhook
             .execute(&self.discord_client, false, |w| {
-                w.content(format!("Redeploy (target = {:?}, result = {:?})", target, result))
+                w.embeds(vec![embed])
             })
             .await?;
 
