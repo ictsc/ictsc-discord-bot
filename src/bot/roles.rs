@@ -27,7 +27,7 @@ impl Bot {
     pub fn is_team_role(&self, role: &Role) -> bool {
         for team in &self.teams {
             if team.role_name == role.name {
-                return true
+                return true;
             }
         }
         false

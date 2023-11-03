@@ -48,7 +48,7 @@ impl Bot {
         ctx: &Context,
         interaction: &ApplicationCommandInteraction,
     ) -> Result<()> {
-        let problem= match self.validate_redeploy_command(interaction) {
+        let problem = match self.validate_redeploy_command(interaction) {
             Ok(problem) => problem,
             Err(err) => {
                 self.respond(interaction, |data| {
@@ -56,7 +56,7 @@ impl Bot {
                 })
                 .await?;
                 return Ok(());
-            },
+            }
         };
 
         self.defer_response(interaction).await?;
@@ -96,7 +96,11 @@ impl Bot {
         problem: &Problem,
     ) -> RedeployCommandResult<()> {
         let sender = &interaction.user;
-        let sender_member = self.guild_id.member(&self.discord_client, sender.id).await.unwrap();
+        let sender_member = self
+            .guild_id
+            .member(&self.discord_client, sender.id)
+            .await
+            .unwrap();
 
         let mut sender_teams = Vec::new();
         for role_id in sender_member.roles {
@@ -108,7 +112,7 @@ impl Bot {
                             sender_teams.push(team);
                         }
                     }
-                },
+                }
                 None => (),
             }
         }
@@ -123,19 +127,30 @@ impl Bot {
 
         self.edit_response(interaction, |data| {
             // TODO: チーム名にする
-            data.content(format!("チーム `{}` の問題 `{}` を再展開しますか？", sender_team.role_name, problem.name))
+            data.content(format!(
+                "チーム `{}` の問題 `{}` を再展開しますか？",
+                sender_team.role_name, problem.name
+            ))
         })
-        .await.unwrap();
+        .await
+        .unwrap();
 
         let ok_reaction = ReactionType::Unicode(OK_REACTION.to_string());
         let ng_reaction = ReactionType::Unicode(NG_REACTION.to_string());
 
         let message = interaction
             .get_interaction_response(&self.discord_client)
-            .await.unwrap();
+            .await
+            .unwrap();
 
-        message.react(&self.discord_client, ok_reaction).await.unwrap();
-        message.react(&self.discord_client, ng_reaction).await.unwrap();
+        message
+            .react(&self.discord_client, ok_reaction)
+            .await
+            .unwrap();
+        message
+            .react(&self.discord_client, ng_reaction)
+            .await
+            .unwrap();
 
         let reaction = message
             .await_reaction(ctx)
@@ -157,7 +172,8 @@ impl Bot {
             None => {
                 message
                     .reply(&self.discord_client, "タイムアウトしました。")
-                    .await.unwrap();
+                    .await
+                    .unwrap();
                 return Ok(());
             }
         };
@@ -167,7 +183,8 @@ impl Bot {
             _ => {
                 message
                     .reply(&self.discord_client, "予期しない状態です")
-                    .await.unwrap();
+                    .await
+                    .unwrap();
                 return Ok(());
             }
         };
@@ -175,7 +192,8 @@ impl Bot {
         if !should_be_recreated {
             message
                 .reply(&self.discord_client, "再展開を中断します。")
-                .await.unwrap();
+                .await
+                .unwrap();
             return Ok(());
         }
 
@@ -192,12 +210,14 @@ impl Bot {
             Ok(_) => {
                 message
                     .reply(&self.discord_client, "再展開を開始しました。")
-                    .await.unwrap();
+                    .await
+                    .unwrap();
             }
             Err(_) => {
                 message
                     .reply(&self.discord_client, "再展開に失敗しました。")
-                    .await.unwrap();
+                    .await
+                    .unwrap();
             }
         };
 
