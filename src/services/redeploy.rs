@@ -1,7 +1,11 @@
 use anyhow::Result;
 use async_trait::async_trait;
 use reqwest::{Client, ClientBuilder, StatusCode};
-use serenity::{http::Http, model::{webhook::Webhook, prelude::Embed}, utils::Colour};
+use serenity::{
+    http::Http,
+    model::{prelude::Embed, webhook::Webhook},
+    utils::Colour,
+};
 
 type RedeployResult = Result<String, RedeployError>;
 
@@ -159,9 +163,7 @@ impl DiscordRedeployNotifier {
 
         let result = self
             .webhook
-            .execute(&self.discord_client, false, |w| {
-                w.embeds(vec![embed])
-            })
+            .execute(&self.discord_client, false, |w| w.embeds(vec![embed]))
             .await?;
 
         if let Some(message) = result {
