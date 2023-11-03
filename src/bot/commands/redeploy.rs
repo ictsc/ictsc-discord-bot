@@ -4,13 +4,15 @@ use crate::services::redeploy::RedeployTarget;
 use std::time::Duration;
 
 use anyhow::Result;
-use serenity::builder::CreateApplicationCommand;
+
+use serenity::builder::{CreateApplicationCommand, CreateComponents};
 use serenity::model::prelude::application_command::ApplicationCommandInteraction;
-use serenity::model::prelude::{command::*, ReactionType};
+use serenity::model::prelude::command::*;
+use serenity::model::prelude::component::{ButtonStyle, ComponentType};
 use serenity::prelude::*;
 
-const OK_REACTION: &str = "🙆\u{200d}♂\u{fe0f}";
-const NG_REACTION: &str = "🙅\u{200d}♂\u{fe0f}";
+const CUSTOM_ID_REDEPLOY_CONFIRM: &str = "redeploy_confirm";
+const CUSTOM_ID_REDEPLOY_CANCELED: &str = "redeploy_canceled";
 
 #[derive(Debug, thiserror::Error)]
 enum RedeployCommandError<'a> {
@@ -26,6 +28,23 @@ enum RedeployCommandError<'a> {
 }
 
 type RedeployCommandResult<'t, T> = std::result::Result<T, RedeployCommandError<'t>>;
+
+fn create_buttons(c: &mut CreateComponents, disabled: bool) -> &mut CreateComponents {
+    c.create_action_row(|r| {
+        r.create_button(|b| {
+            b.style(ButtonStyle::Primary)
+                .label("OK")
+                .custom_id(CUSTOM_ID_REDEPLOY_CONFIRM)
+                .disabled(disabled)
+        })
+        .create_button(|b| {
+            b.style(ButtonStyle::Secondary)
+                .label("キャンセル")
+                .custom_id(CUSTOM_ID_REDEPLOY_CANCELED)
+                .disabled(disabled)
+        })
+    })
+}
 
 impl Bot {
     pub fn create_redeploy_command(
@@ -63,8 +82,10 @@ impl Bot {
 
         if let Err(err) = self.do_redeploy_command(ctx, interaction, problem).await {
             tracing::error!(?err, "failed to do redeploy command");
-            self.edit_response(interaction, |data| data.content(err.to_string()))
-                .await?;
+            self.edit_response(interaction, |data| {
+                data.content(err.to_string()).components(|c| c)
+            })
+            .await?;
         }
 
         Ok(())
@@ -131,67 +152,56 @@ impl Bot {
                 "チーム `{}` の問題 `{}` を再展開しますか？",
                 sender_team.role_name, problem.name
             ))
+            .components(|c| create_buttons(c, false))
         })
         .await
         .unwrap();
-
-        let ok_reaction = ReactionType::Unicode(OK_REACTION.to_string());
-        let ng_reaction = ReactionType::Unicode(NG_REACTION.to_string());
 
         let message = interaction
             .get_interaction_response(&self.discord_client)
             .await
             .unwrap();
 
-        message
-            .react(&self.discord_client, ok_reaction)
-            .await
-            .unwrap();
-        message
-            .react(&self.discord_client, ng_reaction)
-            .await
-            .unwrap();
-
-        let reaction = message
-            .await_reaction(ctx)
+        let component_interaction = message
+            .await_component_interaction(ctx)
             .author_id(sender.id)
-            .added(true)
-            .removed(false)
-            .filter(|reaction| {
-                if let ReactionType::Unicode(emoji) = &reaction.emoji {
-                    emoji == OK_REACTION || emoji == NG_REACTION
-                } else {
-                    false
-                }
+            .filter(|component_interaction| {
+                component_interaction.data.component_type == ComponentType::Button
+                    && (component_interaction.data.custom_id == CUSTOM_ID_REDEPLOY_CONFIRM
+                        || component_interaction.data.custom_id == CUSTOM_ID_REDEPLOY_CANCELED)
             })
-            .timeout(Duration::from_secs(30))
+            .timeout(Duration::from_secs(60))
             .await;
 
-        let reaction = match reaction {
-            Some(reaction) => reaction,
+        self.edit_response(interaction, |response| {
+            response.components(|c| create_buttons(c, true))
+        })
+        .await
+        .unwrap();
+
+        let (component_interaction, should_recreate) = match component_interaction {
+            Some(component_interaction) => {
+                let should_recreate =
+                    component_interaction.data.custom_id == CUSTOM_ID_REDEPLOY_CONFIRM;
+                (component_interaction, should_recreate)
+            }
             None => {
-                message
-                    .reply(&self.discord_client, "タイムアウトしました。")
-                    .await
-                    .unwrap();
                 return Ok(());
             }
         };
 
-        let should_be_recreated = match &reaction.as_inner_ref().emoji {
-            ReactionType::Unicode(emoji) => emoji == OK_REACTION,
-            _ => {
-                message
-                    .reply(&self.discord_client, "予期しない状態です")
-                    .await
-                    .unwrap();
-                return Ok(());
-            }
-        };
+        component_interaction
+            .create_interaction_response(&self.discord_client, |response| {
+                response.kind(InteractionResponseType::DeferredChannelMessageWithSource)
+            })
+            .await
+            .unwrap();
 
-        if !should_be_recreated {
-            message
-                .reply(&self.discord_client, "再展開を中断します。")
+        if !should_recreate {
+            component_interaction
+                .edit_original_interaction_response(&self.discord_client, |response| {
+                    response.content("再展開をやめました。")
+                })
                 .await
                 .unwrap();
             return Ok(());
@@ -202,24 +212,29 @@ impl Bot {
             problem_id: problem.code.clone(),
         };
         let result = self.redeploy_service.redeploy(&target).await;
-        for notifier in &self.redeploy_notifiers {
-            notifier.notify(&target, &result).await;
-        }
 
         match result {
             Ok(_) => {
-                message
-                    .reply(&self.discord_client, "再展開を開始しました。")
+                component_interaction
+                    .edit_original_interaction_response(&self.discord_client, |response| {
+                        response.content("再展開を開始しました。")
+                    })
                     .await
                     .unwrap();
             }
             Err(_) => {
-                message
-                    .reply(&self.discord_client, "再展開に失敗しました。")
+                component_interaction
+                    .edit_original_interaction_response(&self.discord_client, |response| {
+                        response.content("再展開を失敗しました。")
+                    })
                     .await
                     .unwrap();
             }
         };
+
+        for notifier in &self.redeploy_notifiers {
+            notifier.notify(&target, &result).await;
+        }
 
         Ok(())
     }
