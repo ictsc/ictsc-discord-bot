@@ -21,7 +21,7 @@ pub struct Problem {
 pub struct Configuration {
     pub staff: StaffConfiguration,
     pub discord: DiscordConfiguration,
-    pub recreate: RecreateServiceConfiguration,
+    pub redeploy: RedeployServiceConfiguration,
 
     #[serde(default)]
     pub teams: Vec<Team>,
@@ -51,8 +51,20 @@ pub struct DiscordConfiguration {
 }
 
 #[derive(Debug, Deserialize)]
-pub struct RecreateServiceConfiguration {
+pub struct RedeployServiceConfiguration {
     pub baseurl: String,
     pub username: String,
     pub password: String,
+
+    pub notifiers: RedeployNotifiersConfiguration,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct RedeployNotifiersConfiguration {
+    pub discord: Option<DiscordRedeployNotifierConfiguration>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct DiscordRedeployNotifierConfiguration {
+    pub webhook_url: String,
 }

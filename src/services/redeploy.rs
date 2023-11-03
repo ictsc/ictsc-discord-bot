@@ -1,18 +1,24 @@
 use anyhow::Result;
 use async_trait::async_trait;
 use reqwest::{Client, ClientBuilder, StatusCode};
+use serenity::{http::Http, model::webhook::Webhook};
 
 type RedeployResult = Result<String, RedeployError>;
 
 #[async_trait]
 pub trait RedeployService {
-    async fn redeploy(&self, target: RedeployTarget) -> RedeployResult;
+    async fn redeploy(&self, target: &RedeployTarget) -> RedeployResult;
 }
 
 #[derive(Debug)]
 pub struct RedeployTarget {
     pub team_id: String,
     pub problem_id: String,
+}
+
+#[async_trait]
+pub trait RedeployNotifier {
+    async fn notify(&self, target: &RedeployTarget);
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -49,23 +55,23 @@ impl RState {
 }
 
 #[derive(Debug, serde::Serialize)]
-struct DefaultRedeployServiceRedeployRequest {
-    team_id: String,
-    prob_id: String,
+struct DefaultRedeployServiceRedeployRequest<'a> {
+    team_id: &'a str,
+    prob_id: &'a str,
 }
 
 #[async_trait]
 impl RedeployService for RState {
     #[tracing::instrument(skip_all, fields(target = ?target))]
-    async fn redeploy(&self, target: RedeployTarget) -> RedeployResult {
+    async fn redeploy(&self, target: &RedeployTarget) -> RedeployResult {
         tracing::info!("redeploy request received");
 
         let response = self
             .client
             .post(format!("{}/admin/postJob", self.config.baseurl))
             .form(&DefaultRedeployServiceRedeployRequest {
-                team_id: target.team_id,
-                prob_id: target.problem_id,
+                team_id: &target.team_id,
+                prob_id: &target.problem_id,
             })
             .basic_auth(&self.config.username, Some(&self.config.password))
             .send()
@@ -99,8 +105,52 @@ pub struct FakeRedeployService;
 #[async_trait]
 impl RedeployService for FakeRedeployService {
     #[tracing::instrument(skip_all, fields(target = ?_target))]
-    async fn redeploy(&self, _target: RedeployTarget) -> RedeployResult {
+    async fn redeploy(&self, _target: &RedeployTarget) -> RedeployResult {
         tracing::info!("redeploy request received");
         Ok(String::from("https://example.com"))
+    }
+}
+
+#[derive(Debug)]
+pub struct DiscordRedeployNotifier {
+    discord_client: Http,
+    webhook: Webhook,
+}
+
+impl DiscordRedeployNotifier {
+    pub async fn new(token: &str, webhook_url: &str) -> Result<Self> {
+        let discord_client = Http::new(token);
+        let webhook = Webhook::from_url(&discord_client, webhook_url).await?;
+        Ok(Self {
+            discord_client,
+            webhook,
+        })
+    }
+}
+
+#[async_trait]
+impl RedeployNotifier for DiscordRedeployNotifier {
+    #[tracing::instrument(skip_all, fields(target = ?target))]
+    async fn notify(&self, target: &RedeployTarget) {
+        if let Err(err) = self._notify(target).await {
+            tracing::error!("failed to notify: {:?}", err)
+        }
+    }
+}
+
+impl DiscordRedeployNotifier {
+    async fn _notify(&self, target: &RedeployTarget) -> Result<()> {
+        let result = self
+            .webhook
+            .execute(&self.discord_client, false, |w| {
+                w.content(format!("Redeploy started (target = {:?})", target))
+            })
+            .await?;
+
+        if let Some(message) = result {
+            tracing::debug!(message_id = ?message.id, "finished to notify redeploy event")
+        }
+
+        Ok(())
     }
 }

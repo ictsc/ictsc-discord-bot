@@ -5,7 +5,7 @@ mod permissions;
 mod roles;
 
 use crate::config::{Problem, Team};
-use crate::services::redeploy::RedeployService;
+use crate::services::redeploy::{RedeployNotifier, RedeployService};
 
 use tokio::sync::RwLock;
 
@@ -22,7 +22,9 @@ pub struct Bot {
     infra_password: String,
     teams: Vec<Team>,
     problems: Vec<Problem>,
+
     redeploy_service: Box<dyn RedeployService + Send + Sync>,
+    redeploy_notifiers: Vec<Box<dyn RedeployNotifier + Send + Sync>>,
 
     role_cache: RwLock<Option<Vec<Role>>>,
 }
@@ -36,6 +38,7 @@ impl Bot {
         teams: Vec<Team>,
         problems: Vec<Problem>,
         redeploy_service: Box<dyn RedeployService + Send + Sync>,
+        redeploy_notifiers: Vec<Box<dyn RedeployNotifier + Send + Sync>>,
     ) -> Self {
         let application_id = ApplicationId(application_id);
         let guild_id = GuildId(guild_id);
@@ -49,6 +52,7 @@ impl Bot {
             teams,
             problems,
             redeploy_service,
+            redeploy_notifiers,
             role_cache: RwLock::new(None),
         }
     }

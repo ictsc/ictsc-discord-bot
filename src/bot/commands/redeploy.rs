@@ -108,20 +108,23 @@ impl Bot {
         };
 
         if should_be_recreated {
-            let result = self
-                .redeploy_service
-                .redeploy(RedeployTarget {
-                    // Team IDを引っ張ってきて
-                    team_id: "dummy".into(),
-                    problem_id: problem.code.clone(),
-                })
-                .await;
+            let target = RedeployTarget {
+                // Team IDを引っ張ってきて
+                team_id: String::from("dummy"),
+                problem_id: problem.code.clone(),
+            };
+
+            let result = self.redeploy_service.redeploy(&target).await;
 
             match result {
                 Ok(_) => {
                     message
-                        .reply(&self.discord_client, "再展開を開始します。")
+                        .reply(&self.discord_client, "再展開を開始しました。")
                         .await?;
+
+                    for notifier in &self.redeploy_notifiers {
+                        notifier.notify(&target).await;
+                    }
                 }
                 Err(_) => {
                     message
