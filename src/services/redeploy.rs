@@ -18,7 +18,7 @@ pub struct RedeployTarget {
 
 #[async_trait]
 pub trait RedeployNotifier {
-    async fn notify(&self, target: &RedeployTarget);
+    async fn notify(&self, target: &RedeployTarget, result: &RedeployResult);
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -130,20 +130,20 @@ impl DiscordRedeployNotifier {
 
 #[async_trait]
 impl RedeployNotifier for DiscordRedeployNotifier {
-    #[tracing::instrument(skip_all, fields(target = ?target))]
-    async fn notify(&self, target: &RedeployTarget) {
-        if let Err(err) = self._notify(target).await {
+    #[tracing::instrument(skip_all, fields(target = ?target, result = ?result))]
+    async fn notify(&self, target: &RedeployTarget, result: &RedeployResult) {
+        if let Err(err) = self._notify(target, result).await {
             tracing::error!("failed to notify: {:?}", err)
         }
     }
 }
 
 impl DiscordRedeployNotifier {
-    async fn _notify(&self, target: &RedeployTarget) -> Result<()> {
+    async fn _notify(&self, target: &RedeployTarget, result: &RedeployResult) -> Result<()> {
         let result = self
             .webhook
             .execute(&self.discord_client, false, |w| {
-                w.content(format!("Redeploy started (target = {:?})", target))
+                w.content(format!("Redeploy (target = {:?}, result = {:?})", target, result))
             })
             .await?;
 

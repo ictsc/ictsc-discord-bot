@@ -23,6 +23,17 @@ struct RoleDefinition {
     mentionable: bool,
 }
 
+impl Bot {
+    pub fn is_team_role(&self, role: &Role) -> bool {
+        for team in &self.teams {
+            if team.role_name == role.name {
+                return true
+            }
+        }
+        false
+    }
+}
+
 // Roleに対するCRUD操作の実装
 // READ権限のみは他のモジュールとも関連するため、publicにする
 impl Bot {
@@ -128,6 +139,16 @@ impl Bot {
             .into_iter()
             .filter(|role| role.name == name)
             .collect())
+    }
+
+    pub async fn find_roles_by_id_cached(&self, id: RoleId) -> Result<Option<Role>> {
+        tracing::trace!("find role by id cached");
+        Ok(self
+            .get_roles_cached()
+            .await?
+            .into_iter()
+            .filter(|role| role.id == id)
+            .nth(0))
     }
 }
 
