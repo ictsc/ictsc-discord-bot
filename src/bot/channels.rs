@@ -7,8 +7,15 @@ use serenity::model::prelude::*;
 
 static STAFF_CATEGORY_NAME: &str = "ICTSC2023 Staff";
 
+// Discordの使い方を案内するread-onlyなチャンネル
+static HELP_CHANNEL_NAME: &str = "help";
+
+// 協賛企業からのメッセージ等アナウンスを流すread-onlyなチャンネル
 static ANNOUNCE_CHANNEL_NAME: &str = "announce";
+
+// 参加者が自由に読み書きできるチャンネル
 static RANDOM_CHANNEL_NAME: &str = "random";
+
 static TEXT_CHANNEL_NAME_SUFFIX: &str = "text";
 static VOICE_CHANNEL_NAME_SUFFIX: &str = "voice";
 
@@ -64,6 +71,17 @@ impl Bot {
         let mut channels = Vec::new();
 
         // Define public channels
+        let permissions_for_help_channel = self
+            .get_permission_overwrites_for_help_channel()
+            .await?;
+        channels.push(
+            GuildChannelDefinitionBuilder::default()
+                .name(HELP_CHANNEL_NAME.to_string())
+                .kind(ChannelType::Text)
+                .permissions(permissions_for_help_channel)
+                .build()?,
+        );
+
         let permissions_for_announce_channel = self
             .get_permission_overwrites_for_announce_channel()
             .await?;
