@@ -1,9 +1,14 @@
-pub(crate) mod channels;
+pub mod channels;
+pub mod interactions;
+pub mod roles;
 
 #[derive(Debug, thiserror::Error)]
-pub(crate) enum HelperError {
+pub enum HelperError {
+    #[error("role cache is not populated")]
+    RoleCacheNotPopulatedError,
+
     #[error("{0}")]
     SerenityError(#[from] serenity::Error),
 }
 
-pub(crate) type HelperResult<T> = std::result::Result<T, HelperError>;
+pub type HelperResult<T> = std::result::Result<T, HelperError>;

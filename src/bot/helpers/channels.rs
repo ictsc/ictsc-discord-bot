@@ -1,6 +1,8 @@
 use super::HelperResult;
 
-use crate::bot::*;
+use crate::bot::Bot;
+
+use serenity::model::prelude::*;
 
 #[derive(Clone, Debug, derive_builder::Builder)]
 pub struct GuildChannelDefinition {
@@ -15,10 +17,7 @@ pub struct GuildChannelDefinition {
 // Guildのチャンネルを操作するためのヘルパー関数
 impl Bot {
     #[tracing::instrument(skip_all, fields(definition = ?definition))]
-    pub(crate) async fn create_channel(
-        &self,
-        definition: &GuildChannelDefinition,
-    ) -> HelperResult<()> {
+    pub async fn create_channel(&self, definition: &GuildChannelDefinition) -> HelperResult<()> {
         let definition = definition.clone();
         self.guild_id
             .create_channel(&self.discord_client, |channel| {
@@ -37,7 +36,7 @@ impl Bot {
     }
 
     #[tracing::instrument(skip_all)]
-    pub(crate) async fn get_channels<T: AsRef<[ChannelType]>>(
+    pub async fn get_channels<T: AsRef<[ChannelType]>>(
         &self,
         kinds: T,
     ) -> HelperResult<Vec<GuildChannel>> {
@@ -51,7 +50,7 @@ impl Bot {
     }
 
     #[tracing::instrument(skip_all)]
-    pub(crate) async fn get_categories(&self) -> HelperResult<Vec<GuildChannel>> {
+    pub async fn get_categories(&self) -> HelperResult<Vec<GuildChannel>> {
         Ok(self
             .guild_id
             .channels(&self.discord_client)
@@ -65,7 +64,7 @@ impl Bot {
         category = ?category,
         definition = ?definition,
     ))]
-    pub(crate) async fn edit_channel(
+    pub async fn edit_channel(
         &self,
         category: &mut GuildChannel,
         definition: &GuildChannelDefinition,
@@ -85,7 +84,7 @@ impl Bot {
     }
 
     #[tracing::instrument(skip_all, fields(category = ?category))]
-    pub(crate) async fn delete_channel(&self, category: &mut GuildChannel) -> Result<()> {
+    pub async fn delete_channel(&self, category: &mut GuildChannel) -> HelperResult<()> {
         category.delete(&self.discord_client).await?;
         Ok(())
     }

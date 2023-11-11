@@ -1,7 +1,6 @@
 mod channels;
 mod commands;
 mod helpers;
-mod interactions;
 mod permissions;
 mod roles;
 

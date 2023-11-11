@@ -1,13 +1,19 @@
-use crate::bot::*;
+use super::HelperResult;
 
-use anyhow::Result;
+use crate::bot::Bot;
+
 use serenity::builder::{CreateInteractionResponseData, EditInteractionResponse};
 use serenity::model::prelude::application_command::ApplicationCommandInteraction;
-use serenity::model::prelude::{InteractionResponseType, Message};
+use serenity::model::prelude::*;
 
+// Interactionに対する操作するためのヘルパー関数
 impl Bot {
     // ユーザからのinteractionに即時応答するメソッド
-    pub async fn respond<F>(&self, interaction: &ApplicationCommandInteraction, f: F) -> Result<()>
+    pub async fn respond<F>(
+        &self,
+        interaction: &ApplicationCommandInteraction,
+        f: F,
+    ) -> HelperResult<()>
     where
         for<'a, 'b> F: FnOnce(
             &'a mut CreateInteractionResponseData<'b>,
@@ -23,7 +29,10 @@ impl Bot {
     }
 
     // ユーザからのinteractionの応答を保留するメソッド
-    pub async fn defer_response(&self, interaction: &ApplicationCommandInteraction) -> Result<()> {
+    pub async fn defer_response(
+        &self,
+        interaction: &ApplicationCommandInteraction,
+    ) -> HelperResult<()> {
         interaction.defer(&self.discord_client).await?;
         Ok(())
     }
@@ -33,7 +42,7 @@ impl Bot {
         &self,
         interaction: &ApplicationCommandInteraction,
         f: F,
-    ) -> Result<()>
+    ) -> HelperResult<()>
     where
         F: FnOnce(&mut EditInteractionResponse) -> &mut EditInteractionResponse,
     {
@@ -47,7 +56,7 @@ impl Bot {
     pub async fn get_response(
         &self,
         interaction: &ApplicationCommandInteraction,
-    ) -> Result<Message> {
+    ) -> HelperResult<Message> {
         Ok(interaction
             .get_interaction_response(&self.discord_client)
             .await?)
