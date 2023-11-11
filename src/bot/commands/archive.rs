@@ -1,9 +1,9 @@
-use crate::bot::*;
-
 use anyhow::Result;
 use serenity::builder::CreateApplicationCommand;
 use serenity::model::prelude::application_command::ApplicationCommandInteraction;
 use serenity::model::prelude::*;
+
+use crate::bot::*;
 
 impl Bot {
     pub fn create_archive_command(

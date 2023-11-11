@@ -4,14 +4,15 @@ mod join;
 mod ping;
 mod redeploy;
 
-use crate::bot::*;
-
 use anyhow::Result;
 use serenity::async_trait;
-use serenity::client::{Context, EventHandler};
+use serenity::client::Context;
+use serenity::client::EventHandler;
 use serenity::model::application::command::Command;
 use serenity::model::prelude::application_command::ApplicationCommandInteraction;
 use serenity::model::prelude::*;
+
+use crate::bot::*;
 
 impl Bot {
     async fn sync_global_application_commands(&self) -> Result<()> {

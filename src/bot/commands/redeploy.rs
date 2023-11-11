@@ -1,15 +1,16 @@
-use crate::bot::*;
-use crate::services::redeploy::RedeployTarget;
-
 use std::time::Duration;
 
 use anyhow::Result;
-
-use serenity::builder::{CreateApplicationCommand, CreateComponents};
+use serenity::builder::CreateApplicationCommand;
+use serenity::builder::CreateComponents;
 use serenity::model::prelude::application_command::ApplicationCommandInteraction;
 use serenity::model::prelude::command::*;
-use serenity::model::prelude::component::{ButtonStyle, ComponentType};
+use serenity::model::prelude::component::ButtonStyle;
+use serenity::model::prelude::component::ComponentType;
 use serenity::prelude::*;
+
+use crate::bot::*;
+use crate::services::redeploy::RedeployTarget;
 
 const CUSTOM_ID_REDEPLOY_CONFIRM: &str = "redeploy_confirm";
 const CUSTOM_ID_REDEPLOY_CANCELED: &str = "redeploy_canceled";

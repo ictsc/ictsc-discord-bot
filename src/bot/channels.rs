@@ -1,10 +1,11 @@
-use crate::bot::helpers::channels::{GuildChannelDefinition, GuildChannelDefinitionBuilder};
-use crate::bot::*;
-
 use std::collections::HashMap;
 
 use anyhow::Result;
 use serenity::model::prelude::*;
+
+use crate::bot::helpers::channels::GuildChannelDefinition;
+use crate::bot::helpers::channels::GuildChannelDefinitionBuilder;
+use crate::bot::*;
 
 static STAFF_CATEGORY_NAME: &str = "ICTSC2023 Staff";
 

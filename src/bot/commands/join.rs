@@ -1,11 +1,11 @@
-use crate::bot::*;
-
 use std::collections::HashSet;
 
 use anyhow::Result;
 use serenity::builder::CreateApplicationCommand;
 use serenity::model::prelude::application_command::ApplicationCommandInteraction;
 use serenity::model::prelude::command::*;
+
+use crate::bot::*;
 
 #[derive(Debug, thiserror::Error)]
 enum JoinCommandError<'a> {

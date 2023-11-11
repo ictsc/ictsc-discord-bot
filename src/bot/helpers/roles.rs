@@ -1,13 +1,12 @@
-use super::{HelperError, HelperResult};
-
-use crate::bot::Bot;
-
 use std::collections::HashMap;
 
-use serenity::model::{
-    prelude::{Role, RoleId},
-    Permissions,
-};
+use serenity::model::prelude::Role;
+use serenity::model::prelude::RoleId;
+use serenity::model::Permissions;
+
+use super::HelperError;
+use super::HelperResult;
+use crate::bot::Bot;
 
 #[derive(Clone, Debug, derive_builder::Builder)]
 pub struct RoleDefinition {

@@ -1,8 +1,10 @@
-use bot::services::redeploy::{FakeRedeployService, RedeployNotifier};
+use bot::config::Configuration;
+use bot::services::redeploy::DiscordRedeployNotifier;
+use bot::services::redeploy::FakeRedeployService;
+use bot::services::redeploy::RedeployNotifier;
 use bot::Bot;
-use bot::{config::Configuration, services::redeploy::DiscordRedeployNotifier};
-
-use clap::{Parser, Subcommand};
+use clap::Parser;
+use clap::Subcommand;
 
 #[derive(Debug, Parser)]
 #[clap(author, version)]

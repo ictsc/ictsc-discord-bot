@@ -1,11 +1,12 @@
 use anyhow::Result;
 use async_trait::async_trait;
-use reqwest::{Client, ClientBuilder, StatusCode};
-use serenity::{
-    http::Http,
-    model::{prelude::Embed, webhook::Webhook},
-    utils::Colour,
-};
+use reqwest::Client;
+use reqwest::ClientBuilder;
+use reqwest::StatusCode;
+use serenity::http::Http;
+use serenity::model::prelude::Embed;
+use serenity::model::webhook::Webhook;
+use serenity::utils::Colour;
 
 type RedeployResult = Result<String, RedeployError>;
 

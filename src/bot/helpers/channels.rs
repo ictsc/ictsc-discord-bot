@@ -1,8 +1,7 @@
-use super::HelperResult;
-
-use crate::bot::Bot;
-
 use serenity::model::prelude::*;
+
+use super::HelperResult;
+use crate::bot::Bot;
 
 #[derive(Clone, Debug, derive_builder::Builder)]
 pub struct GuildChannelDefinition {

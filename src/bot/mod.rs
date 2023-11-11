@@ -4,15 +4,16 @@ mod helpers;
 mod permissions;
 mod roles;
 
-use crate::config::{Problem, Team};
-use crate::services::redeploy::{RedeployNotifier, RedeployService};
-
-use tokio::sync::RwLock;
-
 use anyhow::Result;
 use serenity::client::Client;
 use serenity::http::Http;
 use serenity::model::prelude::*;
+use tokio::sync::RwLock;
+
+use crate::config::Problem;
+use crate::config::Team;
+use crate::services::redeploy::RedeployNotifier;
+use crate::services::redeploy::RedeployService;
 
 pub struct Bot {
     token: String,
