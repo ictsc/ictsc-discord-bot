@@ -71,9 +71,8 @@ impl Bot {
         let mut channels = Vec::new();
 
         // Define public channels
-        let permissions_for_help_channel = self
-            .get_permission_overwrites_for_help_channel()
-            .await?;
+        let permissions_for_help_channel =
+            self.get_permission_overwrites_for_help_channel().await?;
         channels.push(
             GuildChannelDefinitionBuilder::default()
                 .name(HELP_CHANNEL_NAME.to_string())

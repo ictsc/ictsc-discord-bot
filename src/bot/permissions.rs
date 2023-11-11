@@ -109,7 +109,7 @@ impl Bot {
 
         let mut permissions = Vec::new();
 
-        // randomチャンネルは雑談用に開放するため、チームに参加したユーザに編集権限を与える 
+        // randomチャンネルは雑談用に開放するため、チームに参加したユーザに編集権限を与える
         for team in &self.teams {
             let team_role = role_map
                 .get(&team.role_name)
