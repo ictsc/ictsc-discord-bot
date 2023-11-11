@@ -30,7 +30,7 @@ impl Bot {
                 })
                 .await?;
                 return Ok(());
-            }
+            },
         };
 
         if guild_channel.kind != ChannelType::PublicThread {

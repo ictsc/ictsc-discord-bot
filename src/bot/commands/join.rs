@@ -138,7 +138,7 @@ impl Bot {
                 })
                 .await?;
                 return Ok(());
-            }
+            },
         };
 
         tracing::trace!("send acknowledgement");

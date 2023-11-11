@@ -87,7 +87,7 @@ impl RedeployService for RState {
                 let url = String::from_utf8(response.bytes().await?.to_vec())
                     .map_err(|err| RedeployError::Unexpected(Box::new(err)))?;
                 Ok(url)
-            }
+            },
             StatusCode::BAD_REQUEST => {
                 let data = String::from_utf8(response.bytes().await?.to_vec())
                     .map_err(|err| RedeployError::Unexpected(Box::new(err)))?;
@@ -97,7 +97,7 @@ impl RedeployService for RState {
                 }
 
                 Err(RedeployError::AnotherJobInQueue(data))
-            }
+            },
             _ => Err(RedeployError::Unexpected(
                 anyhow::anyhow!("unexpected status code: {}", response.status()).into(),
             )),

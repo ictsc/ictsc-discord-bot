@@ -76,7 +76,7 @@ impl Bot {
                 })
                 .await?;
                 return Ok(());
-            }
+            },
         };
 
         self.defer_response(interaction).await?;
@@ -134,7 +134,7 @@ impl Bot {
                             sender_teams.push(team);
                         }
                     }
-                }
+                },
                 None => (),
             }
         }
@@ -185,10 +185,10 @@ impl Bot {
                 let should_recreate =
                     component_interaction.data.custom_id == CUSTOM_ID_REDEPLOY_CONFIRM;
                 (component_interaction, should_recreate)
-            }
+            },
             None => {
                 return Ok(());
-            }
+            },
         };
 
         component_interaction
@@ -222,7 +222,7 @@ impl Bot {
                     })
                     .await
                     .unwrap();
-            }
+            },
             Err(_) => {
                 component_interaction
                     .edit_original_interaction_response(&self.discord_client, |response| {
@@ -230,7 +230,7 @@ impl Bot {
                     })
                     .await
                     .unwrap();
-            }
+            },
         };
 
         for notifier in &self.redeploy_notifiers {

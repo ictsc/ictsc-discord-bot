@@ -36,7 +36,7 @@ async fn main() {
         Err(err) => {
             tracing::error!("couldn't read config file: {:?}", err);
             return;
-        }
+        },
     };
 
     let redeploy_service = FakeRedeployService;
@@ -52,9 +52,9 @@ async fn main() {
                 Err(err) => {
                     tracing::error!("couldn't instantiate DiscordRedeployNotifier: {:?}", err);
                     return;
-                }
+                },
             }
-        }
+        },
         None => (),
     };
 

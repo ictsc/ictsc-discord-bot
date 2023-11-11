@@ -124,8 +124,8 @@ impl EventHandler for Bot {
         match interaction {
             Interaction::ApplicationCommand(interaction) => {
                 self.handle_application_command(&ctx, &interaction).await
-            }
-            _ => {}
+            },
+            _ => {},
         };
     }
 }

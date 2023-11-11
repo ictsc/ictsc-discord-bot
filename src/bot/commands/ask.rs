@@ -53,7 +53,7 @@ impl Bot {
                     return Err(AskCommandError::InvalidChannelTypeError);
                 }
                 channel
-            }
+            },
             _ => return Err(AskCommandError::InvalidChannelTypeError),
         };
 
@@ -123,7 +123,7 @@ impl Bot {
                 })
                 .await?;
                 return Ok(());
-            }
+            },
         };
 
         tracing::trace!("send acknowledgement");
