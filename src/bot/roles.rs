@@ -3,7 +3,7 @@ use serenity::model::prelude::*;
 
 use super::helpers::roles::RoleDefinition;
 use crate::bot::helpers::roles::RoleDefinitionBuilder;
-use crate::bot::*;
+use crate::bot::Bot;
 
 pub static EVERYONE_ROLE_NAME: &str = "@everyone";
 pub static STAFF_ROLE_NAME: &str = "ICTSC2023 Staff";

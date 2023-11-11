@@ -5,7 +5,8 @@ use serenity::builder::CreateApplicationCommand;
 use serenity::model::prelude::application_command::ApplicationCommandInteraction;
 use serenity::model::prelude::command::*;
 
-use crate::bot::*;
+use crate::bot::roles;
+use crate::bot::Bot;
 
 #[derive(Debug, thiserror::Error)]
 enum JoinCommandError<'a> {

@@ -3,7 +3,7 @@ use serenity::builder::CreateApplicationCommand;
 use serenity::model::prelude::application_command::ApplicationCommandInteraction;
 use serenity::model::prelude::*;
 
-use crate::bot::*;
+use crate::bot::Bot;
 
 impl Bot {
     pub fn create_archive_command(

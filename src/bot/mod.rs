@@ -10,8 +10,8 @@ use serenity::http::Http;
 use serenity::model::prelude::*;
 use tokio::sync::RwLock;
 
-use crate::config::Problem;
-use crate::config::Team;
+use crate::models::Problem;
+use crate::models::Team;
 use crate::services::redeploy::RedeployNotifier;
 use crate::services::redeploy::RedeployService;
 

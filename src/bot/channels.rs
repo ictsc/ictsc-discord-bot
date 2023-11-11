@@ -5,7 +5,7 @@ use serenity::model::prelude::*;
 
 use crate::bot::helpers::channels::GuildChannelDefinition;
 use crate::bot::helpers::channels::GuildChannelDefinitionBuilder;
-use crate::bot::*;
+use crate::bot::Bot;
 
 static STAFF_CATEGORY_NAME: &str = "ICTSC2023 Staff";
 

@@ -4,7 +4,8 @@ use serenity::model::prelude::application_command::ApplicationCommandInteraction
 use serenity::model::prelude::command::*;
 use serenity::model::prelude::*;
 
-use crate::bot::*;
+use crate::bot::roles;
+use crate::bot::Bot;
 
 #[derive(Debug, thiserror::Error)]
 enum AskCommandError {

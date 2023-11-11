@@ -4,12 +4,14 @@ use anyhow::Result;
 use serenity::builder::CreateApplicationCommand;
 use serenity::builder::CreateComponents;
 use serenity::model::prelude::application_command::ApplicationCommandInteraction;
-use serenity::model::prelude::command::*;
+use serenity::model::prelude::command::CommandOptionType;
 use serenity::model::prelude::component::ButtonStyle;
 use serenity::model::prelude::component::ComponentType;
+use serenity::model::prelude::InteractionResponseType;
 use serenity::prelude::*;
 
-use crate::bot::*;
+use crate::bot::Bot;
+use crate::models::Problem;
 use crate::services::redeploy::RedeployTarget;
 
 const CUSTOM_ID_REDEPLOY_CONFIRM: &str = "redeploy_confirm";

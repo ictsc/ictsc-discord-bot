@@ -2,20 +2,10 @@ use std::fs::File;
 use std::path::Path;
 
 use anyhow::Result;
-use serde_derive::Deserialize;
+use serde::Deserialize;
 
-#[derive(Debug, Deserialize)]
-pub struct Team {
-    pub id: String,
-    pub role_name: String,
-    pub invitation_code: String,
-}
-
-#[derive(Debug, Deserialize)]
-pub struct Problem {
-    pub code: String,
-    pub name: String,
-}
+use crate::models::Problem;
+use crate::models::Team;
 
 #[derive(Debug, Deserialize)]
 pub struct Configuration {

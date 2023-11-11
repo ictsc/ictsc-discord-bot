@@ -1,7 +1,9 @@
 // This module manages entire permissions for ICTSC Discord channels.
+use anyhow::Result;
 use serenity::model::prelude::*;
 
-use crate::bot::*;
+use crate::bot::roles;
+use crate::bot::Bot;
 
 impl Bot {
     // 全てのユーザに許可してよい権限
