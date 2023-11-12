@@ -107,7 +107,7 @@ impl Bot {
             }
 
             tracing::debug!(?definition, "create role");
-            self.create_role(&definition).await?
+            self.create_role(&definition).await?;
         }
 
         tracing::debug!("delete not-defined roles");

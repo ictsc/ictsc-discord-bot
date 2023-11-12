@@ -4,6 +4,9 @@ pub mod roles;
 
 #[derive(Debug, thiserror::Error)]
 pub enum HelperError {
+    #[error("channel kind is invalid")]
+    InvalidChannelKindError,
+
     #[error("role cache is not populated")]
     RoleCacheNotPopulatedError,
 

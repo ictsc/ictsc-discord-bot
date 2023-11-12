@@ -1,6 +1,7 @@
 use serenity::model::prelude::*;
 
 use super::HelperResult;
+use crate::bot::helpers::HelperError;
 use crate::bot::Bot;
 
 #[derive(Clone, Debug, derive_builder::Builder)]
@@ -16,9 +17,14 @@ pub struct GuildChannelDefinition {
 // Guildのチャンネルを操作するためのヘルパー関数
 impl Bot {
     #[tracing::instrument(skip_all, fields(definition = ?definition))]
-    pub async fn create_channel(&self, definition: &GuildChannelDefinition) -> HelperResult<()> {
+    pub async fn create_channel(
+        &self,
+        definition: &GuildChannelDefinition,
+    ) -> HelperResult<GuildChannel> {
+        tracing::trace!("Create channel");
         let definition = definition.clone();
-        self.guild_id
+        Ok(self
+            .guild_id
             .create_channel(&self.discord_client, |channel| {
                 channel
                     .name(definition.name)
@@ -30,8 +36,7 @@ impl Bot {
                     None => channel,
                 }
             })
-            .await?;
-        Ok(())
+            .await?)
     }
 
     #[tracing::instrument(skip_all)]
@@ -39,6 +44,7 @@ impl Bot {
         &self,
         kinds: T,
     ) -> HelperResult<Vec<GuildChannel>> {
+        tracing::trace!("Get channels");
         Ok(self
             .guild_id
             .channels(&self.discord_client)
@@ -48,43 +54,31 @@ impl Bot {
             .collect())
     }
 
-    #[tracing::instrument(skip_all)]
-    pub async fn get_categories(&self) -> HelperResult<Vec<GuildChannel>> {
-        Ok(self
-            .guild_id
-            .channels(&self.discord_client)
-            .await?
-            .into_values()
-            .filter(|channel| channel.kind == ChannelType::Category)
-            .collect())
-    }
-
     #[tracing::instrument(skip_all, fields(
-        category = ?category,
+        channel = ?channel,
         definition = ?definition,
     ))]
     pub async fn edit_channel(
         &self,
-        category: &mut GuildChannel,
+        channel: &mut GuildChannel,
         definition: &GuildChannelDefinition,
     ) -> HelperResult<()> {
-        if category.kind != definition.kind {
-            anyhow::anyhow!("failed to edit category: kind is not matched");
+        tracing::trace!("Edit channel");
+        if channel.kind != definition.kind {
+            return Err(HelperError::InvalidChannelKindError);
         }
-
-        category
+        Ok(channel
             .edit(&self.discord_client, |edit| {
                 edit.name(&definition.name)
                     .category(definition.category)
                     .permissions(definition.permissions.clone())
             })
-            .await?;
-        Ok(())
+            .await?)
     }
 
-    #[tracing::instrument(skip_all, fields(category = ?category))]
-    pub async fn delete_channel(&self, category: &mut GuildChannel) -> HelperResult<()> {
-        category.delete(&self.discord_client).await?;
-        Ok(())
+    #[tracing::instrument(skip_all, fields(channel = ?channel))]
+    pub async fn delete_channel(&self, channel: &mut GuildChannel) -> HelperResult<Channel> {
+        tracing::trace!("Delete channel");
+        Ok(channel.delete(&self.discord_client).await?)
     }
 }
