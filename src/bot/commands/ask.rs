@@ -4,6 +4,7 @@ use serenity::model::prelude::application_command::ApplicationCommandInteraction
 use serenity::model::prelude::command::*;
 use serenity::model::prelude::*;
 
+use crate::bot::helpers::HelperError;
 use crate::bot::roles;
 use crate::bot::Bot;
 
@@ -16,7 +17,7 @@ enum AskCommandError {
     InvalidChannelTypeError,
 
     #[error("予期しないエラーが発生しました。")]
-    HelperError(#[from] crate::bot::helpers::HelperError),
+    HelperError(#[from] HelperError),
 }
 
 type AskCommandResult<T> = std::result::Result<T, AskCommandError>;

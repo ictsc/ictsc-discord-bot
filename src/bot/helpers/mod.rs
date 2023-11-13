@@ -1,5 +1,6 @@
 pub mod channels;
 pub mod interactions;
+pub mod member;
 pub mod roles;
 
 #[derive(Debug, thiserror::Error)]

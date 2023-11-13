@@ -3,6 +3,7 @@ use serenity::builder::CreateApplicationCommand;
 use serenity::model::prelude::application_command::ApplicationCommandInteraction;
 use serenity::model::prelude::*;
 
+use crate::bot::helpers::HelperError;
 use crate::bot::Bot;
 
 #[derive(Debug, thiserror::Error)]
@@ -11,7 +12,7 @@ enum ArchiveCommandError {
     ChannelNotThreadError,
 
     #[error("予期しないエラーが発生しました。")]
-    HelperError(#[from] crate::bot::helpers::HelperError),
+    HelperError(#[from] HelperError),
 }
 
 type ArchiveCommandResult<T> = std::result::Result<T, ArchiveCommandError>;
