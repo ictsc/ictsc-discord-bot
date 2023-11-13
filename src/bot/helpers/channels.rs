@@ -98,4 +98,17 @@ impl Bot {
         tracing::trace!("Delete channel");
         Ok(channel.delete(&self.discord_client).await?)
     }
+
+    #[tracing::instrument(skip_all, fields(channel = ?channel))]
+    pub async fn create_public_thread(
+        &self,
+        channel: &GuildChannel,
+        message: &Message,
+        title: &str,
+    ) -> HelperResult<GuildChannel> {
+        tracing::trace!("Create public thread");
+        Ok(channel
+            .create_public_thread(&self.discord_client, message, |thread| thread.name(title))
+            .await?)
+    }
 }
