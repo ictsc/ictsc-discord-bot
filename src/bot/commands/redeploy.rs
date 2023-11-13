@@ -7,9 +7,9 @@ use serenity::model::prelude::application_command::ApplicationCommandInteraction
 use serenity::model::prelude::command::CommandOptionType;
 use serenity::model::prelude::component::ButtonStyle;
 use serenity::model::prelude::component::ComponentType;
-use serenity::model::prelude::InteractionResponseType;
 use serenity::prelude::*;
 
+use crate::bot::helpers::HelperError;
 use crate::bot::Bot;
 use crate::models::Problem;
 use crate::services::redeploy::RedeployTarget;
@@ -27,7 +27,7 @@ enum RedeployCommandError<'a> {
     UnexpectedSenderTeamsError,
 
     #[error("予期しないエラーが発生しました。")]
-    Error(#[from] Box<dyn std::error::Error + Send + Sync + 'static>),
+    HelperError(#[from] HelperError),
 }
 
 type RedeployCommandResult<'t, T> = std::result::Result<T, RedeployCommandError<'t>>;
@@ -98,11 +98,7 @@ impl Bot {
         &self,
         interaction: &'t ApplicationCommandInteraction,
     ) -> RedeployCommandResult<'t, &Problem> {
-        // TODO: unwrapを治す
-        let problem_code = self
-            .get_option_as_str(interaction, "problem_code")
-            .ok_or(anyhow::anyhow!("problem_code is not found"))
-            .unwrap();
+        let problem_code = self.get_option_as_str(interaction, "problem_code").unwrap();
 
         let problem = self
             .problems
@@ -120,11 +116,7 @@ impl Bot {
         problem: &Problem,
     ) -> RedeployCommandResult<()> {
         let sender = &interaction.user;
-        let sender_member = self
-            .guild_id
-            .member(&self.discord_client, sender.id)
-            .await
-            .unwrap();
+        let sender_member = self.get_member(&sender).await?;
 
         let mut sender_teams = Vec::new();
         for role_id in sender_member.roles {
@@ -157,13 +149,9 @@ impl Bot {
             ))
             .components(|c| create_buttons(c, false))
         })
-        .await
-        .unwrap();
+        .await?;
 
-        let message = interaction
-            .get_interaction_response(&self.discord_client)
-            .await
-            .unwrap();
+        let message = self.get_response(interaction).await?;
 
         let component_interaction = message
             .await_component_interaction(ctx)
@@ -179,8 +167,7 @@ impl Bot {
         self.edit_response(interaction, |response| {
             response.components(|c| create_buttons(c, true))
         })
-        .await
-        .unwrap();
+        .await?;
 
         let (component_interaction, should_recreate) = match component_interaction {
             Some(component_interaction) => {
@@ -192,21 +179,15 @@ impl Bot {
                 return Ok(());
             },
         };
+        let component_interaction = component_interaction.as_ref();
 
-        component_interaction
-            .create_interaction_response(&self.discord_client, |response| {
-                response.kind(InteractionResponseType::DeferredChannelMessageWithSource)
-            })
-            .await
-            .unwrap();
+        self.defer_response(component_interaction).await?;
 
         if !should_recreate {
-            component_interaction
-                .edit_original_interaction_response(&self.discord_client, |response| {
-                    response.content("再展開をやめました。")
-                })
-                .await
-                .unwrap();
+            self.edit_response(component_interaction, |response| {
+                response.content("再展開をやめました。")
+            })
+            .await?;
             return Ok(());
         }
 
@@ -218,20 +199,16 @@ impl Bot {
 
         match result {
             Ok(_) => {
-                component_interaction
-                    .edit_original_interaction_response(&self.discord_client, |response| {
-                        response.content("再展開を開始しました。")
-                    })
-                    .await
-                    .unwrap();
+                self.edit_response(component_interaction, |response| {
+                    response.content("再展開を開始しました。")
+                })
+                .await?;
             },
             Err(_) => {
-                component_interaction
-                    .edit_original_interaction_response(&self.discord_client, |response| {
-                        response.content("再展開を失敗しました。")
-                    })
-                    .await
-                    .unwrap();
+                self.edit_response(component_interaction, |response| {
+                    response.content("再展開に失敗しました。")
+                })
+                .await?;
             },
         };
 
