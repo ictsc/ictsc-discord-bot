@@ -5,9 +5,11 @@ mod permissions;
 mod roles;
 
 use anyhow::Result;
+use async_trait::async_trait;
 use serenity::client::Client;
 use serenity::http::Http;
 use serenity::model::prelude::*;
+use serenity::prelude::*;
 use tokio::sync::RwLock;
 
 use crate::models::Problem;
@@ -73,5 +75,53 @@ impl Bot {
             .await?;
 
         Ok(client.start().await?)
+    }
+}
+
+#[async_trait]
+impl EventHandler for Bot {
+    #[tracing::instrument(skip_all, fields(
+        id = ?guild.id,
+        name = ?guild.name,
+        owner_id = ?guild.owner_id,
+    ))]
+    async fn guild_create(&self, _: Context, guild: Guild) {
+        tracing::debug!("guild_create called");
+
+        if guild.id != self.guild_id {
+            tracing::info!("target guild is not for contest, skipped");
+            return;
+        }
+
+        if let Err(err) = self.update_role_cache().await {
+            tracing::error!(?err, "failed to update role cache");
+        }
+
+        if let Err(err) = self.sync_guild_application_commands().await {
+            tracing::error!(?err, "failed to sync guild application commands");
+        }
+    }
+
+    #[tracing::instrument(skip_all, fields(
+        application_id = ?_ready.application.id,
+        session_id = ?_ready.session_id,
+        user_id = ?_ready.user.id,
+        user_name = ?_ready.user.name,
+    ))]
+    async fn ready(&self, _: Context, _ready: Ready) {
+        tracing::info!("bot is ready!");
+        if let Err(err) = self.sync_global_application_commands().await {
+            tracing::error!(?err, "failed to sync global application commands")
+        }
+    }
+
+    #[tracing::instrument(skip_all)]
+    async fn interaction_create(&self, ctx: Context, interaction: Interaction) {
+        match interaction {
+            Interaction::ApplicationCommand(interaction) => {
+                self.handle_application_command(&ctx, &interaction).await
+            },
+            _ => {},
+        };
     }
 }
