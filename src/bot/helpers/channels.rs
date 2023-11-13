@@ -40,6 +40,12 @@ impl Bot {
     }
 
     #[tracing::instrument(skip_all)]
+    pub async fn get_channel(&self, id: ChannelId) -> HelperResult<Channel> {
+        tracing::trace!("Get channel");
+        Ok(self.discord_client.get_channel(id.0).await?)
+    }
+
+    #[tracing::instrument(skip_all)]
     pub async fn get_channels<T: AsRef<[ChannelType]>>(
         &self,
         kinds: T,
@@ -73,6 +79,17 @@ impl Bot {
                     .category(definition.category)
                     .permissions(definition.permissions.clone())
             })
+            .await?)
+    }
+
+    #[tracing::instrument(skip_all, fields(channel = ?channel))]
+    pub async fn archive_thread(&self, channel: &mut GuildChannel) -> HelperResult<GuildChannel> {
+        tracing::trace!("Edit channel");
+        if channel.kind != ChannelType::PublicThread && channel.kind != ChannelType::PrivateThread {
+            return Err(HelperError::InvalidChannelKindError);
+        }
+        Ok(channel
+            .edit_thread(&self.discord_client, |thread| thread.archived(true))
             .await?)
     }
 

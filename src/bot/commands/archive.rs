@@ -5,6 +5,17 @@ use serenity::model::prelude::*;
 
 use crate::bot::Bot;
 
+#[derive(Debug, thiserror::Error)]
+enum ArchiveCommandError {
+    #[error("このコマンドは質問スレッド以外から呼び出すことはできません。")]
+    ChannelNotThreadError,
+
+    #[error("予期しないエラーが発生しました。")]
+    HelperError(#[from] crate::bot::helpers::HelperError),
+}
+
+type ArchiveCommandResult<T> = std::result::Result<T, ArchiveCommandError>;
+
 impl Bot {
     pub fn create_archive_command(
         command: &mut CreateApplicationCommand,
@@ -18,36 +29,34 @@ impl Bot {
         &self,
         interaction: &ApplicationCommandInteraction,
     ) -> Result<()> {
-        let channel_id = interaction.channel_id;
-        let channel = self.discord_client.get_channel(channel_id.0).await?;
+        tracing::debug!("send acknowledgement");
+        self.defer_response(interaction).await?;
 
-        let guild_channel = match channel {
-            Channel::Guild(guild_channel) => guild_channel,
-            _ => {
-                self.respond(interaction, |data| {
-                    data.ephemeral(true)
-                        .content("このコマンドはスレッド内でのみ使用できます。")
-                })
+        if let Err(err) = self.do_archive_command(interaction).await {
+            tracing::error!(?err, "failed to do archive command");
+            self.edit_response(interaction, |data| data.content(err.to_string()))
                 .await?;
-                return Ok(());
-            },
+        }
+        Ok(())
+    }
+
+    async fn do_archive_command(
+        &self,
+        interaction: &ApplicationCommandInteraction,
+    ) -> ArchiveCommandResult<()> {
+        let channel_id = interaction.channel_id;
+        let channel = self.get_channel(channel_id).await?;
+
+        let mut guild_channel = match channel {
+            Channel::Guild(guild_channel) => guild_channel,
+            _ => return Err(ArchiveCommandError::ChannelNotThreadError),
         };
 
         if guild_channel.kind != ChannelType::PublicThread {
-            self.respond(interaction, |data| {
-                data.ephemeral(true)
-                    .content("このコマンドはスレッド内でのみ使用できます。")
-            })
-            .await?;
-            return Ok(());
+            return Err(ArchiveCommandError::ChannelNotThreadError);
         }
 
-        tracing::trace!("send acknowledgement");
-        self.defer_response(interaction).await?;
-
-        channel_id
-            .edit_thread(&self.discord_client, |thread| thread.archived(true))
-            .await?;
+        self.archive_thread(&mut guild_channel).await?;
 
         self.edit_response(interaction, |response| {
             response.content("質問スレッドを終了しました。")
