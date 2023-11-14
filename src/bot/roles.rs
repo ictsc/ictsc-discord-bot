@@ -92,7 +92,9 @@ impl Bot {
                     continue;
                 }
                 tracing::debug!(?role, "role is created, but is not synced, update role");
-                self.edit_role(role, &definition).await?;
+                if let Err(err) = self.edit_role(role, &definition).await {
+                    tracing::warn!(?err, "Failed to update role, skip");
+                }
                 continue;
             }
 
@@ -102,12 +104,16 @@ impl Bot {
                     "several matched roles are found, delete them"
                 );
                 for role in matched_roles {
-                    self.delete_role(role).await?;
+                    if let Err(err) = self.delete_role(role).await {
+                        tracing::warn!(?err, "Failed to delete role, skip");
+                    }
                 }
             }
 
             tracing::debug!(?definition, "create role");
-            self.create_role(&definition).await?;
+            if let Err(err) = self.create_role(&definition).await {
+                tracing::warn!(?err, "Failed to create role, skip");
+            }
         }
 
         tracing::debug!("delete not-defined roles");
@@ -127,7 +133,9 @@ impl Bot {
                 }
 
                 tracing::debug!(?role, "role is not defined, delete it");
-                self.delete_role(&role).await?;
+                if let Err(err) = self.delete_role(&role).await {
+                    tracing::warn!(?err, "Failed to delete role, skip");
+                }
             }
         }
 
