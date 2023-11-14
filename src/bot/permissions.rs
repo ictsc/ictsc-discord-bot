@@ -1,7 +1,9 @@
 // This module manages entire permissions for ICTSC Discord channels.
-use crate::bot::*;
-
+use anyhow::Result;
 use serenity::model::prelude::*;
+
+use crate::bot::roles;
+use crate::bot::Bot;
 
 impl Bot {
     // 全てのユーザに許可してよい権限
@@ -50,6 +52,30 @@ impl Bot {
 
     // announceチャンネルに設定されるポリシー
     #[tracing::instrument(skip_all)]
+    pub async fn get_permission_overwrites_for_help_channel(
+        &self,
+    ) -> Result<Vec<PermissionOverwrite>> {
+        tracing::trace!("get permission overrides for announce channel");
+
+        let role_map = self.get_role_map_cached().await?;
+
+        let mut permissions = Vec::new();
+
+        // helpチャンネルにはDiscordの使い方を流すため、全てのユーザに閲覧権限を与える
+        let everyone_role = role_map
+            .get(roles::EVERYONE_ROLE_NAME)
+            .ok_or(anyhow::anyhow!("@everyone role not found"))?;
+        permissions.push(PermissionOverwrite {
+            allow: self.get_permissions_for_readonly_channel_member(),
+            deny: Permissions::empty(),
+            kind: PermissionOverwriteType::Role(everyone_role.id),
+        });
+
+        Ok(permissions)
+    }
+
+    // announceチャンネルに設定されるポリシー
+    #[tracing::instrument(skip_all)]
     pub async fn get_permission_overwrites_for_announce_channel(
         &self,
     ) -> Result<Vec<PermissionOverwrite>> {
@@ -59,15 +85,17 @@ impl Bot {
 
         let mut permissions = Vec::new();
 
-        let everyone_role = role_map
-            .get(roles::EVERYONE_ROLE_NAME)
-            .ok_or(anyhow::anyhow!("@everyone role not found"))?;
-
-        permissions.push(PermissionOverwrite {
-            allow: self.get_permissions_for_readonly_channel_member(),
-            deny: Permissions::empty(),
-            kind: PermissionOverwriteType::Role(everyone_role.id),
-        });
+        // announceチャンネルには運営からのメッセージを流すため、チームに参加したユーザに閲覧権限を与える
+        for team in &self.teams {
+            let team_role = role_map
+                .get(&team.role_name)
+                .ok_or(anyhow::anyhow!("{} role not found", team.role_name))?;
+            permissions.push(PermissionOverwrite {
+                allow: self.get_permissions_for_readonly_channel_member(),
+                deny: Permissions::empty(),
+                kind: PermissionOverwriteType::Role(team_role.id),
+            });
+        }
 
         Ok(permissions)
     }
@@ -83,21 +111,11 @@ impl Bot {
 
         let mut permissions = Vec::new();
 
-        let everyone_role = role_map
-            .get(roles::EVERYONE_ROLE_NAME)
-            .ok_or(anyhow::anyhow!("@everyone role not found"))?;
-
-        permissions.push(PermissionOverwrite {
-            allow: self.get_permissions_for_readonly_channel_member(),
-            deny: Permissions::empty(),
-            kind: PermissionOverwriteType::Role(everyone_role.id),
-        });
-
+        // randomチャンネルは雑談用に開放するため、チームに参加したユーザに編集権限を与える
         for team in &self.teams {
             let team_role = role_map
                 .get(&team.role_name)
                 .ok_or(anyhow::anyhow!("{} role not found", team.role_name))?;
-
             permissions.push(PermissionOverwrite {
                 allow: self.get_permissions_for_channel_member(),
                 deny: Permissions::empty(),

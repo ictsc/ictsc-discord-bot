@@ -2,26 +2,16 @@ use std::fs::File;
 use std::path::Path;
 
 use anyhow::Result;
-use serde_derive::Deserialize;
+use serde::Deserialize;
 
-#[derive(Debug, Deserialize)]
-pub struct Team {
-    pub id: String,
-    pub role_name: String,
-    pub invitation_code: String,
-}
-
-#[derive(Debug, Deserialize)]
-pub struct Problem {
-    pub code: String,
-    pub name: String,
-}
+use crate::models::Problem;
+use crate::models::Team;
 
 #[derive(Debug, Deserialize)]
 pub struct Configuration {
     pub staff: StaffConfiguration,
     pub discord: DiscordConfiguration,
-    pub recreate: RecreateServiceConfiguration,
+    pub redeploy: RedeployServiceConfiguration,
 
     #[serde(default)]
     pub teams: Vec<Team>,
@@ -51,8 +41,20 @@ pub struct DiscordConfiguration {
 }
 
 #[derive(Debug, Deserialize)]
-pub struct RecreateServiceConfiguration {
+pub struct RedeployServiceConfiguration {
     pub baseurl: String,
     pub username: String,
     pub password: String,
+
+    pub notifiers: RedeployNotifiersConfiguration,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct RedeployNotifiersConfiguration {
+    pub discord: Option<DiscordRedeployNotifierConfiguration>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct DiscordRedeployNotifierConfiguration {
+    pub webhook_url: String,
 }

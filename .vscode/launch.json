@@ -1,0 +1,21 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Start Bot",
+            "request": "launch",
+            "type": "lldb",
+            "program": "${workspaceFolder}/target/debug/bot",
+            "args": [
+                "--filename",
+                "./bot.yaml",
+                "start"
+            ],
+            "env": {
+                "RUST_LOG": "info,bot=trace"
+            },
+            "cwd": "${workspaceFolder}",
+            "preLaunchTask": "cargo build",
+        }
+    ]
+}

@@ -1,11 +1,13 @@
-use crate::bot::*;
-
 use std::collections::HashSet;
 
 use anyhow::Result;
 use serenity::builder::CreateApplicationCommand;
 use serenity::model::prelude::application_command::ApplicationCommandInteraction;
 use serenity::model::prelude::command::*;
+
+use crate::bot::helpers::HelperError;
+use crate::bot::roles;
+use crate::bot::Bot;
 
 #[derive(Debug, thiserror::Error)]
 enum JoinCommandError<'a> {
@@ -17,7 +19,7 @@ enum JoinCommandError<'a> {
     UserNotInGuildError,
 
     #[error("予期しないエラーが発生しました。")]
-    Error(#[from] Box<dyn std::error::Error + Send + Sync + 'static>),
+    HelperError(#[from] HelperError),
 }
 
 type JoinCommandResult<'t, T> = std::result::Result<T, JoinCommandError<'t>>;
@@ -36,6 +38,33 @@ impl Bot {
                     .kind(CommandOptionType::String)
                     .required(true)
             })
+    }
+
+    pub async fn handle_join_command(
+        &self,
+        interaction: &ApplicationCommandInteraction,
+    ) -> Result<()> {
+        let role_name = match self.validate_join_command(interaction) {
+            Ok(role_name) => role_name,
+            Err(err) => {
+                self.respond(interaction, |data| {
+                    data.ephemeral(true).content(err.to_string())
+                })
+                .await?;
+                return Ok(());
+            },
+        };
+
+        tracing::trace!("send acknowledgement");
+        self.defer_response(interaction).await?;
+
+        if let Err(err) = self.do_join_command(interaction, role_name).await {
+            tracing::error!(?err, "failed to do join command");
+            self.edit_response(interaction, |data| data.content(err.to_string()))
+                .await?;
+        }
+
+        Ok(())
     }
 
     fn validate_join_command<'t>(
@@ -82,8 +111,7 @@ impl Bot {
         // DMの送信元が、ICTSC Discordチャンネルに参加しているかをチェックする。
         let sender = &interaction.user;
         let mut sender_member = self
-            .guild_id
-            .member(&self.discord_client, sender.id)
+            .get_member(sender)
             .await
             .map_err(|_| JoinCommandError::UserNotInGuildError)?;
 
@@ -91,64 +119,31 @@ impl Bot {
 
         let target_role_id_set: HashSet<_> = self
             .find_roles_by_name_cached(&role_name)
-            .await
-            .map_err(|err| JoinCommandError::Error(err.into()))?
-            .into_iter()
+            .await?
+            .iter()
             .map(|role| role.id)
             .collect();
 
-        let role_ids_added: Vec<_> = target_role_id_set
+        let role_ids_granted: Vec<_> = target_role_id_set
             .difference(&sender_member_role_id_set)
             .map(|id| id.clone())
             .collect();
 
-        let role_ids_removed: Vec<_> = sender_member_role_id_set
+        let role_ids_revoked: Vec<_> = sender_member_role_id_set
             .difference(&target_role_id_set)
             .map(|id| id.clone())
             .collect();
 
-        sender_member
-            .add_roles(&self.discord_client, &role_ids_added)
-            .await
-            .map_err(|err| JoinCommandError::Error(err.into()))?;
+        self.grant_roles(&mut sender_member, role_ids_granted)
+            .await?;
 
-        sender_member
-            .remove_roles(&self.discord_client, &role_ids_removed)
-            .await
-            .map_err(|err| JoinCommandError::Error(err.into()))?;
+        self.revoke_roles(&mut sender_member, role_ids_revoked)
+            .await?;
 
         self.edit_response(interaction, |data| {
             data.content(format!("チーム `{}` に参加しました。", role_name))
         })
-        .await
-        .map_err(|err| JoinCommandError::Error(err.into()))?;
-
-        Ok(())
-    }
-
-    pub async fn handle_join_command(
-        &self,
-        interaction: &ApplicationCommandInteraction,
-    ) -> Result<()> {
-        let role_name = match self.validate_join_command(interaction) {
-            Ok(role_name) => role_name,
-            Err(err) => {
-                self.respond(interaction, |data| {
-                    data.ephemeral(true).content(err.to_string())
-                })
-                .await?;
-                return Ok(());
-            }
-        };
-
-        tracing::trace!("send acknowledgement");
-        self.defer_response(interaction).await?;
-
-        if let Err(err) = self.do_join_command(interaction, role_name).await {
-            tracing::error!(?err, "failed to do join command");
-            self.edit_response(interaction, |data| data.content(err.to_string()))
-                .await?;
-        }
+        .await?;
 
         Ok(())
     }

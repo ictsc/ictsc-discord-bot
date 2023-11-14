@@ -1,8 +1,10 @@
 use bot::config::Configuration;
+use bot::services::redeploy::DiscordRedeployNotifier;
 use bot::services::redeploy::FakeRedeployService;
+use bot::services::redeploy::RedeployNotifier;
 use bot::Bot;
-
-use clap::{Parser, Subcommand};
+use clap::Parser;
+use clap::Subcommand;
 
 #[derive(Debug, Parser)]
 #[clap(author, version)]
@@ -34,10 +36,27 @@ async fn main() {
         Err(err) => {
             tracing::error!("couldn't read config file: {:?}", err);
             return;
-        }
+        },
     };
 
     let redeploy_service = FakeRedeployService;
+
+    let mut redeploy_notifiers: Vec<Box<dyn RedeployNotifier + Send + Sync>> = Vec::new();
+
+    match config.redeploy.notifiers.discord {
+        Some(notifier_config) => {
+            match DiscordRedeployNotifier::new(&config.discord.token, &notifier_config.webhook_url)
+                .await
+            {
+                Ok(notifier) => redeploy_notifiers.push(Box::new(notifier)),
+                Err(err) => {
+                    tracing::error!("couldn't instantiate DiscordRedeployNotifier: {:?}", err);
+                    return;
+                },
+            }
+        },
+        None => (),
+    };
 
     let bot = Bot::new(
         config.discord.token,
@@ -47,6 +66,7 @@ async fn main() {
         config.teams,
         config.problems,
         Box::new(redeploy_service),
+        redeploy_notifiers,
     );
 
     let result = match args.command {

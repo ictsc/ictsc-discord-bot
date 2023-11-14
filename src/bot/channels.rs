@@ -1,26 +1,25 @@
-use crate::bot::*;
-
 use std::collections::HashMap;
 
 use anyhow::Result;
 use serenity::model::prelude::*;
 
+use crate::bot::helpers::channels::GuildChannelDefinition;
+use crate::bot::helpers::channels::GuildChannelDefinitionBuilder;
+use crate::bot::Bot;
+
 static STAFF_CATEGORY_NAME: &str = "ICTSC2023 Staff";
 
+// Discordの使い方を案内するread-onlyなチャンネル
+static HELP_CHANNEL_NAME: &str = "help";
+
+// 協賛企業からのメッセージ等アナウンスを流すread-onlyなチャンネル
 static ANNOUNCE_CHANNEL_NAME: &str = "announce";
+
+// 参加者が自由に読み書きできるチャンネル
 static RANDOM_CHANNEL_NAME: &str = "random";
+
 static TEXT_CHANNEL_NAME_SUFFIX: &str = "text";
 static VOICE_CHANNEL_NAME_SUFFIX: &str = "voice";
-
-#[derive(Clone, Debug, derive_builder::Builder)]
-struct GuildChannelDefinition {
-    name: String,
-    kind: ChannelType,
-    #[builder(default)]
-    category: Option<ChannelId>,
-    #[builder(default)]
-    permissions: Vec<PermissionOverwrite>,
-}
 
 impl Bot {
     #[tracing::instrument(skip_all)]
@@ -64,6 +63,16 @@ impl Bot {
         let mut channels = Vec::new();
 
         // Define public channels
+        let permissions_for_help_channel =
+            self.get_permission_overwrites_for_help_channel().await?;
+        channels.push(
+            GuildChannelDefinitionBuilder::default()
+                .name(HELP_CHANNEL_NAME.to_string())
+                .kind(ChannelType::Text)
+                .permissions(permissions_for_help_channel)
+                .build()?,
+        );
+
         let permissions_for_announce_channel = self
             .get_permission_overwrites_for_announce_channel()
             .await?;
@@ -231,78 +240,5 @@ impl Bot {
             // Discordはpermission_overwritesを順不同で返すため、順序を無視して比較する
             && channel.permission_overwrites.iter().all(|overwrite| definition.permissions.contains(overwrite))
             && definition.permissions.iter().all(|permission| channel.permission_overwrites.contains(permission))
-    }
-}
-
-// CRUD operation for category
-impl Bot {
-    #[tracing::instrument(skip_all, fields(definition = ?definition))]
-    async fn create_channel(&self, definition: &GuildChannelDefinition) -> Result<()> {
-        let definition = definition.clone();
-        self.guild_id
-            .create_channel(&self.discord_client, |channel| {
-                channel
-                    .name(definition.name)
-                    .kind(definition.kind)
-                    .permissions(definition.permissions);
-
-                match definition.category {
-                    Some(category_id) => channel.category(category_id),
-                    None => channel,
-                }
-            })
-            .await?;
-        Ok(())
-    }
-
-    #[tracing::instrument(skip_all)]
-    async fn get_channels<T: AsRef<[ChannelType]>>(&self, kinds: T) -> Result<Vec<GuildChannel>> {
-        Ok(self
-            .guild_id
-            .channels(&self.discord_client)
-            .await?
-            .into_values()
-            .filter(|channel| kinds.as_ref().contains(&channel.kind))
-            .collect())
-    }
-
-    #[tracing::instrument(skip_all)]
-    async fn get_categories(&self) -> Result<Vec<GuildChannel>> {
-        Ok(self
-            .guild_id
-            .channels(&self.discord_client)
-            .await?
-            .into_values()
-            .filter(|channel| channel.kind == ChannelType::Category)
-            .collect())
-    }
-
-    #[tracing::instrument(skip_all, fields(
-        category = ?category,
-        definition = ?definition,
-    ))]
-    async fn edit_channel(
-        &self,
-        category: &mut GuildChannel,
-        definition: &GuildChannelDefinition,
-    ) -> Result<()> {
-        if category.kind != definition.kind {
-            anyhow::anyhow!("failed to edit category: kind is not matched");
-        }
-
-        category
-            .edit(&self.discord_client, |edit| {
-                edit.name(&definition.name)
-                    .category(definition.category)
-                    .permissions(definition.permissions.clone())
-            })
-            .await?;
-        Ok(())
-    }
-
-    #[tracing::instrument(skip_all, fields(category = ?category))]
-    async fn delete_channel(&self, category: &mut GuildChannel) -> Result<()> {
-        category.delete(&self.discord_client).await?;
-        Ok(())
     }
 }

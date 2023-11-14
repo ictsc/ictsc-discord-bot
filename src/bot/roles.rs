@@ -1,133 +1,23 @@
-use crate::bot::*;
-
-use std::collections::HashMap;
-
 use anyhow::Result;
 use serenity::model::prelude::*;
-use serenity::model::Permissions;
+
+use super::helpers::roles::RoleDefinition;
+use crate::bot::helpers::roles::RoleDefinitionBuilder;
+use crate::bot::Bot;
 
 pub static EVERYONE_ROLE_NAME: &str = "@everyone";
 pub static STAFF_ROLE_NAME: &str = "ICTSC2023 Staff";
 
 static STAFF_ROLE_COLOUR: u32 = 14942278;
 
-#[derive(Clone, Debug, derive_builder::Builder)]
-struct RoleDefinition {
-    name: String,
-    permissions: Permissions,
-    #[builder(default)]
-    colour: u32,
-    #[builder(default)]
-    hoist: bool,
-    #[builder(default)]
-    mentionable: bool,
-}
-
-// Roleに対するCRUD操作の実装
-// READ権限のみは他のモジュールとも関連するため、publicにする
 impl Bot {
-    #[tracing::instrument(skip_all, fields(
-        definition = ?definition,
-    ))]
-    async fn create_role(&self, definition: &RoleDefinition) -> Result<()> {
-        tracing::trace!("create role called");
-        let definition = definition.clone();
-        self.guild_id
-            .create_role(&self.discord_client, |edit| {
-                edit.name(definition.name)
-                    .permissions(definition.permissions)
-                    .colour(definition.colour as u64)
-                    .hoist(definition.hoist)
-                    .mentionable(definition.mentionable)
-            })
-            .await?;
-
-        Ok(())
-    }
-
-    #[tracing::instrument(skip_all)]
-    pub async fn get_roles(&self) -> Result<Vec<Role>> {
-        tracing::trace!("get roles");
-        Ok(self
-            .guild_id
-            .roles(&self.discord_client)
-            .await?
-            .into_values()
-            .collect())
-    }
-
-    #[tracing::instrument(skip_all, fields(
-        role = ?role,
-        definition = ?definition,
-    ))]
-    async fn edit_role(&self, role: &Role, definition: &RoleDefinition) -> Result<()> {
-        tracing::trace!("edit role called");
-        let definition = definition.clone();
-        self.guild_id
-            .edit_role(&self.discord_client, role.id.0, |edit| {
-                edit.name(definition.name)
-                    .permissions(definition.permissions)
-                    .colour(definition.colour as u64)
-                    .hoist(definition.hoist)
-                    .mentionable(definition.mentionable)
-            })
-            .await?;
-        Ok(())
-    }
-
-    #[tracing::instrument(skip_all, fields(
-        role = ?role,
-    ))]
-    async fn delete_role(&self, role: &Role) -> Result<()> {
-        tracing::trace!("delete role called");
-        self.guild_id
-            .delete_role(&self.discord_client, role.id.0)
-            .await?;
-        Ok(())
-    }
-}
-
-impl Bot {
-    pub async fn update_role_cache(&self) -> Result<()> {
-        tracing::trace!("update local role cache");
-        let roles = self.get_roles().await?;
-        let mut guard = self.role_cache.write().await;
-        *guard = Some(roles);
-        Ok(())
-    }
-
-    #[tracing::instrument(skip_all)]
-    pub async fn get_roles_cached(&self) -> Result<Vec<Role>> {
-        tracing::trace!("get roles cached");
-        let guard = self.role_cache.read().await;
-        match guard.as_ref() {
-            Some(roles) => Ok(roles.clone()),
-            None => Err(anyhow::anyhow!("role cache is not found")),
+    pub fn is_team_role(&self, role: &Role) -> bool {
+        for team in &self.teams {
+            if team.role_name == role.name {
+                return true;
+            }
         }
-    }
-
-    #[tracing::instrument(skip_all)]
-    pub async fn get_role_map_cached(&self) -> Result<HashMap<String, Role>> {
-        tracing::trace!("get role map cached");
-        Ok(self
-            .get_roles_cached()
-            .await?
-            .into_iter()
-            .map(|role| (role.name.clone(), role))
-            .collect())
-    }
-
-    #[tracing::instrument(skip_all, fields(
-        name = ?name,
-    ))]
-    pub async fn find_roles_by_name_cached(&self, name: &str) -> Result<Vec<Role>> {
-        tracing::trace!("find role by name cached");
-        Ok(self
-            .get_roles_cached()
-            .await?
-            .into_iter()
-            .filter(|role| role.name == name)
-            .collect())
+        false
     }
 }
 
@@ -217,7 +107,7 @@ impl Bot {
             }
 
             tracing::debug!(?definition, "create role");
-            self.create_role(&definition).await?
+            self.create_role(&definition).await?;
         }
 
         tracing::debug!("delete not-defined roles");
