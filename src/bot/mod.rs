@@ -86,17 +86,17 @@ impl EventHandler for Bot {
         owner_id = ?guild.owner_id,
     ))]
     async fn guild_create(&self, _: Context, guild: Guild) {
-        tracing::debug!("guild_create called");
-
         if guild.id != self.guild_id {
-            tracing::info!("target guild is not for contest, skipped");
+            tracing::info!("Target guild is not for contest, skipping");
             return;
         }
 
+        tracing::info!("Updating role cache");
         if let Err(err) = self.update_role_cache().await {
             tracing::error!(?err, "failed to update role cache");
         }
 
+        tracing::info!("Syncing guild application commands");
         if let Err(err) = self.sync_guild_application_commands().await {
             tracing::error!(?err, "failed to sync guild application commands");
         }
@@ -109,7 +109,7 @@ impl EventHandler for Bot {
         user_name = ?_ready.user.name,
     ))]
     async fn ready(&self, _: Context, _ready: Ready) {
-        tracing::info!("bot is ready!");
+        tracing::info!("Syncing global application commands");
         if let Err(err) = self.sync_global_application_commands().await {
             tracing::error!(?err, "failed to sync global application commands")
         }

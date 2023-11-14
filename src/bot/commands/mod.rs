@@ -13,13 +13,11 @@ use crate::bot::*;
 
 impl Bot {
     pub async fn sync_global_application_commands(&self) -> Result<()> {
-        tracing::info!("sync global application commands");
-
-        tracing::debug!("sync ping command");
+        tracing::debug!("Syncing ping command");
         Command::create_global_application_command(&self.discord_client, Bot::create_ping_command)
             .await?;
 
-        tracing::debug!("sync join command");
+        tracing::debug!("Syncing join command");
         Command::create_global_application_command(&self.discord_client, Bot::create_join_command)
             .await?;
 
@@ -27,8 +25,6 @@ impl Bot {
     }
 
     pub async fn sync_guild_application_commands(&self) -> Result<()> {
-        tracing::info!("sync guild application commands");
-
         tracing::debug!("sync archive command");
         self.guild_id
             .create_application_command(&self.discord_client, Bot::create_archive_command)
@@ -39,7 +35,7 @@ impl Bot {
             .create_application_command(&self.discord_client, Bot::create_ask_command)
             .await?;
 
-        tracing::debug!("sync recreate command");
+        tracing::debug!("sync redeploy command");
         self.guild_id
             .create_application_command(&self.discord_client, Bot::create_redeploy_command)
             .await?;
