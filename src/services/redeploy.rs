@@ -3,12 +3,21 @@ use async_trait::async_trait;
 use reqwest::Client;
 use reqwest::ClientBuilder;
 use reqwest::StatusCode;
+use serde::Deserialize;
+use serde::Serialize;
 use serenity::http::Http;
 use serenity::model::prelude::Embed;
 use serenity::model::webhook::Webhook;
 use serenity::utils::Colour;
 
-type RedeployResult = Result<String, RedeployError>;
+#[derive(Debug)]
+pub struct RedeployJob {
+    pub id: String,
+    pub team_id: String,
+    pub problem_code: String,
+}
+
+type RedeployResult = Result<RedeployJob, RedeployError>;
 
 #[async_trait]
 pub trait RedeployService {
@@ -32,8 +41,16 @@ pub enum RedeployError {
     InvalidParameters,
     #[error("another job is in queue")]
     AnotherJobInQueue(String),
+
+    // serde_jsonでserialize/deserializeに失敗した時に出るエラー
+    #[error("serde_json error: {0}")]
+    Json(#[from] serde_json::Error),
+
+    // reqwestでHTTP接続に失敗した時に出るエラー
     #[error("reqwest error: {0}")]
     Reqwest(#[from] reqwest::Error),
+
+    // なんだかよくわからないエラー
     #[error("unexpected error occured: {0}")]
     Unexpected(#[from] Box<dyn std::error::Error + Send + Sync + 'static>),
 }
@@ -59,10 +76,17 @@ impl RState {
     }
 }
 
-#[derive(Debug, serde::Serialize)]
-struct DefaultRedeployServiceRedeployRequest<'a> {
+#[derive(Debug, Serialize)]
+struct RStatePostJobRequest<'a> {
     team_id: &'a str,
     prob_id: &'a str,
+}
+
+#[derive(Debug, Deserialize)]
+struct RStatePostJobResponse {
+    id: String,
+    team_id: String,
+    prob_id: String,
 }
 
 #[async_trait]
@@ -74,7 +98,7 @@ impl RedeployService for RState {
         let response = self
             .client
             .post(format!("{}/admin/postJob", self.config.baseurl))
-            .form(&DefaultRedeployServiceRedeployRequest {
+            .form(&RStatePostJobRequest {
                 team_id: &target.team_id,
                 prob_id: &target.problem_id,
             })
@@ -84,9 +108,14 @@ impl RedeployService for RState {
 
         match response.status() {
             StatusCode::OK => {
-                let url = String::from_utf8(response.bytes().await?.to_vec())
-                    .map_err(|err| RedeployError::Unexpected(Box::new(err)))?;
-                Ok(url)
+                let response: RStatePostJobResponse =
+                    serde_json::from_slice(response.bytes().await?.as_ref())?;
+
+                Ok(RedeployJob {
+                    id: response.id,
+                    team_id: response.team_id,
+                    problem_code: response.prob_id,
+                })
             },
             StatusCode::BAD_REQUEST => {
                 let data = String::from_utf8(response.bytes().await?.to_vec())
@@ -109,10 +138,14 @@ pub struct FakeRedeployService;
 
 #[async_trait]
 impl RedeployService for FakeRedeployService {
-    #[tracing::instrument(skip_all, fields(target = ?_target))]
-    async fn redeploy(&self, _target: &RedeployTarget) -> RedeployResult {
+    #[tracing::instrument(skip_all, fields(target = ?target))]
+    async fn redeploy(&self, target: &RedeployTarget) -> RedeployResult {
         tracing::info!("redeploy request received");
-        Ok(String::from("https://example.com"))
+        Ok(RedeployJob {
+            id: String::from("00000000-0000-0000-0000-000000000000"),
+            team_id: target.team_id.clone(),
+            problem_code: target.problem_id.clone(),
+        })
     }
 }
 
@@ -146,15 +179,15 @@ impl RedeployNotifier for DiscordRedeployNotifier {
 impl DiscordRedeployNotifier {
     async fn _notify(&self, target: &RedeployTarget, result: &RedeployResult) -> Result<()> {
         let embed = match result {
-            Ok(url) => Embed::fake(|e| {
-                e.title("AAA")
+            Ok(job) => Embed::fake(|e| {
+                e.title("再展開開始通知")
                     .colour(Colour::from_rgb(40, 167, 65))
                     .field("チームID", &target.team_id, true)
                     .field("問題コード", &target.problem_id, true)
-                    .field("再展開進捗URL", url, true)
+                    .field("再展開Job ID", &job.id, true)
             }),
             Err(err) => Embed::fake(|e| {
-                e.title("AAA")
+                e.title("再展開失敗通知")
                     .colour(Colour::from_rgb(236, 76, 82))
                     .field("チームID", &target.team_id, true)
                     .field("問題コード", &target.problem_id, true)
