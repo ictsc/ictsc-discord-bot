@@ -40,6 +40,7 @@ fn build_redeploy_service(
             baseurl: rstate.baseurl.clone(),
             username: rstate.username.clone(),
             password: rstate.password.clone(),
+            problems: config.problems.clone(),
         })?),
         RedeployServiceConfiguration::Fake => Box::new(FakeRedeployService),
     })
