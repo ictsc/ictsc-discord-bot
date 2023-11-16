@@ -3,6 +3,7 @@ use std::time::Duration;
 use anyhow::Result;
 use serenity::builder::CreateApplicationCommand;
 use serenity::builder::CreateComponents;
+use serenity::model::application::interaction::application_command::CommandDataOption;
 use serenity::model::prelude::application_command::ApplicationCommandInteraction;
 use serenity::model::prelude::command::CommandOptionType;
 use serenity::model::prelude::component::ButtonStyle;
@@ -25,6 +26,9 @@ enum RedeployCommandError<'a> {
     // /redeployコマンドの使用者のチームが解決できない時に発生するエラー
     #[error("予期しないエラーが発生しました。運営にお問い合わせください。")]
     UnexpectedSenderTeamsError,
+
+    #[error("予期しないエラーが発生しました。運営にお問い合わせください。")]
+    InconsistentCommandDefinitionError,
 
     #[error("予期しないエラーが発生しました。")]
     HelperError(#[from] HelperError),
@@ -55,13 +59,25 @@ impl Bot {
     ) -> &mut CreateApplicationCommand {
         command
             .name("redeploy")
-            .description("問題環境を再展開します。")
+            .description("問題環境の再展開に関するコマンド")
             .create_option(|option| {
                 option
-                    .name("problem_code")
-                    .description("問題コード")
-                    .kind(CommandOptionType::String)
-                    .required(true)
+                    .name("start")
+                    .description("問題環境を再展開します。")
+                    .kind(CommandOptionType::SubCommand)
+                    .create_sub_option(|option| {
+                        option
+                            .name("problem_code")
+                            .description("問題コード")
+                            .kind(CommandOptionType::String)
+                            .required(true)
+                    })
+            })
+            .create_option(|option| {
+                option
+                    .name("status")
+                    .description("現在の再展開状況を表示します。")
+                    .kind(CommandOptionType::SubCommand)
             })
     }
 
@@ -70,7 +86,49 @@ impl Bot {
         ctx: &Context,
         interaction: &ApplicationCommandInteraction,
     ) -> Result<()> {
-        let problem = match self.validate_redeploy_command(interaction) {
+        if let Err(err) = self._handle_redeploy_command(ctx, interaction).await {
+            tracing::error!(?err, "failed to handle redeploy command");
+            self.edit_response(interaction, |data| {
+                data.content(err.to_string()).components(|c| c)
+            })
+            .await?;
+        }
+
+        Ok(())
+    }
+
+    async fn _handle_redeploy_command(
+        &self,
+        ctx: &Context,
+        interaction: &ApplicationCommandInteraction,
+    ) -> RedeployCommandResult<()> {
+        let subcommand = interaction
+            .data
+            .options
+            .first()
+            .ok_or(RedeployCommandError::InconsistentCommandDefinitionError)?;
+
+        if subcommand.kind != CommandOptionType::SubCommand {
+            return Err(RedeployCommandError::InconsistentCommandDefinitionError);
+        }
+
+        Ok(match subcommand.name.as_str() {
+            "start" => {
+                self.handle_redeploy_start_subcommand(ctx, interaction, subcommand)
+                    .await?
+            },
+            "status" => {},
+            _ => return Err(RedeployCommandError::InconsistentCommandDefinitionError),
+        })
+    }
+
+    async fn handle_redeploy_start_subcommand(
+        &self,
+        ctx: &Context,
+        interaction: &ApplicationCommandInteraction,
+        option: &CommandDataOption,
+    ) -> RedeployCommandResult<()> {
+        let problem = match self.validate_redeploy_start_subcommand(option) {
             Ok(problem) => problem,
             Err(err) => {
                 self.respond(interaction, |data| {
@@ -83,7 +141,10 @@ impl Bot {
 
         self.defer_response(interaction).await?;
 
-        if let Err(err) = self.do_redeploy_command(ctx, interaction, problem).await {
+        if let Err(err) = self
+            .do_redeploy_start_subcommand(ctx, interaction, problem)
+            .await
+        {
             tracing::error!(?err, "failed to do redeploy command");
             self.edit_response(interaction, |data| {
                 data.content(err.to_string()).components(|c| c)
@@ -94,11 +155,13 @@ impl Bot {
         Ok(())
     }
 
-    fn validate_redeploy_command<'t>(
+    fn validate_redeploy_start_subcommand<'t>(
         &self,
-        interaction: &'t ApplicationCommandInteraction,
+        option: &'t CommandDataOption,
     ) -> RedeployCommandResult<'t, &Problem> {
-        let problem_code = self.get_option_as_str(interaction, "problem_code").unwrap();
+        let problem_code = self
+            .get_option_as_str(&option.options, "problem_code")
+            .unwrap();
 
         let problem = self
             .problems
@@ -109,7 +172,7 @@ impl Bot {
     }
 
     // TODO: いろいろガバガバなので修正する
-    async fn do_redeploy_command(
+    async fn do_redeploy_start_subcommand(
         &self,
         ctx: &Context,
         interaction: &ApplicationCommandInteraction,

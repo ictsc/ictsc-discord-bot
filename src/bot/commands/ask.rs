@@ -85,7 +85,9 @@ impl Bot {
             _ => return Err(AskCommandError::InvalidChannelTypeError),
         };
 
-        let title = self.get_option_as_str(interaction, "title").unwrap();
+        let title = self
+            .get_option_as_str(&interaction.data.options, "title")
+            .unwrap();
 
         // 可読性や識別性から、質問タイトルは32文字以内に制限している。
         if title.chars().count() > 32 {

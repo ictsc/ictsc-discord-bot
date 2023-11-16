@@ -78,7 +78,7 @@ impl Bot {
         }
 
         let invitation_code = self
-            .get_option_as_str(interaction, "invitation_code")
+            .get_option_as_str(&interaction.data.options, "invitation_code")
             .unwrap();
 
         self.find_role_name_by_invitation_code(invitation_code)

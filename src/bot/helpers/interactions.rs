@@ -1,5 +1,6 @@
 use serenity::builder::CreateInteractionResponseData;
 use serenity::builder::EditInteractionResponse;
+use serenity::model::application::interaction::application_command::CommandDataOption;
 use serenity::model::prelude::application_command::ApplicationCommandInteraction;
 use serenity::model::prelude::message_component::MessageComponentInteraction;
 use serenity::model::prelude::*;
@@ -126,10 +127,10 @@ impl Bot {
 
     pub fn get_option_as_str<'t>(
         &self,
-        interaction: &'t ApplicationCommandInteraction,
+        options: &'t [CommandDataOption],
         name: &str,
     ) -> Option<&'t str> {
-        for option in &interaction.data.options {
+        for option in options {
             if option.name == name {
                 return option.value.as_ref().and_then(|v| v.as_str());
             }
