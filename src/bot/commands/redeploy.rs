@@ -8,11 +8,13 @@ use serenity::model::prelude::application_command::ApplicationCommandInteraction
 use serenity::model::prelude::command::CommandOptionType;
 use serenity::model::prelude::component::ButtonStyle;
 use serenity::model::prelude::component::ComponentType;
+use serenity::model::user::User;
 use serenity::prelude::*;
 
 use crate::bot::helpers::HelperError;
 use crate::bot::Bot;
 use crate::models::Problem;
+use crate::models::Team;
 use crate::services::redeploy::RedeployTarget;
 
 const CUSTOM_ID_REDEPLOY_CONFIRM: &str = "redeploy_confirm";
@@ -117,11 +119,33 @@ impl Bot {
                 self.handle_redeploy_start_subcommand(ctx, interaction, subcommand)
                     .await?
             },
-            "status" => {},
+            "status" => self.handle_redeploy_status_subcommand(interaction).await?,
             _ => return Err(RedeployCommandError::InconsistentCommandDefinitionError),
         })
     }
 
+    async fn get_team_for(&self, user: &User) -> RedeployCommandResult<Team> {
+        let member = self.get_member(&user).await?;
+
+        for role_id in member.roles {
+            let role = self.find_roles_by_id_cached(role_id).await.unwrap();
+            match role {
+                Some(role) => {
+                    for team in &self.teams {
+                        if role.name == team.role_name {
+                            return Ok(team.clone());
+                        }
+                    }
+                },
+                None => (),
+            }
+        }
+
+        Err(RedeployCommandError::UnexpectedSenderTeamsError)
+    }
+}
+
+impl Bot {
     async fn handle_redeploy_start_subcommand(
         &self,
         ctx: &Context,
@@ -145,11 +169,8 @@ impl Bot {
             .do_redeploy_start_subcommand(ctx, interaction, problem)
             .await
         {
-            tracing::error!(?err, "failed to do redeploy command");
-            self.edit_response(interaction, |data| {
-                data.content(err.to_string()).components(|c| c)
-            })
-            .await?;
+            tracing::error!(?err, "failed to do redeploy start subcommand");
+            return Err(err);
         }
 
         Ok(())
@@ -171,7 +192,6 @@ impl Bot {
         problem.ok_or(RedeployCommandError::InvalidProblemCodeError(problem_code))
     }
 
-    // TODO: いろいろガバガバなので修正する
     async fn do_redeploy_start_subcommand(
         &self,
         ctx: &Context,
@@ -179,30 +199,7 @@ impl Bot {
         problem: &Problem,
     ) -> RedeployCommandResult<()> {
         let sender = &interaction.user;
-        let sender_member = self.get_member(&sender).await?;
-
-        let mut sender_teams = Vec::new();
-        for role_id in sender_member.roles {
-            let role = self.find_roles_by_id_cached(role_id).await.unwrap();
-            match role {
-                Some(role) => {
-                    for team in &self.teams {
-                        if role.name == team.role_name {
-                            sender_teams.push(team);
-                        }
-                    }
-                },
-                None => (),
-            }
-        }
-
-        // /joinコマンドの制約上、ユーザは高々1つのチームにしか所属しないはずである。
-        // また、/redeployはGuildでのみ使用可能なため、チームに所属していないユーザは使用できない。
-        if sender_teams.len() != 1 {
-            return Err(RedeployCommandError::UnexpectedSenderTeamsError);
-        }
-
-        let sender_team = sender_teams.first().unwrap();
+        let sender_team = self.get_team_for(sender).await?;
 
         self.edit_response(interaction, |data| {
             // TODO: チーム名にする
@@ -278,6 +275,69 @@ impl Bot {
         for notifier in &self.redeploy_notifiers {
             notifier.notify(&target, &result).await;
         }
+
+        Ok(())
+    }
+}
+
+impl Bot {
+    async fn handle_redeploy_status_subcommand(
+        &self,
+        interaction: &ApplicationCommandInteraction,
+    ) -> RedeployCommandResult<()> {
+        self.defer_response(interaction).await?;
+
+        if let Err(err) = self.do_redeploy_status_subcommand(interaction).await {
+            tracing::error!(?err, "failed to do redeploy status subcommand");
+            return Err(err);
+        }
+
+        Ok(())
+    }
+
+    async fn do_redeploy_status_subcommand(
+        &self,
+        interaction: &ApplicationCommandInteraction,
+    ) -> RedeployCommandResult<()> {
+        let sender = &interaction.user;
+        let sender_team = self.get_team_for(sender).await?;
+
+        let statuses = self
+            .redeploy_service
+            .get_status(&sender_team.id)
+            .await
+            .unwrap();
+
+        let no_deploys = statuses
+            .iter()
+            .all(|status| status.last_redeploy_started_at.is_none());
+
+        if no_deploys {
+            self.edit_response(interaction, |data| {
+                data.content("まだ再展開は実行されていません。")
+            })
+            .await?;
+        }
+
+        self.edit_response(interaction, |data| {
+            data.embed(|e| {
+                e.title("再展開状況");
+                // TODO: 再展開状況はいい感じに表示する。今日はもう疲れた。
+                for status in &statuses {
+                    if status.last_redeploy_started_at.is_none() {
+                        continue;
+                    }
+
+                    e.field(
+                        &status.problem_code,
+                        format!("{}", status.is_redeploying),
+                        false,
+                    );
+                }
+                e
+            })
+        })
+        .await?;
 
         Ok(())
     }
