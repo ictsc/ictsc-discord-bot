@@ -1,22 +1,20 @@
-VERSION := $(shell git rev-parse --short HEAD)
+NAME ?= ictsc-discord-bot
+
+IMAGE_TAG ?= latest
+IMAGE ?= ghcr.io/ictsc/ictsc-discord-bot:$(IMAGE_TAG)
+
+DOCKER_ARGS ?= --name $(NAME) -v "$(shell pwd)/bot.yaml:/bot.yaml"
 
 all:
 
-precommit: fmt fix
-
-fmt:
-	cargo fmt
-
-fix:
-	cargo fix --allow-dirty --allow-staged
-
+.PHONY: build
 build:
-	DOCKER_BUILDKIT=1 docker build -t ictsc/ictsc-discord-bot:${VERSION} .
+	DOCKER_BUILDKIT=1 docker build -t $(IMAGE) .
 
-run:
-	docker run --name ictsc-discord-bot -itd -v $(shell pwd)/bot.yaml:/bot.yaml:ro -e RUST_LOG=bot=debug,info ictsc/ictsc-discord-bot:${VERSION} -f /bot.yaml start
+.PHONY: start
+start:
+	DOCKER_BUILDKIT=1 docker run -d $(DOCKER_ARGS) $(IMAGE) -f /bot.yaml start
 
-rm:
-	docker rm -f kana
-
-.PHONY: precommit fmt fix build run rm
+.PHONY: start
+stop:
+	DOCKER_BUILDKIT=1 docker rm -f $(NAME)
