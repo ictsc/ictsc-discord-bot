@@ -1,7 +1,13 @@
+use anyhow::Result;
 use bot::config::Configuration;
+use bot::config::RedeployNotifiersConfiguration;
+use bot::config::RedeployServiceConfiguration;
 use bot::services::redeploy::DiscordRedeployNotifier;
 use bot::services::redeploy::FakeRedeployService;
+use bot::services::redeploy::RState;
+use bot::services::redeploy::RStateConfig;
 use bot::services::redeploy::RedeployNotifier;
+use bot::services::redeploy::RedeployService;
 use bot::Bot;
 use clap::Parser;
 use clap::Subcommand;
@@ -26,6 +32,36 @@ enum Commands {
     DeleteCommands,
 }
 
+fn build_redeploy_service(
+    config: &Configuration,
+) -> Result<Box<dyn RedeployService + Send + Sync>> {
+    Ok(match &config.redeploy.service {
+        RedeployServiceConfiguration::Rstate(rstate) => Box::new(RState::new(RStateConfig {
+            baseurl: rstate.baseurl.clone(),
+            username: rstate.username.clone(),
+            password: rstate.password.clone(),
+        })?),
+        RedeployServiceConfiguration::Fake => Box::new(FakeRedeployService),
+    })
+}
+
+async fn build_redeploy_notifiers(
+    config: &Configuration,
+) -> Result<Vec<Box<dyn RedeployNotifier + Send + Sync>>> {
+    let mut notifiers: Vec<Box<dyn RedeployNotifier + Send + Sync>> = Vec::new();
+    for notifier_config in &config.redeploy.notifiers {
+        match notifier_config {
+            RedeployNotifiersConfiguration::Discord(discord) => {
+                notifiers.push(Box::new(
+                    DiscordRedeployNotifier::new(&config.discord.token, &discord.webhook_url)
+                        .await?,
+                ));
+            },
+        }
+    }
+    Ok(notifiers)
+}
+
 #[tokio::main]
 async fn main() {
     tracing_subscriber::fmt::init();
@@ -34,28 +70,25 @@ async fn main() {
     let config = match Configuration::load(args.config) {
         Ok(config) => config,
         Err(err) => {
-            tracing::error!("couldn't read config file: {:?}", err);
+            tracing::error!(?err, "couldn't read config file");
             return;
         },
     };
 
-    let redeploy_service = FakeRedeployService;
-
-    let mut redeploy_notifiers: Vec<Box<dyn RedeployNotifier + Send + Sync>> = Vec::new();
-
-    match config.redeploy.notifiers.discord {
-        Some(notifier_config) => {
-            match DiscordRedeployNotifier::new(&config.discord.token, &notifier_config.webhook_url)
-                .await
-            {
-                Ok(notifier) => redeploy_notifiers.push(Box::new(notifier)),
-                Err(err) => {
-                    tracing::error!("couldn't instantiate DiscordRedeployNotifier: {:?}", err);
-                    return;
-                },
-            }
+    let redeploy_service = match build_redeploy_service(&config) {
+        Ok(service) => service,
+        Err(err) => {
+            tracing::error!(?err, "couldn't instantiate redeploy service");
+            return;
         },
-        None => (),
+    };
+
+    let redeploy_notifiers = match build_redeploy_notifiers(&config).await {
+        Ok(notifiers) => notifiers,
+        Err(err) => {
+            tracing::error!("couldn't instantiate DiscordRedeployNotifier: {:?}", err);
+            return;
+        },
     };
 
     let bot = Bot::new(
@@ -65,7 +98,7 @@ async fn main() {
         config.staff.password,
         config.teams,
         config.problems,
-        Box::new(redeploy_service),
+        redeploy_service,
         redeploy_notifiers,
     );
 
