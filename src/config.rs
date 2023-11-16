@@ -11,7 +11,7 @@ use crate::models::Team;
 pub struct Configuration {
     pub staff: StaffConfiguration,
     pub discord: DiscordConfiguration,
-    pub redeploy: RedeployServiceConfiguration,
+    pub redeploy: RedeployConfiguration,
 
     #[serde(default)]
     pub teams: Vec<Team>,
@@ -41,17 +41,30 @@ pub struct DiscordConfiguration {
 }
 
 #[derive(Debug, Deserialize)]
-pub struct RedeployServiceConfiguration {
-    pub baseurl: String,
-    pub username: String,
-    pub password: String,
-
-    pub notifiers: RedeployNotifiersConfiguration,
+pub struct RedeployConfiguration {
+    #[serde(flatten)]
+    pub service: RedeployServiceConfiguration,
+    pub notifiers: Vec<RedeployNotifiersConfiguration>,
 }
 
 #[derive(Debug, Deserialize)]
-pub struct RedeployNotifiersConfiguration {
-    pub discord: Option<DiscordRedeployNotifierConfiguration>,
+#[serde(rename_all = "snake_case")]
+pub enum RedeployServiceConfiguration {
+    Rstate(RstateRedeployServiceConfiguration),
+    Fake,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct RstateRedeployServiceConfiguration {
+    pub baseurl: String,
+    pub username: String,
+    pub password: String,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum RedeployNotifiersConfiguration {
+    Discord(DiscordRedeployNotifierConfiguration),
 }
 
 #[derive(Debug, Deserialize)]

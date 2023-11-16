@@ -3,7 +3,7 @@ NAME ?= ictsc-discord-bot
 IMAGE_TAG ?= latest
 IMAGE ?= ghcr.io/ictsc/ictsc-discord-bot:$(IMAGE_TAG)
 
-DOCKER_ARGS ?= --name $(NAME) -v "$(shell pwd)/bot.yaml:/bot.yaml"
+DOCKER_ARGS ?= -v "$(shell pwd)/bot.yaml:/bot.yaml" --net host --env RUST_LOG=info,bot=debug
 
 all:
 
@@ -13,8 +13,17 @@ build:
 
 .PHONY: start
 start:
-	DOCKER_BUILDKIT=1 docker run -d $(DOCKER_ARGS) $(IMAGE) -f /bot.yaml start
+	docker run -d --name $(NAME) $(DOCKER_ARGS) $(IMAGE) -f /bot.yaml start
 
-.PHONY: start
+.PHONY: sync-channels sync-roles
+sync-channels sync-roles:
+	docker run -it $(DOCKER_ARGS) $(IMAGE) -f /bot.yaml $@
+
+.PHONY: stop
 stop:
-	DOCKER_BUILDKIT=1 docker rm -f $(NAME)
+	docker rm -f $(NAME)
+
+.PHONY: logs
+logs:
+	docker logs -f $(NAME)
+
