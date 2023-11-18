@@ -125,12 +125,15 @@ impl RedeployService for RState {
     async fn redeploy(&self, target: &RedeployTarget) -> RedeployResult<RedeployJob> {
         tracing::info!("redeploy request received");
 
+        // RStateでは、問題コードは小文字で取り扱う必要がある。
+        let problem_id = target.problem_id.to_lowercase();
+
         let response = self
             .client
             .post(format!("{}/admin/postJob", self.config.baseurl))
             .form(&RStatePostJobRequest {
                 team_id: &target.team_id,
-                prob_id: &target.problem_id,
+                prob_id: &problem_id,
             })
             .basic_auth(&self.config.username, Some(&self.config.password))
             .send()
@@ -169,11 +172,13 @@ impl RedeployService for RState {
 
         let mut statuses = Vec::new();
         for problem in &self.config.problems {
+            // RStateでは、問題コードは小文字で取り扱う必要がある。
+            let problem_code = problem.code.to_lowercase();
             let response = self
                 .client
                 .get(format!(
                     "{}/backend/{}/{}",
-                    self.config.baseurl, team_id, problem.code
+                    self.config.baseurl, team_id, problem_code
                 ))
                 .send()
                 .await?;
