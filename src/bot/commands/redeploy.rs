@@ -322,17 +322,34 @@ impl Bot {
         self.edit_response(interaction, |data| {
             data.embed(|e| {
                 e.title("再展開状況");
-                // TODO: 再展開状況はいい感じに表示する。今日はもう疲れた。
                 for status in &statuses {
-                    if status.last_redeploy_started_at.is_none() {
-                        continue;
-                    }
+                    let started_at = match status.last_redeploy_started_at {
+                        Some(started_at) => started_at,
+                        None => continue,
+                    };
 
-                    e.field(
-                        &status.problem_code,
-                        format!("{}", status.is_redeploying),
-                        false,
-                    );
+                    let name = &status.problem_code;
+
+                    let value = match status.last_redeploy_completed_at {
+                        Some(completed_at) => {
+                            let completed_at_local =
+                                completed_at.with_timezone(&chrono_tz::Asia::Tokyo);
+                            format!(
+                                "🎉 再展開完了（完了時刻：{}）",
+                                completed_at_local.format("%Y/%m/%d %H:%M:%S")
+                            )
+                        },
+                        None => {
+                            let started_at_local =
+                                started_at.with_timezone(&chrono_tz::Asia::Tokyo);
+                            format!(
+                                "⚙️ 再展開中（開始時刻：{}）",
+                                started_at_local.format("%Y/%m/%d %H:%M:%S")
+                            )
+                        },
+                    };
+
+                    e.field(name, value, false);
                 }
                 e
             })

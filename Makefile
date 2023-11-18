@@ -3,7 +3,7 @@ NAME ?= ictsc-discord-bot
 IMAGE_TAG ?= latest
 IMAGE ?= ghcr.io/ictsc/ictsc-discord-bot:$(IMAGE_TAG)
 
-DOCKER_ARGS ?= -v "$(shell pwd)/bot.yaml:/bot.yaml" --net host --env RUST_LOG=info,bot=debug
+DOCKER_ARGS ?= -v "$(shell pwd)/bot.yaml:/bot.yaml" --net host --env RUST_LOG=info,bot=trace
 
 all:
 
