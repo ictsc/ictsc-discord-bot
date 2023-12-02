@@ -274,6 +274,7 @@ impl Bot {
                 },
 
                 _ => {
+                    tracing::error!(?err, "failed to redeploy");
                     self.edit_response(component_interaction, |response| {
                         response
                             .content("再展開中にエラーが発生しました。運営にお問い合わせください。")
