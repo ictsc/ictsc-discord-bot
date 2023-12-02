@@ -9,6 +9,8 @@ pub struct GuildChannelDefinition {
     pub name: String,
     pub kind: ChannelType,
     #[builder(default)]
+    pub topic: Option<String>,
+    #[builder(default)]
     pub category: Option<ChannelId>,
     #[builder(default)]
     pub permissions: Vec<PermissionOverwrite>,
@@ -30,6 +32,11 @@ impl Bot {
                     .name(definition.name)
                     .kind(definition.kind)
                     .permissions(definition.permissions);
+
+                match definition.topic {
+                    Some(topic) => channel.topic(topic),
+                    None => channel,
+                };
 
                 match definition.category {
                     Some(category_id) => channel.category(category_id),
@@ -77,7 +84,12 @@ impl Bot {
             .edit(&self.discord_client, |edit| {
                 edit.name(&definition.name)
                     .category(definition.category)
-                    .permissions(definition.permissions.clone())
+                    .permissions(definition.permissions.clone());
+
+                match &definition.topic {
+                    Some(topic) => edit.topic(topic),
+                    None => edit,
+                }
             })
             .await?)
     }

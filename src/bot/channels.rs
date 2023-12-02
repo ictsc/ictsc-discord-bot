@@ -6,6 +6,7 @@ use serenity::model::prelude::*;
 use crate::bot::helpers::channels::GuildChannelDefinition;
 use crate::bot::helpers::channels::GuildChannelDefinitionBuilder;
 use crate::bot::Bot;
+use crate::models::Team;
 
 static STAFF_CATEGORY_NAME: &str = "ICTSC2023 Staff";
 
@@ -20,6 +21,25 @@ static RANDOM_CHANNEL_NAME: &str = "random";
 
 static TEXT_CHANNEL_NAME_SUFFIX: &str = "text";
 static VOICE_CHANNEL_NAME_SUFFIX: &str = "voice";
+
+impl Bot {
+    fn generate_team_channel_topic(team: &Team) -> String {
+        format!(
+            "**__踏み台サーバ__**
+
+ホスト名: {team_id}.bastion.ictsc.net
+ユーザ名: user
+パスワード: {invitation_code}
+
+**__スコアサーバ__**
+
+ユーザ登録URL: https://contest.ictsc.net/signup?invitation_code={invitation_code}&user_group_id={user_group_id}",
+            team_id = team.id,
+            invitation_code = team.invitation_code,
+            user_group_id = team.user_group_id,
+        )
+    }
+}
 
 impl Bot {
     #[tracing::instrument(skip_all)]
@@ -125,10 +145,12 @@ impl Bot {
                 .get_permission_overwrites_for_team_channel(team)
                 .await?;
 
+            let topic = Self::generate_team_channel_topic(team);
             channels.push(
                 GuildChannelDefinitionBuilder::default()
                     .name(format!("{}-{}", team.id, TEXT_CHANNEL_NAME_SUFFIX))
                     .kind(ChannelType::Text)
+                    .topic(Some(topic))
                     .category(Some(team_category_id))
                     .permissions(permissions_for_team_channel.clone())
                     .build()?,
@@ -237,6 +259,7 @@ impl Bot {
         channel.kind == definition.kind
             && channel.name == definition.name
             && channel.parent_id == definition.category
+            && channel.topic == definition.topic
             // Discordはpermission_overwritesを順不同で返すため、順序を無視して比較する
             && channel.permission_overwrites.iter().all(|overwrite| definition.permissions.contains(overwrite))
             && definition.permissions.iter().all(|permission| channel.permission_overwrites.contains(permission))
