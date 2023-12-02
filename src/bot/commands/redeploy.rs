@@ -246,7 +246,7 @@ impl Bot {
 
         if !should_recreate {
             self.edit_response(component_interaction, |response| {
-                response.content("再展開をやめました。")
+                response.content("再展開を中止しました。")
             })
             .await?;
             return Ok(());
