@@ -62,7 +62,7 @@ pub enum RedeployError {
     #[error("invalid parameters")]
     InvalidParameters,
     #[error("another job is in queue")]
-    AnotherJobInQueue,
+    AnotherJobInQueue(String),
 
     // serde_jsonでserialize/deserializeに失敗した時に出るエラー
     #[error("serde_json error: {0}")]
@@ -150,12 +150,16 @@ impl RedeployService for RState {
                     problem_code: response.prob_id,
                 })
             },
+            StatusCode::BAD_REQUEST => {
+                let data = String::from_utf8(response.bytes().await?.to_vec())
+                    .map_err(|err| RedeployError::Unexpected(Box::new(err)))?;
 
-            // ref: https://github.com/ictsc/rstate/blob/main/pkg/server/handler/status.go#L121-L124
-            StatusCode::BAD_REQUEST => Err(RedeployError::InvalidParameters),
+                if data == "BadRequest!" {
+                    return Err(RedeployError::InvalidParameters);
+                }
 
-            // ref: https://github.com/ictsc/rstate/blob/main/pkg/server/handler/status.go#L145C65-L148
-            StatusCode::CONFLICT => Err(RedeployError::AnotherJobInQueue),
+                Err(RedeployError::AnotherJobInQueue(data))
+            },
 
             _ => Err(RedeployError::Unexpected(
                 anyhow::anyhow!("unexpected status code: {}", response.status()).into(),
