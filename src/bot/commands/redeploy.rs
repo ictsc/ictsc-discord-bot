@@ -26,9 +26,16 @@ enum RedeployCommandError<'a> {
     #[error("問題コード `{0}` に対応する問題はありません。問題コードを再度お確かめください。")]
     InvalidProblemCodeError(&'a str),
 
+    #[error("問題 `{0}` 再展開は実行中です。再展開が完了してから再度お試しください。")]
+    AnotherJobInQueue(String),
+
     // /redeployコマンドの使用者のチームが解決できない時に発生するエラー
     #[error("予期しないエラーが発生しました。運営にお問い合わせください。")]
     UnexpectedSenderTeamsError,
+
+    // redeploy serviceからエラーが帰ってきた時に発生するエラー
+    #[error("予期しないエラーが発生しました。運営にお問い合わせください。")]
+    RedeployServiceError(#[from] RedeployError),
 
     #[error("予期しないエラーが発生しました。運営にお問い合わせください。")]
     InconsistentCommandDefinitionError,
@@ -201,6 +208,20 @@ impl Bot {
     ) -> RedeployCommandResult<()> {
         let sender = &interaction.user;
         let sender_team = self.get_team_for(sender).await?;
+
+        let redeploy_status = self.redeploy_service.get_status(&sender_team.id).await?;
+        let redeploy_job_exists = redeploy_status.iter().any(|status| {
+            // リクエストされた問題が既に再展開中か？
+            status.problem_code == problem.code
+                && status.last_redeploy_started_at.is_some()
+                && status.last_redeploy_completed_at.is_none()
+        });
+
+        if redeploy_job_exists {
+            return Err(RedeployCommandError::AnotherJobInQueue(
+                problem.name.clone(),
+            ));
+        }
 
         self.edit_response(interaction, |data| {
             // TODO: チーム名にする
