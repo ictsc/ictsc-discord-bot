@@ -266,11 +266,13 @@ impl Bot {
                 .await?;
             },
             Err(err) => match err {
-                RedeployError::AnotherJobInQueue(_) => {
+                RedeployError::AnotherJobInQueue => {
                     self.edit_response(component_interaction, |response| {
-                            response.content("再展開中の問題があります。他の問題の再展開が完了してから再度お試しください。")
-                        })
-                        .await?;
+                        response.content(
+                            "この問題は既に再展開リクエストが投げられています。再展開が完了してから再度お試しください。",
+                        )
+                    })
+                    .await?;
                 },
 
                 _ => {
