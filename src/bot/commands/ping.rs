@@ -11,6 +11,7 @@ impl Bot {
         command.name("ping").description("botの生存確認をします。")
     }
 
+    #[tracing::instrument(skip_all)]
     pub async fn handle_ping_command(
         &self,
         interaction: &ApplicationCommandInteraction,

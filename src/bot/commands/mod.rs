@@ -78,8 +78,6 @@ impl Bot {
 impl Bot {
     #[tracing::instrument(skip_all, fields(
         id = ?interaction.id,
-        application_id = ?interaction.application_id,
-        kind = ?interaction.kind,
         guild_id = ?interaction.guild_id,
         channel_id = ?interaction.channel_id,
         user_id = ?interaction.user.id,

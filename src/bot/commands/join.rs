@@ -40,6 +40,7 @@ impl Bot {
             })
     }
 
+    #[tracing::instrument(skip_all)]
     pub async fn handle_join_command(
         &self,
         interaction: &ApplicationCommandInteraction,

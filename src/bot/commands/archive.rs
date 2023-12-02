@@ -41,6 +41,7 @@ impl Bot {
         Ok(())
     }
 
+    #[tracing::instrument(skip_all)]
     async fn do_archive_command(
         &self,
         interaction: &ApplicationCommandInteraction,

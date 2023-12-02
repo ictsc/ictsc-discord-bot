@@ -38,6 +38,7 @@ impl Bot {
             })
     }
 
+    #[tracing::instrument(skip_all)]
     pub async fn handle_ask_command(
         &self,
         interaction: &ApplicationCommandInteraction,

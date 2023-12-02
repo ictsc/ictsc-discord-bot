@@ -123,7 +123,7 @@ struct RStateGetRedeployStatusResponse {
 impl RedeployService for RState {
     #[tracing::instrument(skip_all, fields(target = ?target))]
     async fn redeploy(&self, target: &RedeployTarget) -> RedeployResult<RedeployJob> {
-        tracing::info!("redeploy request received");
+        tracing::trace!("redeploy request received");
 
         // RStateでは、問題コードは小文字で取り扱う必要がある。
         let problem_id = target.problem_id.to_lowercase();
@@ -207,7 +207,7 @@ pub struct FakeRedeployService;
 impl RedeployService for FakeRedeployService {
     #[tracing::instrument(skip_all, fields(target = ?target))]
     async fn redeploy(&self, target: &RedeployTarget) -> RedeployResult<RedeployJob> {
-        tracing::info!("redeploy request received");
+        tracing::trace!("redeploy request received");
         Ok(RedeployJob {
             id: String::from("00000000-0000-0000-0000-000000000000"),
             team_id: target.team_id.clone(),

@@ -91,6 +91,7 @@ impl Bot {
             })
     }
 
+    #[tracing::instrument(skip_all)]
     pub async fn handle_redeploy_command(
         &self,
         ctx: &Context,
@@ -154,6 +155,7 @@ impl Bot {
 }
 
 impl Bot {
+    #[tracing::instrument(skip_all)]
     async fn handle_redeploy_start_subcommand(
         &self,
         ctx: &Context,
@@ -316,6 +318,7 @@ impl Bot {
 }
 
 impl Bot {
+    #[tracing::instrument(skip_all)]
     async fn handle_redeploy_status_subcommand(
         &self,
         interaction: &ApplicationCommandInteraction,
