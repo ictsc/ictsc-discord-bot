@@ -26,7 +26,7 @@ enum RedeployCommandError<'a> {
     #[error("問題コード `{0}` に対応する問題はありません。問題コードを再度お確かめください。")]
     InvalidProblemCodeError(&'a str),
 
-    #[error("問題 `{0}` 再展開は実行中です。再展開が完了してから再度お試しください。")]
+    #[error("問題 `{0}` の再展開は実行中です。再展開が完了してから再度お試しください。")]
     AnotherJobInQueue(String),
 
     // /redeployコマンドの使用者のチームが解決できない時に発生するエラー
