@@ -26,9 +26,6 @@ enum RedeployCommandError<'a> {
     #[error("問題コード `{0}` に対応する問題はありません。問題コードを再度お確かめください。")]
     InvalidProblemCodeError(&'a str),
 
-    #[error("再展開中にエラーが発生しました。運営にお問い合わせください。")]
-    UnhandledRedeployError(RedeployError),
-
     // /redeployコマンドの使用者のチームが解決できない時に発生するエラー
     #[error("予期しないエラーが発生しました。運営にお問い合わせください。")]
     UnexpectedSenderTeamsError,
@@ -268,22 +265,21 @@ impl Bot {
                 })
                 .await?;
             },
-            Err(err) => {
-                match err {
-                    RedeployError::AnotherJobInQueue(_) => {
-                        self.edit_response(component_interaction, |response| {
+            Err(err) => match err {
+                RedeployError::AnotherJobInQueue(_) => {
+                    self.edit_response(component_interaction, |response| {
                             response.content("再展開中の問題があります。他の問題の再展開が完了してから再度お試しください。")
                         })
                         .await?;
-                    },
+                },
 
-                    // 上記以外のエラーはシステムサイドで発生するエラーなので、errとして返す
-                    _ => {
-                        return Err(RedeployCommandError::UnhandledRedeployError(
-                            result.unwrap_err(),
-                        ));
-                    },
-                }
+                _ => {
+                    self.edit_response(component_interaction, |response| {
+                        response
+                            .content("再展開中にエラーが発生しました。運営にお問い合わせください。")
+                    })
+                    .await?;
+                },
             },
         };
 
