@@ -145,12 +145,15 @@ impl Bot {
                 .get_permission_overwrites_for_team_channel(team)
                 .await?;
 
-            let topic = Self::generate_team_channel_topic(team);
+            let topic = match self.configure_channel_topics {
+                true => Some(Self::generate_team_channel_topic(team)),
+                false => Some(String::new()),
+            };
             channels.push(
                 GuildChannelDefinitionBuilder::default()
                     .name(format!("{}-{}", team.id, TEXT_CHANNEL_NAME_SUFFIX))
                     .kind(ChannelType::Text)
-                    .topic(Some(topic))
+                    .topic(topic)
                     .category(Some(team_category_id))
                     .permissions(permissions_for_team_channel.clone())
                     .build()?,

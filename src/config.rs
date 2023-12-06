@@ -37,7 +37,9 @@ pub struct DiscordConfiguration {
     pub token: String,
     pub application_id: u64,
     pub guild_id: u64,
-    pub disabled_commands: Option<Vec<String>>,
+
+    #[serde(default)]
+    pub configure_channel_topics: bool,
 }
 
 #[derive(Debug, Deserialize)]
