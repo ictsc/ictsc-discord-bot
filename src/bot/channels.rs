@@ -33,7 +33,7 @@ impl Bot {
 
 **__スコアサーバ__**
 
-ユーザ登録URL: https://contest.ictsc.net/signup?invitation_code={invitation_code}&user_group_id={user_group_id}",
+ユーザ登録URL: https://scoreserver.ictsc.net/signUp?invitation_code={invitation_code}&user_group_id={user_group_id}",
             team_id = team.id,
             invitation_code = team.invitation_code,
             user_group_id = team.user_group_id,
