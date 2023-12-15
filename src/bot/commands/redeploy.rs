@@ -369,7 +369,13 @@ impl Bot {
                         None => continue,
                     };
 
-                    let name = &status.problem_code;
+                    let name = status.problem_code.clone();
+                    let problem_name = self
+                        .problems
+                        .iter()
+                        .find(|problem| problem.code == status.problem_code)
+                        .map(|problem| format!("{}: {}", name, problem.name))
+                        .unwrap_or_else(|| name);
 
                     let value = match status.last_redeploy_completed_at {
                         Some(completed_at) => {
@@ -390,7 +396,7 @@ impl Bot {
                         },
                     };
 
-                    e.field(name, value, false);
+                    e.field(problem_name, value, false);
                 }
                 e
             })
