@@ -194,10 +194,13 @@ impl Bot {
             .get_option_as_str(&option.options, "problem_code")
             .unwrap();
 
+        // スコアサーバーとの互換性のため、ここで大文字に正規化する
+        let normalized_problem_code = problem_code.to_uppercase();
+
         let problem = self
             .problems
             .iter()
-            .find(|problem| problem.code == problem_code);
+            .find(|problem| problem.code == normalized_problem_code);
 
         problem.ok_or(RedeployCommandError::InvalidProblemCodeError(problem_code))
     }
