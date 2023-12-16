@@ -13,7 +13,7 @@ impl Bot {
 
     // ICTSCスタッフに許可してよい権限
     pub fn get_permissions_for_staff(&self) -> Permissions {
-        Permissions::all()
+        Permissions::all() & Permissions::ADMINISTRATOR.complement()
     }
 
     // 参加者に許可してよい権限
@@ -48,6 +48,12 @@ impl Bot {
             | Permissions::USE_VAD
             | Permissions::USE_SLASH_COMMANDS
             | Permissions::SEND_MESSAGES_IN_THREADS
+    }
+
+    // team channelでstaffが誤爆しないための権限
+    pub fn get_deny_permissions_for_staff_in_team_channel(&self) -> Permissions {
+        Permissions::SEND_MESSAGES // 運営とのメッセージはスレッドでのみ行う。SEND_MESSAGES_IN_THREADSは許可している。
+            | Permissions::CONNECT // 運営はチームのボイスチャンネルに参加しない。
     }
 
     // announceチャンネルに設定されるポリシー
@@ -134,15 +140,30 @@ impl Bot {
     ) -> Result<Vec<PermissionOverwrite>> {
         tracing::trace!("get permission overrides for random channel");
 
+        let staff_roles = self
+            .find_roles_by_name_cached(roles::STAFF_ROLE_NAME)
+            .await?;
+
         let team_roles = self.find_roles_by_name_cached(&team.role_name).await?;
 
-        Ok(team_roles
-            .into_iter()
-            .map(|role| PermissionOverwrite {
+        let mut permission_overwrites: Vec<PermissionOverwrite> = Vec::new();
+
+        for staff_role in &staff_roles {
+            permission_overwrites.push(PermissionOverwrite {
+                allow: Permissions::empty(),
+                deny: self.get_deny_permissions_for_staff_in_team_channel(),
+                kind: PermissionOverwriteType::Role(staff_role.id),
+            });
+        }
+
+        for team_role in &team_roles {
+            permission_overwrites.push(PermissionOverwrite {
                 allow: self.get_permissions_for_team_channel_member(),
                 deny: Permissions::empty(),
-                kind: PermissionOverwriteType::Role(role.id),
-            })
-            .collect())
+                kind: PermissionOverwriteType::Role(team_role.id),
+            });
+        }
+
+        Ok(permission_overwrites)
     }
 }
