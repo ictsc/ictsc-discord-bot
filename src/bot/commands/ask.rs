@@ -128,6 +128,7 @@ impl Bot {
             .create_public_thread(guild_channel, &message, title)
             .await?;
 
+        // TODO: 直接メッセージを送信するな！！！
         channel
             .send_message(&self.discord_client, |data| {
                 data.content(format!("{}", staff_mentions.join(" ")))
