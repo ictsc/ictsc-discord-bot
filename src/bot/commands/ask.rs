@@ -118,11 +118,7 @@ impl Bot {
             .collect();
 
         self.edit_response(interaction, |data| {
-            data.content(format!(
-                "{} {} 質問内容を入力してください。",
-                sender_mention,
-                staff_mentions.join(" ")
-            ))
+            data.content(format!("{} 質問内容を入力してください。", sender_mention))
         })
         .await?;
 
