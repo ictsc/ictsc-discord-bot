@@ -18,6 +18,9 @@ enum AskCommandError {
 
     #[error("予期しないエラーが発生しました。")]
     HelperError(#[from] HelperError),
+
+    #[error("予期しないエラーが発生しました。")]
+    Serenity(#[from] serenity::Error),
 }
 
 type AskCommandResult<T> = std::result::Result<T, AskCommandError>;
@@ -125,7 +128,14 @@ impl Bot {
 
         let message = self.get_response(interaction).await?;
 
-        self.create_public_thread(guild_channel, &message, title)
+        let channel = self
+            .create_public_thread(guild_channel, &message, title)
+            .await?;
+
+        channel
+            .send_message(&self.discord_client, |data| {
+                data.content(format!("{}", staff_mentions.join(" ")))
+            })
             .await?;
 
         Ok(())
