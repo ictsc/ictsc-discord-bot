@@ -25,16 +25,9 @@ static VOICE_CHANNEL_NAME_SUFFIX: &str = "voice";
 impl Bot {
     fn generate_team_channel_topic(team: &Team) -> String {
         format!(
-            "**__踏み台サーバ__**
-
-ホスト名: {team_id}.bastion.ictsc.net
-ユーザ名: user
-パスワード: {invitation_code}
-
-**__スコアサーバ__**
+            "**__スコアサーバ__**
 
 ユーザ登録URL: https://scoreserver.ictsc.net/signUp?invitation_code={invitation_code}&user_group_id={user_group_id}",
-            team_id = team.id,
             invitation_code = team.invitation_code,
             user_group_id = team.user_group_id,
         )
