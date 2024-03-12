@@ -35,10 +35,10 @@ impl Bot {
             .create_application_command(&self.discord_client, Bot::create_ask_command)
             .await?;
 
-        tracing::debug!("sync redeploy command");
-        self.guild_id
-            .create_application_command(&self.discord_client, Bot::create_redeploy_command)
-            .await?;
+        // tracing::debug!("sync redeploy command");
+        // self.guild_id
+        //     .create_application_command(&self.discord_client, Bot::create_redeploy_command)
+        //     .await?;
 
         Ok(())
     }
@@ -85,7 +85,7 @@ impl Bot {
     ))]
     pub async fn handle_application_command(
         &self,
-        ctx: &Context,
+        _ctx: &Context,
         interaction: &ApplicationCommandInteraction,
     ) {
         let name = interaction.data.name.as_str();
@@ -95,7 +95,7 @@ impl Bot {
             "ask" => self.handle_ask_command(interaction).await,
             "join" => self.handle_join_command(interaction).await,
             "ping" => self.handle_ping_command(interaction).await,
-            "redeploy" => self.handle_redeploy_command(ctx, interaction).await,
+            // "redeploy" => self.handle_redeploy_command(ctx, interaction).await,
             _ => Err(anyhow::anyhow!("unknown command: {}", name)),
         };
 
