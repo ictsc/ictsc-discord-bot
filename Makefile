@@ -7,6 +7,10 @@ DOCKER_ARGS ?= -v "$(shell pwd)/bot.yaml:/bot.yaml" --net host --env RUST_LOG=in
 
 all:
 
+.PHONY: fmt
+fmt:
+	cargo +nightly fmt
+
 .PHONY: build
 build:
 	DOCKER_BUILDKIT=1 docker build -t $(IMAGE) .
