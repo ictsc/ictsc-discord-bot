@@ -6,7 +6,7 @@ use crate::bot::helpers::roles::RoleDefinitionBuilder;
 use crate::bot::Bot;
 
 pub static EVERYONE_ROLE_NAME: &str = "@everyone";
-pub static STAFF_ROLE_NAME: &str = "ICTSC2023 Staff";
+pub static STAFF_ROLE_NAME: &str = "ICTSC2024 Staff";
 
 static STAFF_ROLE_COLOUR: u32 = 14942278;
 
