@@ -15,15 +15,20 @@ build:
 start:
 	docker run -d --name $(NAME) $(DOCKER_ARGS) $(IMAGE) -f /bot.yaml start
 
-.PHONY: sync-channels sync-roles
-sync-channels sync-roles:
-	docker run -it $(DOCKER_ARGS) $(IMAGE) -f /bot.yaml $@
-
 .PHONY: stop
 stop:
 	docker rm -f $(NAME)
 
+.PHONY: sync
+sync: bot.yaml
+	docker run -it $(DOCKER_ARGS) $(IMAGE) -f /bot.yaml $@
+
+.PHONY: flush
+flush:
+	docker run -it $(DOCKER_ARGS) $(IMAGE) -f /bot.yaml delete-channels
+	docker run -it $(DOCKER_ARGS) $(IMAGE) -f /bot.yaml delete-roles
+	docker run -it $(DOCKER_ARGS) $(IMAGE) -f /bot.yaml delete-commands
+
 .PHONY: logs
 logs:
 	docker logs -f $(NAME)
-
