@@ -7,10 +7,11 @@ use reqwest::ClientBuilder;
 use reqwest::StatusCode;
 use serde::Deserialize;
 use serde::Serialize;
+use serenity::all::Colour;
+use serenity::all::CreateEmbed;
+use serenity::all::ExecuteWebhook;
 use serenity::http::Http;
-use serenity::model::prelude::Embed;
 use serenity::model::webhook::Webhook;
-use serenity::utils::Colour;
 
 use crate::models::Problem;
 
@@ -280,26 +281,26 @@ impl DiscordRedeployNotifier {
         target: &RedeployTarget,
         result: &RedeployResult<RedeployJob>,
     ) -> Result<()> {
-        let embed = match result {
-            Ok(job) => Embed::fake(|e| {
-                e.title("再展開開始通知")
-                    .colour(Colour::from_rgb(40, 167, 65))
+        let notification = match result {
+            Ok(job) => ExecuteWebhook::new().embed(
+                CreateEmbed::new()
+                    .color(Colour::from_rgb(40, 167, 65))
                     .field("チームID", &target.team_id, true)
                     .field("問題コード", &target.problem_id, true)
-                    .field("再展開Job ID", &job.id, true)
-            }),
-            Err(err) => Embed::fake(|e| {
-                e.title("再展開失敗通知")
-                    .colour(Colour::from_rgb(236, 76, 82))
+                    .field("再展開Job ID", &job.id, true),
+            ),
+            Err(err) => ExecuteWebhook::new().embed(
+                CreateEmbed::new()
+                    .color(Colour::from_rgb(236, 76, 82))
                     .field("チームID", &target.team_id, true)
                     .field("問題コード", &target.problem_id, true)
-                    .field("エラー", err, true)
-            }),
+                    .field("エラー", err.to_string(), true),
+            ),
         };
 
         let result = self
             .webhook
-            .execute(&self.discord_client, false, |w| w.embeds(vec![embed]))
+            .execute(&self.discord_client, false, notification)
             .await?;
 
         if let Some(message) = result {

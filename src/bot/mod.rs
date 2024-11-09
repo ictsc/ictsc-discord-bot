@@ -46,9 +46,10 @@ impl Bot {
         redeploy_notifiers: Vec<Box<dyn RedeployNotifier + Send + Sync>>,
         configure_channel_topics: bool,
     ) -> Self {
-        let application_id = ApplicationId(application_id);
-        let guild_id = GuildId(guild_id);
-        let discord_client = Http::new_with_application_id(&token, application_id.0);
+        let application_id = ApplicationId::new(application_id);
+        let guild_id = GuildId::new(guild_id);
+        let discord_client = Http::new(&token);
+        discord_client.set_application_id(application_id);
         Bot {
             token,
             application_id,
@@ -74,7 +75,7 @@ impl Bot {
             | GatewayIntents::DIRECT_MESSAGES;
 
         let mut client = Client::builder(token, intents)
-            .application_id(application_id.0)
+            .application_id(application_id)
             .event_handler(self)
             .await?;
 
@@ -89,7 +90,7 @@ impl EventHandler for Bot {
         name = ?guild.name,
         owner_id = ?guild.owner_id,
     ))]
-    async fn guild_create(&self, _: Context, guild: Guild) {
+    async fn guild_create(&self, _: Context, guild: Guild, _: Option<bool>) {
         if guild.id != self.guild_id {
             tracing::info!("Target guild is not for contest, skipping");
             return;
@@ -122,7 +123,7 @@ impl EventHandler for Bot {
     #[tracing::instrument(skip_all)]
     async fn interaction_create(&self, ctx: Context, interaction: Interaction) {
         match interaction {
-            Interaction::ApplicationCommand(interaction) => {
+            Interaction::Command(interaction) => {
                 self.handle_application_command(&ctx, &interaction).await
             },
             _ => {},

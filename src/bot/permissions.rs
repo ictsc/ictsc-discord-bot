@@ -46,7 +46,7 @@ impl Bot {
             | Permissions::MUTE_MEMBERS
             | Permissions::DEAFEN_MEMBERS
             | Permissions::USE_VAD
-            | Permissions::USE_SLASH_COMMANDS
+            | Permissions::USE_APPLICATION_COMMANDS
             | Permissions::SEND_MESSAGES_IN_THREADS
     }
 

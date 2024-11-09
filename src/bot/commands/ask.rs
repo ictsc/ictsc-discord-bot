@@ -1,7 +1,9 @@
 use anyhow::Result;
-use serenity::builder::CreateApplicationCommand;
-use serenity::model::prelude::application_command::ApplicationCommandInteraction;
-use serenity::model::prelude::command::*;
+use serenity::all::CreateCommand;
+use serenity::all::CreateCommandOption;
+use serenity::all::CreateInteractionResponseMessage;
+use serenity::all::CreateMessage;
+use serenity::all::EditInteractionResponse;
 use serenity::model::prelude::*;
 
 use crate::bot::helpers::HelperError;
@@ -26,32 +28,30 @@ enum AskCommandError {
 type AskCommandResult<T> = std::result::Result<T, AskCommandError>;
 
 impl Bot {
-    pub fn create_ask_command(
-        command: &mut CreateApplicationCommand,
-    ) -> &mut CreateApplicationCommand {
-        command
-            .name("ask")
+    pub fn create_ask_command() -> CreateCommand {
+        CreateCommand::new("ask")
             .description("運営への質問スレッドを開始します")
-            .create_option(|option| {
-                option
-                    .name("title")
-                    .description("質問タイトル（50文字以内）")
-                    .kind(CommandOptionType::String)
-                    .required(true)
-            })
+            .add_option(
+                CreateCommandOption::new(
+                    CommandOptionType::String,
+                    "title",
+                    "質問タイトル（50文字以内）",
+                )
+                .required(true),
+            )
     }
 
     #[tracing::instrument(skip_all)]
-    pub async fn handle_ask_command(
-        &self,
-        interaction: &ApplicationCommandInteraction,
-    ) -> Result<()> {
+    pub async fn handle_ask_command(&self, interaction: &CommandInteraction) -> Result<()> {
         let (guild_channel, title) = match self.validate_ask_command(interaction).await {
             Ok(v) => v,
             Err(err) => {
-                self.respond(interaction, |data| {
-                    data.ephemeral(true).content(err.to_string())
-                })
+                self.respond(
+                    interaction,
+                    CreateInteractionResponseMessage::new()
+                        .ephemeral(true)
+                        .content(err.to_string()),
+                )
                 .await?;
                 return Ok(());
             },
@@ -65,8 +65,11 @@ impl Bot {
             .await
         {
             tracing::error!(?err, "failed to do ask command");
-            self.edit_response(interaction, |data| data.content(err.to_string()))
-                .await?;
+            self.edit_response(
+                interaction,
+                EditInteractionResponse::new().content(err.to_string()),
+            )
+            .await?;
         }
 
         Ok(())
@@ -74,7 +77,7 @@ impl Bot {
 
     async fn validate_ask_command<'t>(
         &self,
-        interaction: &'t ApplicationCommandInteraction,
+        interaction: &'t CommandInteraction,
     ) -> AskCommandResult<(GuildChannel, &'t str)> {
         let channel = self.get_channel(interaction.channel_id).await?;
 
@@ -103,7 +106,7 @@ impl Bot {
 
     async fn do_ask_command(
         &self,
-        interaction: &ApplicationCommandInteraction,
+        interaction: &CommandInteraction,
         guild_channel: &GuildChannel,
         title: &str,
     ) -> AskCommandResult<()> {
@@ -117,9 +120,11 @@ impl Bot {
             .map(|role| Mention::from(role.id).to_string())
             .collect();
 
-        self.edit_response(interaction, |data| {
-            data.content(format!("{} 質問内容を入力してください。", sender_mention))
-        })
+        self.edit_response(
+            interaction,
+            EditInteractionResponse::new()
+                .content(format!("{} 質問スレッドを開始します。", sender_mention)),
+        )
         .await?;
 
         let message = self.get_response(interaction).await?;
@@ -130,9 +135,13 @@ impl Bot {
 
         // TODO: 直接メッセージを送信するな！！！
         channel
-            .send_message(&self.discord_client, |data| {
-                data.content(format!("{}", staff_mentions.join(" ")))
-            })
+            .send_message(
+                &self.discord_client,
+                CreateMessage::new().content(format!(
+                    "{} 質問スレッドを開始します。",
+                    staff_mentions.join(" ")
+                )),
+            )
             .await?;
 
         Ok(())

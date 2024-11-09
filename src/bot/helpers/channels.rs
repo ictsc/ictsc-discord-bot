@@ -1,3 +1,7 @@
+use serenity::all::CreateChannel;
+use serenity::all::CreateThread;
+use serenity::all::EditChannel;
+use serenity::all::EditThread;
 use serenity::model::prelude::*;
 
 use super::HelperResult;
@@ -25,31 +29,31 @@ impl Bot {
     ) -> HelperResult<GuildChannel> {
         tracing::trace!("Create channel");
         let definition = definition.clone();
+
+        let mut create_channel = CreateChannel::new(definition.name)
+            .kind(definition.kind)
+            .permissions(definition.permissions);
+
+        create_channel = match definition.topic {
+            Some(topic) => create_channel.topic(topic),
+            None => create_channel,
+        };
+
+        create_channel = match definition.category {
+            Some(category_id) => create_channel.category(category_id),
+            None => create_channel,
+        };
+
         Ok(self
             .guild_id
-            .create_channel(&self.discord_client, |channel| {
-                channel
-                    .name(definition.name)
-                    .kind(definition.kind)
-                    .permissions(definition.permissions);
-
-                match definition.topic {
-                    Some(topic) => channel.topic(topic),
-                    None => channel,
-                };
-
-                match definition.category {
-                    Some(category_id) => channel.category(category_id),
-                    None => channel,
-                }
-            })
+            .create_channel(&self.discord_client, create_channel)
             .await?)
     }
 
     #[tracing::instrument(skip_all)]
     pub async fn get_channel(&self, id: ChannelId) -> HelperResult<Channel> {
         tracing::trace!("Get channel");
-        Ok(self.discord_client.get_channel(id.0).await?)
+        Ok(self.discord_client.get_channel(id).await?)
     }
 
     #[tracing::instrument(skip_all)]
@@ -80,33 +84,33 @@ impl Bot {
         if channel.kind != definition.kind {
             return Err(HelperError::InvalidChannelKindError);
         }
-        Ok(channel
-            .edit(&self.discord_client, |edit| {
-                edit.name(&definition.name)
-                    .category(definition.category)
-                    .permissions(definition.permissions.clone());
 
-                match &definition.topic {
-                    Some(topic) => edit.topic(topic),
-                    None => edit,
-                }
-            })
-            .await?)
+        let mut edit_channel = EditChannel::new()
+            .name(&definition.name)
+            .category(definition.category)
+            .permissions(definition.permissions.clone());
+
+        edit_channel = match &definition.topic {
+            Some(topic) => edit_channel.topic(topic),
+            None => edit_channel,
+        };
+
+        Ok(channel.edit(&self.discord_client, edit_channel).await?)
     }
 
     #[tracing::instrument(skip_all, fields(channel = ?channel))]
-    pub async fn archive_thread(&self, channel: &mut GuildChannel) -> HelperResult<GuildChannel> {
+    pub async fn archive_thread(&self, channel: &mut GuildChannel) -> HelperResult<()> {
         tracing::trace!("Edit channel");
         if channel.kind != ChannelType::PublicThread && channel.kind != ChannelType::PrivateThread {
             return Err(HelperError::InvalidChannelKindError);
         }
         Ok(channel
-            .edit_thread(&self.discord_client, |thread| thread.archived(true))
+            .edit_thread(&self.discord_client, EditThread::new().archived(true))
             .await?)
     }
 
     #[tracing::instrument(skip_all, fields(channel = ?channel))]
-    pub async fn delete_channel(&self, channel: &mut GuildChannel) -> HelperResult<Channel> {
+    pub async fn delete_channel(&self, channel: &mut GuildChannel) -> HelperResult<GuildChannel> {
         tracing::trace!("Delete channel");
         Ok(channel.delete(&self.discord_client).await?)
     }
@@ -120,7 +124,7 @@ impl Bot {
     ) -> HelperResult<GuildChannel> {
         tracing::trace!("Create public thread");
         Ok(channel
-            .create_public_thread(&self.discord_client, message, |thread| thread.name(title))
+            .create_thread_from_message(&self.discord_client, message, CreateThread::new(title))
             .await?)
     }
 }

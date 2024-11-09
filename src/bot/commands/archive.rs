@@ -1,6 +1,6 @@
 use anyhow::Result;
-use serenity::builder::CreateApplicationCommand;
-use serenity::model::prelude::application_command::ApplicationCommandInteraction;
+use serenity::all::CreateCommand;
+use serenity::all::EditInteractionResponse;
 use serenity::model::prelude::*;
 
 use crate::bot::helpers::HelperError;
@@ -18,25 +18,21 @@ enum ArchiveCommandError {
 type ArchiveCommandResult<T> = std::result::Result<T, ArchiveCommandError>;
 
 impl Bot {
-    pub fn create_archive_command(
-        command: &mut CreateApplicationCommand,
-    ) -> &mut CreateApplicationCommand {
-        command
-            .name("archive")
-            .description("運営への質問スレッドを終了します")
+    pub fn create_archive_command() -> CreateCommand {
+        CreateCommand::new("archive").description("運営への質問スレッドを終了します")
     }
 
-    pub async fn handle_archive_command(
-        &self,
-        interaction: &ApplicationCommandInteraction,
-    ) -> Result<()> {
+    pub async fn handle_archive_command(&self, interaction: &CommandInteraction) -> Result<()> {
         tracing::debug!("send acknowledgement");
         self.defer_response(interaction).await?;
 
         if let Err(err) = self.do_archive_command(interaction).await {
             tracing::error!(?err, "failed to do archive command");
-            self.edit_response(interaction, |data| data.content(err.to_string()))
-                .await?;
+            self.edit_response(
+                interaction,
+                EditInteractionResponse::new().content(err.to_string()),
+            )
+            .await?;
         }
         Ok(())
     }
@@ -44,7 +40,7 @@ impl Bot {
     #[tracing::instrument(skip_all)]
     async fn do_archive_command(
         &self,
-        interaction: &ApplicationCommandInteraction,
+        interaction: &CommandInteraction,
     ) -> ArchiveCommandResult<()> {
         let channel_id = interaction.channel_id;
         let channel = self.get_channel(channel_id).await?;
@@ -60,9 +56,10 @@ impl Bot {
 
         self.archive_thread(&mut guild_channel).await?;
 
-        self.edit_response(interaction, |response| {
-            response.content("質問スレッドを終了しました。")
-        })
+        self.edit_response(
+            interaction,
+            EditInteractionResponse::new().content("質問スレッドを終了しました。"),
+        )
         .await?;
 
         Ok(())

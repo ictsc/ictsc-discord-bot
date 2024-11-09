@@ -1,27 +1,28 @@
-use serenity::builder::CreateInteractionResponseData;
+use serenity::all::CommandDataOption;
+use serenity::all::CommandInteraction;
+use serenity::all::ComponentInteraction;
+use serenity::all::CreateInteractionResponse;
+use serenity::all::CreateInteractionResponseMessage;
+use serenity::all::Message;
 use serenity::builder::EditInteractionResponse;
-use serenity::model::application::interaction::application_command::CommandDataOption;
-use serenity::model::prelude::application_command::ApplicationCommandInteraction;
-use serenity::model::prelude::message_component::MessageComponentInteraction;
-use serenity::model::prelude::*;
 
 use super::HelperResult;
 use crate::bot::Bot;
 
 pub enum Interaction<'a> {
-    ApplicationCommandInteraction(&'a ApplicationCommandInteraction),
-    MessageComponentInteraction(&'a MessageComponentInteraction),
+    CommandInteraction(&'a CommandInteraction),
+    ComponentInteraction(&'a ComponentInteraction),
 }
 
-impl<'a> From<&'a ApplicationCommandInteraction> for Interaction<'a> {
-    fn from(interaction: &'a ApplicationCommandInteraction) -> Self {
-        Interaction::ApplicationCommandInteraction(interaction)
+impl<'a> From<&'a CommandInteraction> for Interaction<'a> {
+    fn from(interaction: &'a CommandInteraction) -> Self {
+        Interaction::CommandInteraction(interaction)
     }
 }
 
-impl<'a> From<&'a MessageComponentInteraction> for Interaction<'a> {
-    fn from(interaction: &'a MessageComponentInteraction) -> Self {
-        Interaction::MessageComponentInteraction(interaction)
+impl<'a> From<&'a ComponentInteraction> for Interaction<'a> {
+    fn from(interaction: &'a ComponentInteraction) -> Self {
+        Interaction::ComponentInteraction(interaction)
     }
 }
 
@@ -29,29 +30,30 @@ impl<'a> From<&'a MessageComponentInteraction> for Interaction<'a> {
 impl Bot {
     // ユーザからのinteractionに即時応答するメソッド
     #[tracing::instrument(skip_all)]
-    pub async fn respond<'a, I, F>(&self, interaction: I, f: F) -> HelperResult<()>
+    pub async fn respond<'a, I>(
+        &self,
+        interaction: I,
+        message: CreateInteractionResponseMessage,
+    ) -> HelperResult<()>
     where
         I: Into<Interaction<'a>>,
-        for<'b, 'c> F: FnOnce(
-            &'b mut CreateInteractionResponseData<'c>,
-        ) -> &'b mut CreateInteractionResponseData<'c>,
     {
         tracing::trace!("Respond");
         Ok(match interaction.into() {
-            Interaction::ApplicationCommandInteraction(interaction) => {
+            Interaction::CommandInteraction(interaction) => {
                 interaction
-                    .create_interaction_response(&self.discord_client, |response| {
-                        response.kind(InteractionResponseType::ChannelMessageWithSource);
-                        response.interaction_response_data(f)
-                    })
+                    .create_response(
+                        &self.discord_client,
+                        CreateInteractionResponse::Message(message),
+                    )
                     .await?
             },
-            Interaction::MessageComponentInteraction(interaction) => {
+            Interaction::ComponentInteraction(interaction) => {
                 interaction
-                    .create_interaction_response(&self.discord_client, |response| {
-                        response.kind(InteractionResponseType::UpdateMessage);
-                        response.interaction_response_data(f)
-                    })
+                    .create_response(
+                        &self.discord_client,
+                        CreateInteractionResponse::Message(message),
+                    )
                     .await?
             },
         })
@@ -65,18 +67,20 @@ impl Bot {
     {
         tracing::trace!("Defer response");
         Ok(match interaction.into() {
-            Interaction::ApplicationCommandInteraction(interaction) => {
+            Interaction::CommandInteraction(interaction) => {
                 interaction
-                    .create_interaction_response(&self.discord_client, |f| {
-                        f.kind(InteractionResponseType::DeferredChannelMessageWithSource)
-                    })
+                    .create_response(
+                        &self.discord_client,
+                        CreateInteractionResponse::Defer(CreateInteractionResponseMessage::new()),
+                    )
                     .await?
             },
-            Interaction::MessageComponentInteraction(interaction) => {
+            Interaction::ComponentInteraction(interaction) => {
                 interaction
-                    .create_interaction_response(&self.discord_client, |f| {
-                        f.kind(InteractionResponseType::DeferredChannelMessageWithSource)
-                    })
+                    .create_response(
+                        &self.discord_client,
+                        CreateInteractionResponse::Defer(CreateInteractionResponseMessage::new()),
+                    )
                     .await?
             },
         })
@@ -84,21 +88,24 @@ impl Bot {
 
     // ユーザからのinteractionの応答を編集するメソッド
     #[tracing::instrument(skip_all)]
-    pub async fn edit_response<'a, I, F>(&self, interaction: I, f: F) -> HelperResult<Message>
+    pub async fn edit_response<'a, I>(
+        &self,
+        interaction: I,
+        message: EditInteractionResponse,
+    ) -> HelperResult<Message>
     where
         I: Into<Interaction<'a>>,
-        F: FnOnce(&mut EditInteractionResponse) -> &mut EditInteractionResponse,
     {
         tracing::trace!("Edit response");
         Ok(match interaction.into() {
-            Interaction::ApplicationCommandInteraction(interaction) => {
+            Interaction::CommandInteraction(interaction) => {
                 interaction
-                    .edit_original_interaction_response(&self.discord_client, f)
+                    .edit_response(&self.discord_client, message)
                     .await?
             },
-            Interaction::MessageComponentInteraction(interaction) => {
+            Interaction::ComponentInteraction(interaction) => {
                 interaction
-                    .edit_original_interaction_response(&self.discord_client, f)
+                    .edit_response(&self.discord_client, message)
                     .await?
             },
         })
@@ -112,15 +119,11 @@ impl Bot {
     {
         tracing::trace!("Get response");
         Ok(match interaction.into() {
-            Interaction::ApplicationCommandInteraction(interaction) => {
-                interaction
-                    .get_interaction_response(&self.discord_client)
-                    .await?
+            Interaction::CommandInteraction(interaction) => {
+                interaction.get_response(&self.discord_client).await?
             },
-            Interaction::MessageComponentInteraction(interaction) => {
-                interaction
-                    .get_interaction_response(&self.discord_client)
-                    .await?
+            Interaction::ComponentInteraction(interaction) => {
+                interaction.get_response(&self.discord_client).await?
             },
         })
     }
@@ -132,7 +135,7 @@ impl Bot {
     ) -> Option<&'t str> {
         for option in options {
             if option.name == name {
-                return option.value.as_ref().and_then(|v| v.as_str());
+                return option.value.as_str();
             }
         }
         None

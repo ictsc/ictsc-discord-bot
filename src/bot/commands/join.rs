@@ -1,9 +1,12 @@
 use std::collections::HashSet;
 
 use anyhow::Result;
-use serenity::builder::CreateApplicationCommand;
-use serenity::model::prelude::application_command::ApplicationCommandInteraction;
-use serenity::model::prelude::command::*;
+use serenity::all::CommandInteraction;
+use serenity::all::CommandOptionType;
+use serenity::all::CreateCommand;
+use serenity::all::CreateCommandOption;
+use serenity::all::CreateInteractionResponseMessage;
+use serenity::all::EditInteractionResponse;
 
 use crate::bot::helpers::HelperError;
 use crate::bot::roles;
@@ -25,32 +28,30 @@ enum JoinCommandError<'a> {
 type JoinCommandResult<'t, T> = std::result::Result<T, JoinCommandError<'t>>;
 
 impl Bot {
-    pub fn create_join_command(
-        command: &mut CreateApplicationCommand,
-    ) -> &mut CreateApplicationCommand {
-        command
-            .name("join")
+    pub fn create_join_command() -> CreateCommand {
+        CreateCommand::new("join")
             .description("チームに参加します。")
-            .create_option(|option| {
-                option
-                    .name("invitation_code")
-                    .description("招待コード")
-                    .kind(CommandOptionType::String)
-                    .required(true)
-            })
+            .add_option(
+                CreateCommandOption::new(
+                    CommandOptionType::String,
+                    "invitation_code",
+                    "招待コード",
+                )
+                .required(true),
+            )
     }
 
     #[tracing::instrument(skip_all)]
-    pub async fn handle_join_command(
-        &self,
-        interaction: &ApplicationCommandInteraction,
-    ) -> Result<()> {
+    pub async fn handle_join_command(&self, interaction: &CommandInteraction) -> Result<()> {
         let role_name = match self.validate_join_command(interaction) {
             Ok(role_name) => role_name,
             Err(err) => {
-                self.respond(interaction, |data| {
-                    data.ephemeral(true).content(err.to_string())
-                })
+                self.respond(
+                    interaction,
+                    CreateInteractionResponseMessage::new()
+                        .ephemeral(true)
+                        .content(err.to_string()),
+                )
                 .await?;
                 return Ok(());
             },
@@ -61,8 +62,11 @@ impl Bot {
 
         if let Err(err) = self.do_join_command(interaction, role_name).await {
             tracing::error!(?err, "failed to do join command");
-            self.edit_response(interaction, |data| data.content(err.to_string()))
-                .await?;
+            self.edit_response(
+                interaction,
+                EditInteractionResponse::new().content(err.to_string()),
+            )
+            .await?;
         }
 
         Ok(())
@@ -70,7 +74,7 @@ impl Bot {
 
     fn validate_join_command<'t>(
         &self,
-        interaction: &'t ApplicationCommandInteraction,
+        interaction: &'t CommandInteraction,
     ) -> JoinCommandResult<'t, &str> {
         // joinコマンドはGlobalCommandなので、どこからでも呼び出すことは可能である。
         // だが、間違ってrandomチャンネル等で呼び出されてしまうことを防ぐため、DM以外からの呼び出しはエラーとする。
@@ -106,7 +110,7 @@ impl Bot {
 
     async fn do_join_command(
         &self,
-        interaction: &ApplicationCommandInteraction,
+        interaction: &CommandInteraction,
         role_name: &str,
     ) -> JoinCommandResult<()> {
         // DMの送信元が、ICTSC Discordチャンネルに参加しているかをチェックする。
@@ -141,9 +145,11 @@ impl Bot {
         self.revoke_roles(&mut sender_member, role_ids_revoked)
             .await?;
 
-        self.edit_response(interaction, |data| {
-            data.content(format!("チーム `{}` に参加しました。", role_name))
-        })
+        self.edit_response(
+            interaction,
+            EditInteractionResponse::new()
+                .content(format!("チーム `{}` に参加しました。", role_name)),
+        )
         .await?;
 
         Ok(())

@@ -12,11 +12,7 @@ impl Bot {
     }
 
     #[tracing::instrument(skip_all)]
-    pub async fn grant_roles<T>(
-        &self,
-        member: &mut Member,
-        role_ids: T,
-    ) -> HelperResult<Vec<RoleId>>
+    pub async fn grant_roles<T>(&self, member: &mut Member, role_ids: T) -> HelperResult<()>
     where
         T: AsRef<[RoleId]>,
     {
@@ -28,11 +24,7 @@ impl Bot {
     }
 
     #[tracing::instrument(skip_all)]
-    pub async fn revoke_roles<T>(
-        &self,
-        member: &mut Member,
-        role_ids: T,
-    ) -> HelperResult<Vec<RoleId>>
+    pub async fn revoke_roles<T>(&self, member: &mut Member, role_ids: T) -> HelperResult<()>
     where
         T: AsRef<[RoleId]>,
     {

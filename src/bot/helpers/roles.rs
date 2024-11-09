@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 
+use serenity::all::EditRole;
 use serenity::model::prelude::Role;
 use serenity::model::prelude::RoleId;
 use serenity::model::Permissions;
@@ -30,13 +31,15 @@ impl Bot {
         let definition = definition.clone();
         Ok(self
             .guild_id
-            .create_role(&self.discord_client, |edit| {
-                edit.name(definition.name)
+            .create_role(
+                &self.discord_client,
+                EditRole::new()
+                    .name(definition.name)
                     .permissions(definition.permissions)
-                    .colour(definition.colour as u64)
+                    .colour(definition.colour)
                     .hoist(definition.hoist)
-                    .mentionable(definition.mentionable)
-            })
+                    .mentionable(definition.mentionable),
+            )
             .await?)
     }
 
@@ -60,13 +63,16 @@ impl Bot {
         let definition = definition.clone();
         Ok(self
             .guild_id
-            .edit_role(&self.discord_client, role.id.0, |edit| {
-                edit.name(definition.name)
+            .edit_role(
+                &self.discord_client,
+                role.id,
+                EditRole::new()
+                    .name(definition.name)
                     .permissions(definition.permissions)
-                    .colour(definition.colour as u64)
+                    .colour(definition.colour)
                     .hoist(definition.hoist)
-                    .mentionable(definition.mentionable)
-            })
+                    .mentionable(definition.mentionable),
+            )
             .await?)
     }
 
@@ -75,7 +81,7 @@ impl Bot {
         tracing::trace!("Delete role called");
         Ok(self
             .guild_id
-            .delete_role(&self.discord_client, role.id.0)
+            .delete_role(&self.discord_client, role.id)
             .await?)
     }
 }

@@ -1,13 +1,19 @@
 use std::time::Duration;
 
 use anyhow::Result;
-use serenity::builder::CreateApplicationCommand;
-use serenity::builder::CreateComponents;
-use serenity::model::application::interaction::application_command::CommandDataOption;
-use serenity::model::prelude::application_command::ApplicationCommandInteraction;
-use serenity::model::prelude::command::CommandOptionType;
-use serenity::model::prelude::component::ButtonStyle;
-use serenity::model::prelude::component::ComponentType;
+use serenity::all::ButtonStyle;
+use serenity::all::CommandDataOption;
+use serenity::all::CommandDataOptionValue;
+use serenity::all::CommandInteraction;
+use serenity::all::CommandOptionType;
+use serenity::all::ComponentInteractionDataKind;
+use serenity::all::CreateActionRow;
+use serenity::all::CreateButton;
+use serenity::all::CreateCommand;
+use serenity::all::CreateCommandOption;
+use serenity::all::CreateEmbed;
+use serenity::all::CreateInteractionResponseMessage;
+use serenity::all::EditInteractionResponse;
 use serenity::model::user::User;
 use serenity::prelude::*;
 
@@ -46,62 +52,58 @@ enum RedeployCommandError<'a> {
 
 type RedeployCommandResult<'t, T> = std::result::Result<T, RedeployCommandError<'t>>;
 
-fn create_buttons(c: &mut CreateComponents, disabled: bool) -> &mut CreateComponents {
-    c.create_action_row(|r| {
-        r.create_button(|b| {
-            b.style(ButtonStyle::Primary)
-                .label("OK")
-                .custom_id(CUSTOM_ID_REDEPLOY_CONFIRM)
-                .disabled(disabled)
-        })
-        .create_button(|b| {
-            b.style(ButtonStyle::Secondary)
-                .label("キャンセル")
-                .custom_id(CUSTOM_ID_REDEPLOY_CANCELED)
-                .disabled(disabled)
-        })
-    })
+fn create_buttons(disabled: bool) -> Vec<CreateActionRow> {
+    let ok = CreateButton::new(CUSTOM_ID_REDEPLOY_CONFIRM)
+        .label("OK")
+        .style(ButtonStyle::Primary)
+        .disabled(disabled);
+
+    let cancel = CreateButton::new(CUSTOM_ID_REDEPLOY_CANCELED)
+        .label("キャンセル")
+        .style(ButtonStyle::Secondary)
+        .disabled(disabled);
+
+    vec![CreateActionRow::Buttons(vec![ok, cancel])]
 }
 
 impl Bot {
-    pub fn create_redeploy_command(
-        command: &mut CreateApplicationCommand,
-    ) -> &mut CreateApplicationCommand {
-        command
-            .name("redeploy")
+    pub fn create_redeploy_command() -> CreateCommand {
+        CreateCommand::new("redeploy")
             .description("問題環境の再展開に関するコマンド")
-            .create_option(|option| {
-                option
-                    .name("start")
-                    .description("問題環境を再展開します。")
-                    .kind(CommandOptionType::SubCommand)
-                    .create_sub_option(|option| {
-                        option
-                            .name("problem_code")
-                            .description("問題コード")
-                            .kind(CommandOptionType::String)
-                            .required(true)
-                    })
-            })
-            .create_option(|option| {
-                option
-                    .name("status")
-                    .description("現在の再展開状況を表示します。")
-                    .kind(CommandOptionType::SubCommand)
-            })
+            .add_option(
+                CreateCommandOption::new(
+                    CommandOptionType::SubCommand,
+                    "start",
+                    "問題環境を再展開します。",
+                )
+                .add_sub_option(
+                    CreateCommandOption::new(
+                        CommandOptionType::String,
+                        "problem_code",
+                        "問題コード",
+                    )
+                    .required(true),
+                ),
+            )
+            .add_option(CreateCommandOption::new(
+                CommandOptionType::SubCommand,
+                "status",
+                "現在の再展開状況を表示します。",
+            ))
     }
 
     #[tracing::instrument(skip_all)]
     pub async fn handle_redeploy_command(
         &self,
         ctx: &Context,
-        interaction: &ApplicationCommandInteraction,
+        interaction: &CommandInteraction,
     ) -> Result<()> {
         if let Err(err) = self._handle_redeploy_command(ctx, interaction).await {
             tracing::error!(?err, "failed to handle redeploy command");
-            self.edit_response(interaction, |data| {
-                data.content(err.to_string()).components(|c| c)
-            })
+            self.edit_response(
+                interaction,
+                EditInteractionResponse::new().content(err.to_string()),
+            )
             .await?;
         }
 
@@ -111,7 +113,7 @@ impl Bot {
     async fn _handle_redeploy_command(
         &self,
         ctx: &Context,
-        interaction: &ApplicationCommandInteraction,
+        interaction: &CommandInteraction,
     ) -> RedeployCommandResult<()> {
         let subcommand = interaction
             .data
@@ -119,18 +121,19 @@ impl Bot {
             .first()
             .ok_or(RedeployCommandError::InconsistentCommandDefinitionError)?;
 
-        if subcommand.kind != CommandOptionType::SubCommand {
-            return Err(RedeployCommandError::InconsistentCommandDefinitionError);
+        match &subcommand.value {
+            CommandDataOptionValue::SubCommand(options) => match subcommand.name.as_str() {
+                "start" => {
+                    self.handle_redeploy_start_subcommand(ctx, interaction, options)
+                        .await?
+                },
+                "status" => self.handle_redeploy_status_subcommand(interaction).await?,
+                _ => return Err(RedeployCommandError::InconsistentCommandDefinitionError),
+            },
+            _ => return Err(RedeployCommandError::InconsistentCommandDefinitionError),
         }
 
-        Ok(match subcommand.name.as_str() {
-            "start" => {
-                self.handle_redeploy_start_subcommand(ctx, interaction, subcommand)
-                    .await?
-            },
-            "status" => self.handle_redeploy_status_subcommand(interaction).await?,
-            _ => return Err(RedeployCommandError::InconsistentCommandDefinitionError),
-        })
+        Ok(())
     }
 
     async fn get_team_for(&self, user: &User) -> RedeployCommandResult<Team> {
@@ -159,15 +162,18 @@ impl Bot {
     async fn handle_redeploy_start_subcommand(
         &self,
         ctx: &Context,
-        interaction: &ApplicationCommandInteraction,
-        option: &CommandDataOption,
+        interaction: &CommandInteraction,
+        options: &[CommandDataOption],
     ) -> RedeployCommandResult<()> {
-        let problem = match self.validate_redeploy_start_subcommand(option) {
+        let problem = match self.validate_redeploy_start_subcommand(options) {
             Ok(problem) => problem,
             Err(err) => {
-                self.respond(interaction, |data| {
-                    data.ephemeral(true).content(err.to_string())
-                })
+                self.respond(
+                    interaction,
+                    CreateInteractionResponseMessage::new()
+                        .ephemeral(true)
+                        .content(err.to_string()),
+                )
                 .await?;
                 return Ok(());
             },
@@ -188,11 +194,9 @@ impl Bot {
 
     fn validate_redeploy_start_subcommand<'t>(
         &self,
-        option: &'t CommandDataOption,
+        options: &'t [CommandDataOption],
     ) -> RedeployCommandResult<'t, &Problem> {
-        let problem_code = self
-            .get_option_as_str(&option.options, "problem_code")
-            .unwrap();
+        let problem_code = self.get_option_as_str(options, "problem_code").unwrap();
 
         // スコアサーバーとの互換性のため、ここで大文字に正規化する
         let normalized_problem_code = problem_code.to_uppercase();
@@ -208,7 +212,7 @@ impl Bot {
     async fn do_redeploy_start_subcommand(
         &self,
         ctx: &Context,
-        interaction: &ApplicationCommandInteraction,
+        interaction: &CommandInteraction,
         problem: &Problem,
     ) -> RedeployCommandResult<()> {
         let sender = &interaction.user;
@@ -228,14 +232,15 @@ impl Bot {
             ));
         }
 
-        self.edit_response(interaction, |data| {
-            // TODO: チーム名にする
-            data.content(format!(
-                "チーム `{}` の問題 `{}` を再展開しますか？",
-                sender_team.role_name, problem.name
-            ))
-            .components(|c| create_buttons(c, false))
-        })
+        self.edit_response(
+            interaction,
+            EditInteractionResponse::new()
+                .content(format!(
+                    "チーム `{}` の問題 `{}` を再展開しますか？",
+                    sender_team.role_name, problem.name
+                ))
+                .components(create_buttons(false)),
+        )
         .await?;
 
         let message = self.get_response(interaction).await?;
@@ -243,37 +248,45 @@ impl Bot {
         let component_interaction = message
             .await_component_interaction(ctx)
             .author_id(sender.id)
-            .filter(|component_interaction| {
-                component_interaction.data.component_type == ComponentType::Button
-                    && (component_interaction.data.custom_id == CUSTOM_ID_REDEPLOY_CONFIRM
-                        || component_interaction.data.custom_id == CUSTOM_ID_REDEPLOY_CANCELED)
-            })
+            .filter(
+                |component_interaction| match &component_interaction.data.kind {
+                    ComponentInteractionDataKind::Button => {
+                        component_interaction.data.custom_id == CUSTOM_ID_REDEPLOY_CONFIRM
+                            || component_interaction.data.custom_id == CUSTOM_ID_REDEPLOY_CANCELED
+                    },
+                    _ => false,
+                },
+            )
             .timeout(Duration::from_secs(60))
             .await;
 
-        self.edit_response(interaction, |response| {
-            response.components(|c| create_buttons(c, true))
-        })
-        .await?;
-
-        let (component_interaction, should_recreate) = match component_interaction {
-            Some(component_interaction) => {
-                let should_recreate =
-                    component_interaction.data.custom_id == CUSTOM_ID_REDEPLOY_CONFIRM;
-                (component_interaction, should_recreate)
-            },
+        let component_interaction = match component_interaction {
+            Some(component_interaction) => component_interaction,
             None => {
+                self.edit_response(
+                    interaction,
+                    EditInteractionResponse::new()
+                        .content("タイムアウトしました。再度、再作成リクエストを投稿してください。")
+                        .components(create_buttons(true)),
+                )
+                .await?;
                 return Ok(());
             },
         };
-        let component_interaction = component_interaction.as_ref();
 
-        self.defer_response(component_interaction).await?;
+        self.edit_response(
+            interaction,
+            EditInteractionResponse::new().components(create_buttons(true)),
+        )
+        .await?;
+        self.defer_response(&component_interaction).await?;
 
+        let should_recreate = component_interaction.data.custom_id == CUSTOM_ID_REDEPLOY_CONFIRM;
         if !should_recreate {
-            self.edit_response(component_interaction, |response| {
-                response.content("再展開を中止しました。")
-            })
+            self.edit_response(
+                &component_interaction,
+                EditInteractionResponse::new().content("再展開を中止しました。"),
+            )
             .await?;
             return Ok(());
         }
@@ -286,27 +299,29 @@ impl Bot {
 
         match &result {
             Ok(_) => {
-                self.edit_response(component_interaction, |response| {
-                    response.content("再展開を開始しました。")
-                })
+                self.edit_response(
+                    &component_interaction,
+                    EditInteractionResponse::new().content("再展開を開始しました。"),
+                )
                 .await?;
             },
             Err(err) => match err {
                 RedeployError::AnotherJobInQueue(_) => {
-                    self.edit_response(component_interaction, |response| {
-                        response.content(
-                            "この問題は既に再展開リクエストが投げられています。再展開が完了してから再度お試しください。",
-                        )
-                    })
+                    self.edit_response(
+                        &component_interaction,
+                        EditInteractionResponse::new() .content("この問題は既に再展開リクエストが投げられています。再展開が完了してから再度お試しください。")
+                    )
                     .await?;
                 },
 
                 _ => {
                     tracing::error!(?err, "failed to redeploy");
-                    self.edit_response(component_interaction, |response| {
-                        response
-                            .content("再展開中にエラーが発生しました。運営にお問い合わせください。")
-                    })
+                    self.edit_response(
+                        &component_interaction,
+                        EditInteractionResponse::new().content(
+                            "再展開中にエラーが発生しました。運営にお問い合わせください。",
+                        ),
+                    )
                     .await?;
                 },
             },
@@ -324,7 +339,7 @@ impl Bot {
     #[tracing::instrument(skip_all)]
     async fn handle_redeploy_status_subcommand(
         &self,
-        interaction: &ApplicationCommandInteraction,
+        interaction: &CommandInteraction,
     ) -> RedeployCommandResult<()> {
         self.defer_response(interaction).await?;
 
@@ -338,7 +353,7 @@ impl Bot {
 
     async fn do_redeploy_status_subcommand(
         &self,
-        interaction: &ApplicationCommandInteraction,
+        interaction: &CommandInteraction,
     ) -> RedeployCommandResult<()> {
         let sender = &interaction.user;
         let sender_team = self.get_team_for(sender).await?;
@@ -354,54 +369,51 @@ impl Bot {
             .all(|status| status.last_redeploy_started_at.is_none());
 
         if no_deploys {
-            self.edit_response(interaction, |data| {
-                data.content("まだ再展開は実行されていません。")
-            })
+            self.edit_response(
+                interaction,
+                EditInteractionResponse::new().content("まだ再展開は実行されていません。"),
+            )
             .await?;
+            return Ok(());
         }
 
-        self.edit_response(interaction, |data| {
-            data.embed(|e| {
-                e.title("再展開状況");
-                for status in &statuses {
-                    let started_at = match status.last_redeploy_started_at {
-                        Some(started_at) => started_at,
-                        None => continue,
-                    };
+        let mut embed = CreateEmbed::new().title("再展開状況");
+        for status in &statuses {
+            let started_at = match status.last_redeploy_started_at {
+                Some(started_at) => started_at,
+                None => continue,
+            };
 
-                    let name = status.problem_code.clone();
-                    let problem_name = self
-                        .problems
-                        .iter()
-                        .find(|problem| problem.code == status.problem_code)
-                        .map(|problem| format!("{}: {}", name, problem.name))
-                        .unwrap_or_else(|| name);
+            let name = status.problem_code.clone();
+            let problem_name = self
+                .problems
+                .iter()
+                .find(|problem| problem.code == status.problem_code)
+                .map(|problem| format!("{}: {}", name, problem.name))
+                .unwrap_or_else(|| name);
 
-                    let value = match status.last_redeploy_completed_at {
-                        Some(completed_at) => {
-                            let completed_at_local =
-                                completed_at.with_timezone(&chrono_tz::Asia::Tokyo);
-                            format!(
-                                "🎉 再展開完了（完了時刻：{}）",
-                                completed_at_local.format("%Y/%m/%d %H:%M:%S")
-                            )
-                        },
-                        None => {
-                            let started_at_local =
-                                started_at.with_timezone(&chrono_tz::Asia::Tokyo);
-                            format!(
-                                "⚙️ 再展開中（開始時刻：{}）",
-                                started_at_local.format("%Y/%m/%d %H:%M:%S")
-                            )
-                        },
-                    };
+            let value = match status.last_redeploy_completed_at {
+                Some(completed_at) => {
+                    let completed_at_local = completed_at.with_timezone(&chrono_tz::Asia::Tokyo);
+                    format!(
+                        "🎉 再展開完了（完了時刻：{}）",
+                        completed_at_local.format("%Y/%m/%d %H:%M:%S")
+                    )
+                },
+                None => {
+                    let started_at_local = started_at.with_timezone(&chrono_tz::Asia::Tokyo);
+                    format!(
+                        "⚙️ 再展開中（開始時刻：{}）",
+                        started_at_local.format("%Y/%m/%d %H:%M:%S")
+                    )
+                },
+            };
 
-                    e.field(problem_name, value, false);
-                }
-                e
-            })
-        })
-        .await?;
+            embed = embed.field(problem_name, value, false);
+        }
+
+        self.edit_response(interaction, EditInteractionResponse::new().add_embed(embed))
+            .await?;
 
         Ok(())
     }
