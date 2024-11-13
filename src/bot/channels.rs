@@ -8,7 +8,7 @@ use crate::bot::helpers::channels::GuildChannelDefinitionBuilder;
 use crate::bot::Bot;
 use crate::models::Team;
 
-static STAFF_CATEGORY_NAME: &str = "ICTSC2023 Staff";
+static STAFF_CATEGORY_NAME: &str = "ICTSC2024 Staff";
 
 // Discordの使い方を案内するread-onlyなチャンネル
 static HELP_CHANNEL_NAME: &str = "help";
@@ -18,6 +18,9 @@ static ANNOUNCE_CHANNEL_NAME: &str = "announce";
 
 // 参加者が自由に読み書きできるチャンネル
 static RANDOM_CHANNEL_NAME: &str = "random";
+
+// 自己紹介チャンネル
+static SELF_INTRODUCE_CHANNEL_NAME: &str = "自己紹介";
 
 static TEXT_CHANNEL_NAME_SUFFIX: &str = "text";
 static VOICE_CHANNEL_NAME_SUFFIX: &str = "voice";
@@ -106,9 +109,18 @@ impl Bot {
 
         let permissions_for_random_channel =
             self.get_permission_overwrites_for_random_channel().await?;
+
         channels.push(
             GuildChannelDefinitionBuilder::default()
                 .name(RANDOM_CHANNEL_NAME.to_string())
+                .kind(ChannelType::Text)
+                .permissions(permissions_for_random_channel.clone())
+                .build()?,
+        );
+
+        channels.push(
+            GuildChannelDefinitionBuilder::default()
+                .name(SELF_INTRODUCE_CHANNEL_NAME.to_string())
                 .kind(ChannelType::Text)
                 .permissions(permissions_for_random_channel)
                 .build()?,
