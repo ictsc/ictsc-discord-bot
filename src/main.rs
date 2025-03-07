@@ -2,7 +2,7 @@ use anyhow::Result;
 use bot::config::Configuration;
 use bot::config::RedeployNotifiersConfiguration;
 use bot::config::RedeployServiceConfiguration;
-use bot::services::redeploy::DiscordRedeployNotifier;
+use bot::services::redeploy::{DiscordRedeployNotifier};
 use bot::services::redeploy::FakeRedeployService;
 use bot::services::redeploy::RState;
 use bot::services::redeploy::RStateConfig;
@@ -11,6 +11,7 @@ use bot::services::redeploy::RedeployService;
 use bot::Bot;
 use clap::Parser;
 use clap::Subcommand;
+use bot::services::redeploy::regalia::{Regalia, RegaliaConfig};
 
 #[derive(Debug, Parser)]
 #[clap(author, version)]
@@ -40,6 +41,10 @@ fn build_redeploy_service(
             username: rstate.username.clone(),
             password: rstate.password.clone(),
             problems: config.problems.clone(),
+        })?),
+        RedeployServiceConfiguration::Regalia(regalia) => Box::new(Regalia::new(RegaliaConfig {
+            baseurl: regalia.baseurl.clone(),
+            token: regalia.token.clone(),
         })?),
         RedeployServiceConfiguration::Fake => Box::new(FakeRedeployService),
     })

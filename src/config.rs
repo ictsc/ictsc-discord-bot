@@ -53,6 +53,7 @@ pub struct RedeployConfiguration {
 #[serde(rename_all = "snake_case")]
 pub enum RedeployServiceConfiguration {
     Rstate(RstateRedeployServiceConfiguration),
+    Regalia(RegaliaRedeployServiceConfiguration),
     Fake,
 }
 
@@ -61,6 +62,13 @@ pub struct RstateRedeployServiceConfiguration {
     pub baseurl: String,
     pub username: String,
     pub password: String,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct RegaliaRedeployServiceConfiguration {
+    pub baseurl: String,
+    /// Bearer token
+    pub token: String,
 }
 
 #[derive(Debug, Deserialize)]

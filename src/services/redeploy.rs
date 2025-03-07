@@ -4,6 +4,7 @@ use chrono::DateTime;
 use chrono::Utc;
 use reqwest::Client;
 use reqwest::ClientBuilder;
+use reqwest::header::HeaderMap;
 use reqwest::StatusCode;
 use serde::Deserialize;
 use serde::Serialize;
@@ -12,8 +13,9 @@ use serenity::all::CreateEmbed;
 use serenity::all::ExecuteWebhook;
 use serenity::http::Http;
 use serenity::model::webhook::Webhook;
-
+use crate::config::RegaliaRedeployServiceConfiguration;
 use crate::models::Problem;
+use crate::services::contestant::{Contestant, ContestantError};
 
 #[derive(Debug, Clone)]
 pub struct RedeployJob {
@@ -201,6 +203,9 @@ impl RedeployService for RState {
         Ok(statuses)
     }
 }
+
+pub mod regalia;
+
 
 pub struct FakeRedeployService;
 
