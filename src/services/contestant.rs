@@ -1,6 +1,5 @@
 use async_trait::async_trait;
 use serde_derive::Deserialize;
-use crate::services::redeploy::regalia::Regalia;
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct Contestant {
@@ -44,3 +43,40 @@ pub trait ContestantService {
     }
 }
 
+pub struct FakeContestantService;
+
+#[async_trait]
+impl ContestantService for FakeContestantService {
+    async fn get_contestants(&self) -> Result<Vec<Contestant>, ContestantError> {
+        Ok(vec![
+            Contestant {
+                name: "Alice".to_string(),
+                display_name: "Alice".to_string(),
+                team: Team {
+                    code: 1,
+                    name: "Team1".to_string(),
+                    organization: "Organization1".to_string(),
+                    member_limit: 3,
+                },
+                profile: Profile {
+                    self_introduction: "I'm Alice".to_string(),
+                },
+                discord_id: "414035444792164353".to_string(),
+            },
+            Contestant {
+                name: "Bob".to_string(),
+                display_name: "Bob".to_string(),
+                team: Team {
+                    code: 2,
+                    name: "Team2".to_string(),
+                    organization: "Organization2".to_string(),
+                    member_limit: 3,
+                },
+                profile: Profile {
+                    self_introduction: "I'm Bob".to_string(),
+                },
+                discord_id: "2345678901".to_string(),
+            },
+        ])
+    }
+}

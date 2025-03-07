@@ -1,2 +1,2 @@
 pub mod redeploy;
-mod contestant;
+pub mod contestant;

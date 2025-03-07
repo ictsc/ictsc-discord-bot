@@ -2,7 +2,9 @@ use anyhow::Result;
 use bot::config::Configuration;
 use bot::config::RedeployNotifiersConfiguration;
 use bot::config::RedeployServiceConfiguration;
-use bot::services::redeploy::{DiscordRedeployNotifier};
+use bot::services::contestant::{ContestantService, FakeContestantService};
+use bot::services::redeploy::regalia::{Regalia, RegaliaConfig};
+use bot::services::redeploy::DiscordRedeployNotifier;
 use bot::services::redeploy::FakeRedeployService;
 use bot::services::redeploy::RState;
 use bot::services::redeploy::RStateConfig;
@@ -11,7 +13,6 @@ use bot::services::redeploy::RedeployService;
 use bot::Bot;
 use clap::Parser;
 use clap::Subcommand;
-use bot::services::redeploy::regalia::{Regalia, RegaliaConfig};
 
 #[derive(Debug, Parser)]
 #[clap(author, version)]
@@ -67,6 +68,18 @@ async fn build_redeploy_notifiers(
     Ok(notifiers)
 }
 
+fn build_contestants_service(
+    config: &Configuration,
+) -> Result<Box<dyn ContestantService + Send + Sync>> {
+    Ok(match &config.redeploy.service {
+        RedeployServiceConfiguration::Regalia(regalia) => Box::new(Regalia::new(RegaliaConfig {
+            baseurl: regalia.baseurl.clone(),
+            token: regalia.token.clone(),
+        })?),
+        _ => Box::new(FakeContestantService),
+    })
+}
+
 async fn sync(bot: &Bot) -> Result<()> {
     bot.sync_roles().await?;
     bot.sync_channels().await?;
@@ -82,6 +95,14 @@ async fn main() {
         Ok(config) => config,
         Err(err) => {
             tracing::error!(?err, "couldn't read config file");
+            return;
+        },
+    };
+
+    let contestants_service = match build_contestants_service(&config) {
+        Ok(service) => service,
+        Err(err) => {
+            tracing::error!(?err, "couldn't instantiate contestants service");
             return;
         },
     };
