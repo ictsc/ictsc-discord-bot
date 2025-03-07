@@ -3,7 +3,7 @@ use bot::config::Configuration;
 use bot::config::RedeployNotifiersConfiguration;
 use bot::config::RedeployServiceConfiguration;
 use bot::services::contestant::{ContestantService, FakeContestantService};
-use bot::services::redeploy::regalia::{Regalia, RegaliaConfig};
+use bot::services::regalia::{Regalia, RegaliaConfig};
 use bot::services::redeploy::DiscordRedeployNotifier;
 use bot::services::redeploy::FakeRedeployService;
 use bot::services::redeploy::RState;
@@ -132,6 +132,7 @@ async fn main() {
         config.problems,
         redeploy_service,
         redeploy_notifiers,
+        contestants_service,
         config.discord.configure_channel_topics,
     );
 

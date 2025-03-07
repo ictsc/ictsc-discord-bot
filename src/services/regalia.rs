@@ -1,7 +1,5 @@
 use crate::services::contestant::{Contestant, ContestantError, ContestantService};
-use crate::services::redeploy::{
-    RedeployJob, RedeployResult, RedeployService, RedeployStatusList, RedeployTarget,
-};
+use crate::services::redeploy::{RedeployJob, RedeployResult, RedeployService, RedeployStatusList, RedeployTarget};
 use async_trait::async_trait;
 use reqwest::header::HeaderMap;
 use reqwest::{Client, ClientBuilder};
@@ -21,12 +19,12 @@ impl Regalia {
     pub fn new(config: RegaliaConfig) -> anyhow::Result<Self> {
         let header_map = HeaderMap::from_iter([
             (
-                "Content-Type".parse().unwrap(),
-                "application/json;charset=utf-8".parse().unwrap(),
+                "Content-Type".parse()?,
+                "application/json;charset=utf-8".parse()?,
             ),
             (
-                "Authorization".parse().unwrap(),
-                format!("Bearer {}", config.token).parse().unwrap(),
+                "Authorization".parse()?,
+                format!("Bearer {}", config.token).parse()?,
             ),
         ]);
         let client = ClientBuilder::new()
@@ -73,11 +71,11 @@ impl ContestantService for Regalia {
 
 #[async_trait]
 impl RedeployService for Regalia {
-    async fn redeploy(&self, target: &RedeployTarget) -> RedeployResult<RedeployJob> {
+    async fn redeploy(&self, _target: &RedeployTarget) -> RedeployResult<RedeployJob> {
         todo!()
     }
 
-    async fn get_status(&self, team_id: &str) -> RedeployResult<RedeployStatusList> {
+    async fn get_status(&self, _team_id: &str) -> RedeployResult<RedeployStatusList> {
         todo!()
     }
 }
