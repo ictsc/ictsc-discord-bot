@@ -70,7 +70,7 @@ async fn build_redeploy_notifiers(
     Ok(notifiers)
 }
 
-fn build_contestants_service(
+fn build_contestant_service(
     config: &Configuration,
 ) -> Result<Box<dyn ContestantService + Send + Sync>> {
     Ok(match &config.redeploy.service {
@@ -82,7 +82,7 @@ fn build_contestants_service(
     })
 }
 
-fn build_teams_service(config: &Configuration) -> Result<Box<dyn TeamService + Send + Sync>> {
+fn build_team_service(config: &Configuration) -> Result<Box<dyn TeamService + Send + Sync>> {
     Ok(match &config.redeploy.service {
         RedeployServiceConfiguration::Regalia(regalia) => Box::new(Regalia::new(RegaliaConfig {
             baseurl: regalia.baseurl.clone(),
@@ -92,7 +92,7 @@ fn build_teams_service(config: &Configuration) -> Result<Box<dyn TeamService + S
     })
 }
 
-fn build_problems_service(config: &Configuration) -> Result<Box<dyn ProblemService + Send + Sync>> {
+fn build_problem_service(config: &Configuration) -> Result<Box<dyn ProblemService + Send + Sync>> {
     Ok(match &config.redeploy.service {
         RedeployServiceConfiguration::Regalia(regalia) => Box::new(Regalia::new(RegaliaConfig {
             baseurl: regalia.baseurl.clone(),
@@ -121,7 +121,7 @@ async fn main() {
         },
     };
 
-    let contestants_service = match build_contestants_service(&config) {
+    let contestant_service = match build_contestant_service(&config) {
         Ok(service) => service,
         Err(err) => {
             tracing::error!(?err, "couldn't instantiate contestants service");
@@ -145,7 +145,7 @@ async fn main() {
         },
     };
 
-    let teams_service = match build_teams_service(&config) {
+    let team_service = match build_team_service(&config) {
         Ok(service) => service,
         Err(err) => {
             tracing::error!(?err, "couldn't instantiate teams service");
@@ -153,9 +153,9 @@ async fn main() {
         },
     };
 
-    let teams = teams_service.get_teams().await.unwrap();
+    let teams = team_service.get_teams().await.unwrap();
 
-    let problems_service = match build_problems_service(&config) {
+    let problem_service = match build_problem_service(&config) {
         Ok(service) => service,
         Err(err) => {
             tracing::error!(?err, "couldn't instantiate problems service");
@@ -163,7 +163,7 @@ async fn main() {
         },
     };
 
-    let problems = problems_service.get_problems().await.unwrap();
+    let problems = problem_service.get_problems().await.unwrap();
 
     let bot = Bot::new(
         config.discord.token,
@@ -174,7 +174,7 @@ async fn main() {
         problems,
         redeploy_service,
         redeploy_notifiers,
-        contestants_service,
+        contestant_service,
         config.discord.configure_channel_topics,
     );
 
