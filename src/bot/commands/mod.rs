@@ -3,6 +3,7 @@ mod ask;
 mod join;
 mod ping;
 mod redeploy;
+mod sync;
 
 use anyhow::Result;
 use serenity::client::Context;
@@ -17,6 +18,8 @@ impl Bot {
         tracing::debug!("Syncing join command");
         Command::create_global_command(&self.discord_client, Bot::create_join_command()).await?;
 
+        tracing::debug!("Syncing sync command");
+        Command::create_global_command(&self.discord_client, Bot::create_sync_command()).await?;
         Ok(())
     }
 
@@ -89,6 +92,7 @@ impl Bot {
             "join" => self.handle_join_command(interaction).await,
             "ping" => self.handle_ping_command(interaction).await,
             "redeploy" => self.handle_redeploy_command(ctx, interaction).await,
+            "sync" => self.handle_sync_command(interaction).await,
             _ => Err(anyhow::anyhow!("unknown command: {}", name)),
         };
 

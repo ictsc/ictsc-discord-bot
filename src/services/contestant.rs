@@ -1,7 +1,6 @@
 use async_trait::async_trait;
-use serde_derive::Deserialize;
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone)]
 pub struct Contestant {
     pub name: String,
     pub display_name: String,
@@ -10,14 +9,14 @@ pub struct Contestant {
     pub discord_id: String,
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone)]
 pub struct Profile {
     pub self_introduction: String,
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone)]
 pub struct Team {
-    pub code: usize,
+    pub code: String,
     pub name: String,
     pub organization: String,
     pub member_limit: u32,
@@ -34,7 +33,7 @@ pub enum ContestantError {
 #[async_trait]
 pub trait ContestantService {
     async fn get_contestants(&self) -> Result<Vec<Contestant>, ContestantError>;
-    async fn get_contestant(&self, discord_id: String) -> Result<Contestant, ContestantError> {
+    async fn get_contestant(&self, discord_id: &str) -> Result<Contestant, ContestantError> {
         self.get_contestants()
             .await?
             .into_iter()
@@ -53,7 +52,7 @@ impl ContestantService for FakeContestantService {
                 name: "Alice".to_string(),
                 display_name: "Alice".to_string(),
                 team: Team {
-                    code: 1,
+                    code: "1".to_string(),
                     name: "Team1".to_string(),
                     organization: "Organization1".to_string(),
                     member_limit: 3,
@@ -67,7 +66,7 @@ impl ContestantService for FakeContestantService {
                 name: "Bob".to_string(),
                 display_name: "Bob".to_string(),
                 team: Team {
-                    code: 2,
+                    code: "2".to_string(),
                     name: "Team2".to_string(),
                     organization: "Organization2".to_string(),
                     member_limit: 3,
