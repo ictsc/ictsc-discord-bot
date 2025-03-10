@@ -3,6 +3,7 @@ use bot::config::Configuration;
 use bot::config::RedeployNotifiersConfiguration;
 use bot::config::RedeployServiceConfiguration;
 use bot::services::contestant::{ContestantService, FakeContestantService};
+use bot::services::problem::{ProblemService, StaticProblemService};
 use bot::services::redeploy::DiscordRedeployNotifier;
 use bot::services::redeploy::FakeRedeployService;
 use bot::services::redeploy::RState;
@@ -91,6 +92,16 @@ fn build_teams_service(config: &Configuration) -> Result<Box<dyn TeamService + S
     })
 }
 
+fn build_problems_service(config: &Configuration) -> Result<Box<dyn ProblemService + Send + Sync>> {
+    Ok(match &config.redeploy.service {
+        RedeployServiceConfiguration::Regalia(regalia) => Box::new(Regalia::new(RegaliaConfig {
+            baseurl: regalia.baseurl.clone(),
+            token: regalia.token.clone(),
+        })?),
+        _ => Box::new(StaticProblemService::new(config.problems.clone())),
+    })
+}
+
 async fn sync(bot: &Bot) -> Result<()> {
     bot.sync_roles().await?;
     bot.sync_channels().await?;
@@ -144,13 +155,23 @@ async fn main() {
 
     let teams = teams_service.get_teams().await.unwrap();
 
+    let problems_service = match build_problems_service(&config) {
+        Ok(service) => service,
+        Err(err) => {
+            tracing::error!(?err, "couldn't instantiate problems service");
+            return;
+        },
+    };
+
+    let problems = problems_service.get_problems().await.unwrap();
+
     let bot = Bot::new(
         config.discord.token,
         config.discord.application_id,
         config.discord.guild_id,
         config.staff.password,
         teams,
-        config.problems,
+        problems,
         redeploy_service,
         redeploy_notifiers,
         contestants_service,

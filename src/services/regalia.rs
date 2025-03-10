@@ -1,5 +1,6 @@
-use crate::models::{Contestant, Team};
+use crate::models::{Contestant, Problem, Team};
 use crate::services::contestant::{ContestantError, ContestantService};
+use crate::services::problem::{ProblemError, ProblemService};
 use crate::services::redeploy::{
     RedeployJob, RedeployResult, RedeployService, RedeployStatusList, RedeployTarget,
 };
@@ -92,6 +93,35 @@ impl Regalia {
             ))),
         }
     }
+
+    pub async fn list_problems(&self) -> anyhow::Result<Vec<Problem>, ProblemError> {
+        let response = self
+            .client
+            .post(format!(
+                "{}ProblemService/ListProblems",
+                self.config.baseurl
+            ))
+            .json(&RegaliaPostListProblemsRequest {})
+            .send()
+            .await
+            .map_err(|e| ProblemError::Unexpected(Box::new(e)))?;
+        match response.status() {
+            reqwest::StatusCode::OK => {
+                let problems = response
+                    .json::<RegaliaPostListProblemsResponse>()
+                    .await
+                    .map_err(|e| ProblemError::Unexpected(Box::new(e)))?
+                    .problems
+                    .into_iter()
+                    .map(Into::into)
+                    .collect();
+                Ok(problems)
+            },
+            _ => Err(ProblemError::Unexpected(Box::new(
+                response.error_for_status().unwrap_err(),
+            ))),
+        }
+    }
 }
 
 #[async_trait]
@@ -108,13 +138,11 @@ impl TeamService for Regalia {
     }
 }
 
-#[derive(Debug, Serialize)]
-struct RegaliaPostListAllContestantsRequest {}
-
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
-struct RegaliaPostListAllContestantsResponse {
-    contestants: Vec<RegaliaContestant>,
+#[async_trait]
+impl ProblemService for Regalia {
+    async fn get_problems(&self) -> Result<Vec<Problem>, ProblemError> {
+        self.list_problems().await
+    }
 }
 
 #[derive(Debug, Deserialize)]
@@ -143,6 +171,49 @@ struct RegaliaTeam {
     member_limit: u32,
 }
 
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct RegaliaProblem {
+    code: String,
+    title: String,
+    max_score: u32,
+    redeploy_rule: RegaliaRedeployRule,
+    body: RegaliaProblemBody,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct RegaliaRedeployRule {
+    #[serde(rename = "type")]
+    typ: RegaliaRedeployRuleType,
+    #[serde(default)]
+    penalty_threshold: u32,
+    #[serde(default)]
+    penalty_percentage: u32,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+enum RegaliaRedeployRuleType {
+    RedeployRuleTypeUnspecified,
+    RedeployRuleTypeUnredeployable,
+    RedeployRuleTypePercentagePenalty,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct RegaliaProblemBody {
+    #[serde(rename = "type")]
+    typ: RegaliaProblemType,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+enum RegaliaProblemType {
+    ProblemTypeUnspecified,
+    ProblemTypeDescriptive,
+}
+
 impl From<RegaliaContestant> for Contestant {
     fn from(value: RegaliaContestant) -> Self {
         Self {
@@ -165,6 +236,24 @@ impl From<RegaliaTeam> for Team {
     }
 }
 
+impl From<RegaliaProblem> for Problem {
+    fn from(value: RegaliaProblem) -> Self {
+        Self {
+            code: value.code,
+            name: value.title,
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+struct RegaliaPostListAllContestantsRequest {}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct RegaliaPostListAllContestantsResponse {
+    contestants: Vec<RegaliaContestant>,
+}
+
 #[derive(Debug, Serialize)]
 struct RegaliaPostListAllTeamsRequest {}
 
@@ -172,6 +261,15 @@ struct RegaliaPostListAllTeamsRequest {}
 #[serde(rename_all = "camelCase")]
 struct RegaliaPostListAllTeamsResponse {
     teams: Vec<RegaliaTeam>,
+}
+
+#[derive(Debug, Serialize)]
+struct RegaliaPostListProblemsRequest {}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct RegaliaPostListProblemsResponse {
+    problems: Vec<RegaliaProblem>,
 }
 
 #[async_trait]
