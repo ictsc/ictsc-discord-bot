@@ -73,17 +73,6 @@ impl ContestantService for Regalia {
     }
 }
 
-#[async_trait]
-impl RedeployService for Regalia {
-    async fn redeploy(&self, _target: &RedeployTarget) -> RedeployResult<RedeployJob> {
-        todo!()
-    }
-
-    async fn get_status(&self, _team_id: &str) -> RedeployResult<RedeployStatusList> {
-        todo!()
-    }
-}
-
 #[derive(Debug, Serialize)]
 struct RegaliaPostListAllContestantsRequest {}
 
@@ -147,5 +136,16 @@ impl From<RegaliaProfile> for crate::services::contestant::Profile {
         Self {
             self_introduction: value.self_introduction,
         }
+    }
+}
+
+#[async_trait]
+impl RedeployService for Regalia {
+    async fn redeploy(&self, _target: &RedeployTarget) -> RedeployResult<RedeployJob> {
+        todo!()
+    }
+
+    async fn get_status(&self, _team_id: &str) -> RedeployResult<RedeployStatusList> {
+        todo!()
     }
 }
