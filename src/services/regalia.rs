@@ -1,7 +1,9 @@
-use crate::services::contestant::{Contestant, ContestantError, ContestantService};
+use crate::models::{Contestant, Team};
+use crate::services::contestant::{ContestantError, ContestantService};
 use crate::services::redeploy::{
     RedeployJob, RedeployResult, RedeployService, RedeployStatusList, RedeployTarget,
 };
+use crate::services::team::{TeamError, TeamService};
 use async_trait::async_trait;
 use reqwest::header::HeaderMap;
 use reqwest::{Client, ClientBuilder};
@@ -64,12 +66,45 @@ impl Regalia {
             ))),
         }
     }
+
+    pub async fn list_teams(&self) -> anyhow::Result<Vec<Team>, TeamError> {
+        let response = self
+            .client
+            .post(format!("{}TeamService/ListTeams", self.config.baseurl))
+            .json(&RegaliaPostListAllTeamsRequest {})
+            .send()
+            .await
+            .map_err(|e| TeamError::Unexpected(Box::new(e)))?;
+        match response.status() {
+            reqwest::StatusCode::OK => {
+                let teams = response
+                    .json::<RegaliaPostListAllTeamsResponse>()
+                    .await
+                    .map_err(|e| TeamError::Unexpected(Box::new(e)))?
+                    .teams
+                    .into_iter()
+                    .map(Into::into)
+                    .collect::<Vec<_>>();
+                Ok(teams)
+            },
+            _ => Err(TeamError::Unexpected(Box::new(
+                response.error_for_status().unwrap_err(),
+            ))),
+        }
+    }
 }
 
 #[async_trait]
 impl ContestantService for Regalia {
     async fn get_contestants(&self) -> Result<Vec<Contestant>, ContestantError> {
         self.list_contestants().await
+    }
+}
+
+#[async_trait]
+impl TeamService for Regalia {
+    async fn get_teams(&self) -> Result<Vec<Team>, TeamError> {
+        self.list_teams().await
     }
 }
 
@@ -113,30 +148,30 @@ impl From<RegaliaContestant> for Contestant {
         Self {
             name: value.name,
             display_name: value.display_name,
-            team: value.team.into(),
-            profile: value.profile.into(),
+            team_id: value.team.code,
             discord_id: value.discord_id,
         }
     }
 }
 
-impl From<RegaliaTeam> for crate::services::contestant::Team {
+impl From<RegaliaTeam> for Team {
     fn from(value: RegaliaTeam) -> Self {
         Self {
-            code: value.code,
-            name: value.name,
-            organization: value.organization,
-            member_limit: value.member_limit,
+            id: value.code,
+            role_name: value.name,
+            invitation_code: "".to_string(),
+            user_group_id: "".to_string(),
         }
     }
 }
 
-impl From<RegaliaProfile> for crate::services::contestant::Profile {
-    fn from(value: RegaliaProfile) -> Self {
-        Self {
-            self_introduction: value.self_introduction,
-        }
-    }
+#[derive(Debug, Serialize)]
+struct RegaliaPostListAllTeamsRequest {}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct RegaliaPostListAllTeamsResponse {
+    teams: Vec<RegaliaTeam>,
 }
 
 #[async_trait]

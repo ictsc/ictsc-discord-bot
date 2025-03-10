@@ -15,6 +15,8 @@ enum SyncCommandError {
     CalledFromGuildChannelError,
     #[error("ICTSC Discordチャンネルにまだ参加していません。参加した後に再度お試しください。")]
     UserNotInGuildError,
+    #[error("チームのroleが見つかりませんでした。運営にお問い合わせください。")]
+    TeamNotFoundError,
 
     #[error("予期しないエラーが発生しました。")]
     HelperError(#[from] HelperError),
@@ -39,7 +41,11 @@ impl Bot {
             .get_contestant(&interaction.user.id.to_string())
             .await;
         let role_name = match contestatnt {
-            Ok(c) => c.team.name,
+            Ok(c) => self
+                .teams
+                .iter()
+                .find_map(|t| (c.team_id == t.id).then(|| t.role_name.clone()))
+                .ok_or(SyncCommandError::TeamNotFoundError)?,
             Err(err) => {
                 self.respond(
                     interaction,

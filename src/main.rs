@@ -3,13 +3,14 @@ use bot::config::Configuration;
 use bot::config::RedeployNotifiersConfiguration;
 use bot::config::RedeployServiceConfiguration;
 use bot::services::contestant::{ContestantService, FakeContestantService};
-use bot::services::regalia::{Regalia, RegaliaConfig};
 use bot::services::redeploy::DiscordRedeployNotifier;
 use bot::services::redeploy::FakeRedeployService;
 use bot::services::redeploy::RState;
 use bot::services::redeploy::RStateConfig;
 use bot::services::redeploy::RedeployNotifier;
 use bot::services::redeploy::RedeployService;
+use bot::services::regalia::{Regalia, RegaliaConfig};
+use bot::services::team::{StaticTeamService, TeamService};
 use bot::Bot;
 use clap::Parser;
 use clap::Subcommand;
@@ -80,6 +81,16 @@ fn build_contestants_service(
     })
 }
 
+fn build_teams_service(config: &Configuration) -> Result<Box<dyn TeamService + Send + Sync>> {
+    Ok(match &config.redeploy.service {
+        RedeployServiceConfiguration::Regalia(regalia) => Box::new(Regalia::new(RegaliaConfig {
+            baseurl: regalia.baseurl.clone(),
+            token: regalia.token.clone(),
+        })?),
+        _ => Box::new(StaticTeamService::new(config.teams.clone())),
+    })
+}
+
 async fn sync(bot: &Bot) -> Result<()> {
     bot.sync_roles().await?;
     bot.sync_channels().await?;
@@ -123,12 +134,22 @@ async fn main() {
         },
     };
 
+    let teams_service = match build_teams_service(&config) {
+        Ok(service) => service,
+        Err(err) => {
+            tracing::error!(?err, "couldn't instantiate teams service");
+            return;
+        },
+    };
+
+    let teams = teams_service.get_teams().await.unwrap();
+
     let bot = Bot::new(
         config.discord.token,
         config.discord.application_id,
         config.discord.guild_id,
         config.staff.password,
-        config.teams,
+        teams,
         config.problems,
         redeploy_service,
         redeploy_notifiers,
@@ -142,7 +163,6 @@ async fn main() {
         Commands::DeleteRoles => bot.delete_roles().await,
         Commands::DeleteChannels => bot.delete_channels().await,
         Commands::DeleteCommands => bot.delete_commands().await,
-
     };
 
     if let Err(reason) = result {
