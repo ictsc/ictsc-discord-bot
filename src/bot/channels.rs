@@ -192,6 +192,9 @@ impl Bot {
         tracing::info!("delete all channels");
         for (channel_id, channel) in self.guild_id.channels(&self.discord_client).await? {
             tracing::debug!(?channel, "delete channel");
+            if channel.name() == HELP_CHANNEL_NAME {
+                continue;
+            }
             channel_id.delete(&self.discord_client).await?;
         }
         Ok(())
