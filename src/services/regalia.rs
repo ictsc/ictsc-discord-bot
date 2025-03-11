@@ -151,6 +151,7 @@ struct RegaliaContestant {
     name: String,
     display_name: String,
     team: RegaliaTeam,
+    #[allow(dead_code)]
     profile: RegaliaProfile,
     discord_id: String,
 }
@@ -159,6 +160,7 @@ struct RegaliaContestant {
 #[serde(rename_all = "camelCase")]
 struct RegaliaProfile {
     #[serde(default)]
+    #[allow(dead_code)]
     self_introduction: String,
 }
 
@@ -167,7 +169,9 @@ struct RegaliaProfile {
 struct RegaliaTeam {
     code: String,
     name: String,
+    #[allow(dead_code)]
     organization: String,
+    #[allow(dead_code)]
     member_limit: u32,
 }
 
@@ -176,8 +180,11 @@ struct RegaliaTeam {
 struct RegaliaProblem {
     code: String,
     title: String,
+    #[allow(dead_code)]
     max_score: u32,
+    #[allow(dead_code)]
     redeploy_rule: RegaliaRedeployRule,
+    #[allow(dead_code)]
     body: RegaliaProblemBody,
 }
 
@@ -185,10 +192,13 @@ struct RegaliaProblem {
 #[serde(rename_all = "camelCase")]
 struct RegaliaRedeployRule {
     #[serde(rename = "type")]
+    #[allow(dead_code)]
     typ: RegaliaRedeployRuleType,
     #[serde(default)]
+    #[allow(dead_code)]
     penalty_threshold: u32,
     #[serde(default)]
+    #[allow(dead_code)]
     penalty_percentage: u32,
 }
 
@@ -204,6 +214,7 @@ enum RegaliaRedeployRuleType {
 #[serde(rename_all = "camelCase")]
 struct RegaliaProblemBody {
     #[serde(rename = "type")]
+    #[allow(dead_code)]
     typ: RegaliaProblemType,
 }
 
