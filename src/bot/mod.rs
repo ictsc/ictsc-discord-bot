@@ -126,11 +126,8 @@ impl EventHandler for Bot {
 
     #[tracing::instrument(skip_all)]
     async fn interaction_create(&self, ctx: Context, interaction: Interaction) {
-        match interaction {
-            Interaction::Command(interaction) => {
-                self.handle_application_command(&ctx, &interaction).await
-            },
-            _ => {},
+        if let Interaction::Command(interaction) = interaction {
+            self.handle_application_command(&ctx, &interaction).await
         };
     }
 }

@@ -32,14 +32,15 @@ impl Bot {
             .description("スコアサーバーのユーザー情報からDiscordロールを付与します。")
     }
 
-    async fn validate_sync_command<'t>(
+    async fn validate_sync_command(
         &self,
         interaction: &CommandInteraction,
     ) -> SyncCommandResult<String> {
         if interaction.guild_id.is_some() {
             return Err(SyncCommandError::CalledFromGuildChannelError);
         }
-        let team_id = self.contestant_service
+        let team_id = self
+            .contestant_service
             .get_contestant(&interaction.user.id.to_string())
             .await
             .map_err(|e| match e {
@@ -55,7 +56,7 @@ impl Bot {
 
     #[tracing::instrument(skip_all)]
     pub async fn handle_sync_command(&self, interaction: &CommandInteraction) -> Result<()> {
-        let role_name = match self.validate_sync_command(&interaction).await {
+        let role_name = match self.validate_sync_command(interaction).await {
             Ok(c) => c,
             Err(err) => {
                 self.respond(
@@ -99,7 +100,7 @@ impl Bot {
         let sender_member_role_id_set = HashSet::from_iter(sender_member.roles.clone());
 
         let target_role_id_set: HashSet<_> = self
-            .find_roles_by_name_cached(&role_name)
+            .find_roles_by_name_cached(role_name)
             .await?
             .iter()
             .map(|role| role.id)
@@ -107,12 +108,12 @@ impl Bot {
 
         let role_ids_granted: Vec<_> = target_role_id_set
             .difference(&sender_member_role_id_set)
-            .map(|id| id.clone())
+            .copied()
             .collect();
 
         let role_ids_revoked: Vec<_> = sender_member_role_id_set
             .difference(&target_role_id_set)
-            .map(|id| id.clone())
+            .copied()
             .collect();
 
         self.grant_roles(&mut sender_member, role_ids_granted)

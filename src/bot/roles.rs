@@ -92,13 +92,13 @@ impl Bot {
                     continue;
                 }
                 tracing::debug!(?role, "role is created, but is not synced, update role");
-                if let Err(err) = self.edit_role(role, &definition).await {
+                if let Err(err) = self.edit_role(role, definition).await {
                     tracing::warn!(?err, "Failed to update role, skip");
                 }
                 continue;
             }
 
-            if matched_roles.len() != 0 {
+            if !matched_roles.is_empty() {
                 tracing::debug!(
                     ?matched_roles,
                     "several matched roles are found, delete them"
@@ -111,7 +111,7 @@ impl Bot {
             }
 
             tracing::debug!(?definition, "create role");
-            if let Err(err) = self.create_role(&definition).await {
+            if let Err(err) = self.create_role(definition).await {
                 tracing::warn!(?err, "Failed to create role, skip");
             }
         }
@@ -121,8 +121,7 @@ impl Bot {
             let found = definitions
                 .as_ref()
                 .iter()
-                .find(|d| d.name == role.name)
-                .is_some();
+                .any(|d| d.name == role.name);
 
             if !found {
                 // @everyoneロールは必ず存在するため、削除対象から外す。
@@ -133,7 +132,7 @@ impl Bot {
                 }
 
                 tracing::debug!(?role, "role is not defined, delete it");
-                if let Err(err) = self.delete_role(&role).await {
+                if let Err(err) = self.delete_role(role).await {
                     tracing::warn!(?err, "Failed to delete role, skip");
                 }
             }

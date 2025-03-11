@@ -39,7 +39,7 @@ impl Bot {
         I: Into<Interaction<'a>>,
     {
         tracing::trace!("Respond");
-        Ok(match interaction.into() {
+        match interaction.into() {
             Interaction::CommandInteraction(interaction) => {
                 interaction
                     .create_response(
@@ -56,7 +56,8 @@ impl Bot {
                     )
                     .await?
             },
-        })
+        };
+        Ok(())
     }
 
     // ユーザからのinteractionの応答を保留するメソッド
@@ -66,7 +67,7 @@ impl Bot {
         I: Into<Interaction<'a>>,
     {
         tracing::trace!("Defer response");
-        Ok(match interaction.into() {
+        match interaction.into() {
             Interaction::CommandInteraction(interaction) => {
                 interaction
                     .create_response(
@@ -83,7 +84,8 @@ impl Bot {
                     )
                     .await?
             },
-        })
+        };
+        Ok(())
     }
 
     // ユーザからのinteractionの応答を編集するメソッド

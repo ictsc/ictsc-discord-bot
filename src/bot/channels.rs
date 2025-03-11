@@ -234,11 +234,11 @@ impl Bot {
                     ?definition,
                     "channel is created but not synced, update channel"
                 );
-                self.edit_channel(channel, &definition).await?;
+                self.edit_channel(channel, definition).await?;
                 continue;
             }
 
-            if matched_channels.len() != 0 {
+            if !matched_channels.is_empty() {
                 tracing::debug!(
                     ?matched_channels,
                     "several matched channels are found, delete them"
@@ -249,7 +249,7 @@ impl Bot {
             }
 
             tracing::debug!(?definition, "create channel");
-            self.create_channel(&definition).await?;
+            self.create_channel(definition).await?;
         }
 
         tracing::debug!("delete not-defined channels");
@@ -257,8 +257,7 @@ impl Bot {
             let found = definitions
                 .as_ref()
                 .iter()
-                .find(|d| d.name == channel.name)
-                .is_some();
+                .any(|d| d.name == channel.name);
 
             if !found {
                 tracing::debug!(?channel, "delete category");
