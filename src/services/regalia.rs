@@ -1,5 +1,5 @@
 use crate::models::{Contestant, Problem, Team};
-use crate::services::contestant::{ContestantError, ContestantService};
+use crate::services::contestant::{ContestantServiceError, ContestantService};
 use crate::services::problem::{ProblemError, ProblemService};
 use crate::services::redeploy::{
     RedeployJob, RedeployResult, RedeployService, RedeployStatusList, RedeployTarget,
@@ -34,8 +34,12 @@ impl Regalia {
 
         Ok(Self { config, client })
     }
+}
 
-    pub async fn list_contestants(&self) -> anyhow::Result<Vec<Contestant>, ContestantError> {
+#[async_trait]
+impl ContestantService for Regalia {
+    #[tracing::instrument(skip_all)]
+    async fn get_contestants(&self) -> anyhow::Result<Vec<Contestant>, ContestantServiceError> {
         let response = self
             .client
             .post(format!(
@@ -45,30 +49,34 @@ impl Regalia {
             .json(&RegaliaPostListAllContestantsRequest {})
             .send()
             .await
-            .map_err(|e| ContestantError::Unexpected(Box::new(e)))?;
+            .map_err(|e| ContestantServiceError::Unexpected(Box::new(e)))?;
         match response.status() {
             reqwest::StatusCode::OK => {
                 let contestants = response
                     .json::<RegaliaPostListAllContestantsResponse>()
                     .await
-                    .map_err(|e| ContestantError::Unexpected(Box::new(e)))?
+                    .map_err(|e| ContestantServiceError::Unexpected(Box::new(e)))?
                     .contestants
                     .into_iter()
                     .map(Into::into)
                     .collect::<Vec<_>>();
                 if contestants.is_empty() {
-                    Err(ContestantError::NotFound)
+                    Err(ContestantServiceError::NotFound)
                 } else {
                     Ok(contestants)
                 }
             },
-            _ => Err(ContestantError::Unexpected(Box::new(
+            _ => Err(ContestantServiceError::Unexpected(Box::new(
                 response.error_for_status().unwrap_err(),
             ))),
         }
     }
+}
 
-    pub async fn list_teams(&self) -> anyhow::Result<Vec<Team>, TeamError> {
+#[async_trait]
+impl TeamService for Regalia {
+    #[tracing::instrument(skip_all)]
+    async fn get_teams(&self) -> anyhow::Result<Vec<Team>, TeamError> {
         let response = self
             .client
             .post(format!("{}TeamService/ListTeams", self.config.baseurl))
@@ -93,8 +101,12 @@ impl Regalia {
             ))),
         }
     }
+}
 
-    pub async fn list_problems(&self) -> anyhow::Result<Vec<Problem>, ProblemError> {
+#[async_trait]
+impl ProblemService for Regalia {
+    #[tracing::instrument(skip_all)]
+    async fn get_problems(&self) -> anyhow::Result<Vec<Problem>, ProblemError> {
         let response = self
             .client
             .post(format!(
@@ -121,27 +133,6 @@ impl Regalia {
                 response.error_for_status().unwrap_err(),
             ))),
         }
-    }
-}
-
-#[async_trait]
-impl ContestantService for Regalia {
-    async fn get_contestants(&self) -> Result<Vec<Contestant>, ContestantError> {
-        self.list_contestants().await
-    }
-}
-
-#[async_trait]
-impl TeamService for Regalia {
-    async fn get_teams(&self) -> Result<Vec<Team>, TeamError> {
-        self.list_teams().await
-    }
-}
-
-#[async_trait]
-impl ProblemService for Regalia {
-    async fn get_problems(&self) -> Result<Vec<Problem>, ProblemError> {
-        self.list_problems().await
     }
 }
 

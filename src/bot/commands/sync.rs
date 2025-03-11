@@ -8,6 +8,7 @@ use serenity::all::EditInteractionResponse;
 
 use crate::bot::helpers::HelperError;
 use crate::bot::Bot;
+use crate::services::contestant::ContestantServiceError;
 
 #[derive(Debug, thiserror::Error)]
 enum SyncCommandError {
@@ -17,7 +18,8 @@ enum SyncCommandError {
     UserNotInGuildError,
     #[error("チームのroleが見つかりませんでした。運営にお問い合わせください。")]
     TeamNotFoundError,
-
+    #[error("予期しないエラーが発生しました。")]
+    UnexpectedError,
     #[error("予期しないエラーが発生しました。")]
     HelperError(#[from] HelperError),
 }
@@ -30,22 +32,31 @@ impl Bot {
             .description("スコアサーバーのユーザー情報からDiscordロールを付与します。")
     }
 
+    async fn validate_sync_command<'t>(
+        &self,
+        interaction: &CommandInteraction,
+    ) -> SyncCommandResult<String> {
+        if interaction.guild_id.is_some() {
+            return Err(SyncCommandError::CalledFromGuildChannelError);
+        }
+        let team_id = self.contestant_service
+            .get_contestant(&interaction.user.id.to_string())
+            .await
+            .map_err(|e| match e {
+                ContestantServiceError::NotFound => SyncCommandError::UserNotInGuildError,
+                ContestantServiceError::Unexpected(_) => SyncCommandError::UnexpectedError,
+            })
+            .map(|c| c.team_id)?;
+        self.teams
+            .iter()
+            .find_map(|t| (team_id == t.id).then(|| t.role_name.clone()))
+            .ok_or(SyncCommandError::TeamNotFoundError)
+    }
+
     #[tracing::instrument(skip_all)]
     pub async fn handle_sync_command(&self, interaction: &CommandInteraction) -> Result<()> {
-        if interaction.guild_id.is_some() {
-            return Err(SyncCommandError::CalledFromGuildChannelError.into());
-        }
-
-        let contestatnt = self
-            .contestant_service
-            .get_contestant(&interaction.user.id.to_string())
-            .await;
-        let role_name = match contestatnt {
-            Ok(c) => self
-                .teams
-                .iter()
-                .find_map(|t| (c.team_id == t.id).then(|| t.role_name.clone()))
-                .ok_or(SyncCommandError::TeamNotFoundError)?,
+        let role_name = match self.validate_sync_command(&interaction).await {
+            Ok(c) => c,
             Err(err) => {
                 self.respond(
                     interaction,
