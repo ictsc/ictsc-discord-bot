@@ -43,7 +43,7 @@ impl ContestantService for Regalia {
         let response = self
             .client
             .post(format!(
-                "{}ContestantService/ListContestants",
+                "{}admin.v1.ContestantService/ListContestants",
                 self.config.baseurl
             ))
             .json(&RegaliaPostListAllContestantsRequest {})
@@ -79,7 +79,7 @@ impl TeamService for Regalia {
     async fn get_teams(&self) -> anyhow::Result<Vec<Team>, TeamError> {
         let response = self
             .client
-            .post(format!("{}TeamService/ListTeams", self.config.baseurl))
+            .post(format!("{}admin.v1.TeamService/ListTeams", self.config.baseurl))
             .json(&RegaliaPostListAllTeamsRequest {})
             .send()
             .await
@@ -110,7 +110,7 @@ impl ProblemService for Regalia {
         let response = self
             .client
             .post(format!(
-                "{}ProblemService/ListProblems",
+                "{}admin.v1.ProblemService/ListProblems",
                 self.config.baseurl
             ))
             .json(&RegaliaPostListProblemsRequest {})
