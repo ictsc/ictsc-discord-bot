@@ -1,0 +1,15 @@
+staff:
+  password: "${STAFF_PASSWORD}"
+
+discord:
+  token: "${DISCORD_TOKEN}"
+  application_id: ${DISCORD_APPLICATION_ID}
+  guild_id: ${DISCORD_GUILD_ID}
+  disabled_commands: []
+
+redeploy:
+  regalia:
+    baseurl: "${ADMIN_APIBASE}"
+    token: "${ADMIN_TOKEN}"
+  notifiers: []
+# vim: ft=yaml :
