@@ -29,7 +29,7 @@ type SyncCommandResult<'t, T> = std::result::Result<T, SyncCommandError>;
 impl Bot {
     pub fn create_sync_command() -> CreateCommand {
         CreateCommand::new("sync")
-            .description("スコアサーバーのユーザー情報からDiscordロールを付与します。")
+            .description("スコアサーバーのユーザー情報からチームに参加します。")
     }
 
     async fn validate_sync_command(
