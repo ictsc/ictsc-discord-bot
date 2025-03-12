@@ -253,6 +253,7 @@ struct RegaliaPostListAllContestantsRequest {}
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct RegaliaPostListAllContestantsResponse {
+    #[serde(default)]
     contestants: Vec<RegaliaContestant>,
 }
 
@@ -262,6 +263,7 @@ struct RegaliaPostListAllTeamsRequest {}
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct RegaliaPostListAllTeamsResponse {
+    #[serde(default)]
     teams: Vec<RegaliaTeam>,
 }
 
@@ -271,6 +273,7 @@ struct RegaliaPostListProblemsRequest {}
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct RegaliaPostListProblemsResponse {
+    #[serde(default)]
     problems: Vec<RegaliaProblem>,
 }
 
