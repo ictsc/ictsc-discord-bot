@@ -14,6 +14,8 @@ use crate::services::contestant::ContestantServiceError;
 enum SyncCommandError {
     #[error("このコマンドはDM以外から呼び出すことはできません。")]
     CalledFromGuildChannelError,
+    #[error("スコアサーバーでのアカウント登録が確認できませんでした。登録を行ってください。")]
+    UserNotInScoreServer,
     #[error("ICTSC Discordチャンネルにまだ参加していません。参加した後に再度お試しください。")]
     UserNotInGuildError,
     #[error("チームのroleが見つかりませんでした。運営にお問い合わせください。")]
@@ -44,7 +46,7 @@ impl Bot {
             .get_contestant(&interaction.user.id.to_string())
             .await
             .map_err(|e| match e {
-                ContestantServiceError::NotFound => SyncCommandError::UserNotInGuildError,
+                ContestantServiceError::NotFound => SyncCommandError::UserNotInScoreServer,
                 ContestantServiceError::Unexpected(_) => SyncCommandError::UnexpectedError,
             })
             .map(|c| c.team_id)?;
