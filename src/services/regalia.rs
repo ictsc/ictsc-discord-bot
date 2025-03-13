@@ -1,11 +1,13 @@
 use crate::models::{Contestant, Problem, Team};
-use crate::services::contestant::{ContestantServiceError, ContestantService};
+use crate::services::contestant::{ContestantService, ContestantServiceError};
 use crate::services::problem::{ProblemError, ProblemService};
 use crate::services::redeploy::{
-    RedeployJob, RedeployResult, RedeployService, RedeployStatusList, RedeployTarget,
+    RedeployError, RedeployJob, RedeployResult, RedeployService, RedeployStatus,
+    RedeployStatusList, RedeployTarget,
 };
 use crate::services::team::{TeamError, TeamService};
 use async_trait::async_trait;
+use chrono::{DateTime, Utc};
 use reqwest::header::HeaderMap;
 use reqwest::{Client, ClientBuilder};
 use serde_derive::{Deserialize, Serialize};
@@ -79,7 +81,10 @@ impl TeamService for Regalia {
     async fn get_teams(&self) -> anyhow::Result<Vec<Team>, TeamError> {
         let response = self
             .client
-            .post(format!("{}admin.v1.TeamService/ListTeams", self.config.baseurl))
+            .post(format!(
+                "{}admin.v1.TeamService/ListTeams",
+                self.config.baseurl
+            ))
             .json(&RegaliaPostListAllTeamsRequest {})
             .send()
             .await
@@ -130,6 +135,42 @@ impl ProblemService for Regalia {
                 Ok(problems)
             },
             _ => Err(ProblemError::Unexpected(Box::new(
+                response.error_for_status().unwrap_err(),
+            ))),
+        }
+    }
+}
+
+#[async_trait]
+impl RedeployService for Regalia {
+    #[tracing::instrument(skip_all, fields(target = ?target))]
+    async fn redeploy(&self, target: &RedeployTarget) -> RedeployResult<RedeployJob> {
+        todo!()
+    }
+
+    #[tracing::instrument(skip_all)]
+    async fn get_status(&self, team_id: &str) -> RedeployResult<RedeployStatusList> {
+        let team_code = team_id.to_string();
+        let response = self
+            .client
+            .post(format!(
+                "{}admin.v1.DeploymentService/ListDeployments",
+                self.config.baseurl
+            ))
+            .json(&RegaliaPostListDeploymentsRequest { team_code })
+            .send()
+            .await
+            .map_err(|e| RedeployError::Unexpected(Box::new(e)))?;
+        match response.status() {
+            reqwest::StatusCode::OK => Ok(response
+                .json::<RegaliaPostListDeploymentsResponse>()
+                .await
+                .map_err(|e| RedeployError::Unexpected(Box::new(e)))?
+                .deployments
+                .into_iter()
+                .map(Into::into)
+                .collect()),
+            _ => Err(RedeployError::Unexpected(Box::new(
                 response.error_for_status().unwrap_err(),
             ))),
         }
@@ -216,6 +257,77 @@ enum RegaliaProblemType {
     ProblemTypeDescriptive,
 }
 
+#[derive(Debug, Serialize)]
+struct RegaliaPostListAllContestantsRequest {}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct RegaliaPostListAllContestantsResponse {
+    #[serde(default)]
+    contestants: Vec<RegaliaContestant>,
+}
+
+#[derive(Debug, Serialize)]
+struct RegaliaPostListAllTeamsRequest {}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct RegaliaPostListAllTeamsResponse {
+    #[serde(default)]
+    teams: Vec<RegaliaTeam>,
+}
+
+#[derive(Debug, Serialize)]
+struct RegaliaPostListProblemsRequest {}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct RegaliaPostListProblemsResponse {
+    #[serde(default)]
+    problems: Vec<RegaliaProblem>,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct RegaliaPostListDeploymentsRequest {
+    team_code: String,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct RegaliaPostListDeploymentsResponse {
+    #[serde(default)]
+    deployments: Vec<RegaliaDeployment>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct RegaliaDeployment {
+    team_code: String,
+    problem_code: String,
+    revision: i64,
+    latest_event: RegaliaDeploymentEventType,
+    #[serde(default)]
+    events: Vec<RegaliaDeploymentEvent>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+enum RegaliaDeploymentEventType {
+    DeploymentEventTypeUnspecified,
+    DeploymentEventTypeQueued,
+    DeploymentEventTypeCreating,
+    DeploymentEventTypeFinished,
+    DeploymentEventTypeError,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct RegaliaDeploymentEvent {
+    occurred_at: DateTime<Utc>,
+    #[serde(rename = "type")]
+    typ: RegaliaDeploymentEventType,
+}
 impl From<RegaliaContestant> for Contestant {
     fn from(value: RegaliaContestant) -> Self {
         Self {
@@ -247,43 +359,30 @@ impl From<RegaliaProblem> for Problem {
     }
 }
 
-#[derive(Debug, Serialize)]
-struct RegaliaPostListAllContestantsRequest {}
-
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
-struct RegaliaPostListAllContestantsResponse {
-    #[serde(default)]
-    contestants: Vec<RegaliaContestant>,
-}
-
-#[derive(Debug, Serialize)]
-struct RegaliaPostListAllTeamsRequest {}
-
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
-struct RegaliaPostListAllTeamsResponse {
-    #[serde(default)]
-    teams: Vec<RegaliaTeam>,
-}
-
-#[derive(Debug, Serialize)]
-struct RegaliaPostListProblemsRequest {}
-
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
-struct RegaliaPostListProblemsResponse {
-    #[serde(default)]
-    problems: Vec<RegaliaProblem>,
-}
-
-#[async_trait]
-impl RedeployService for Regalia {
-    async fn redeploy(&self, _target: &RedeployTarget) -> RedeployResult<RedeployJob> {
-        todo!()
-    }
-
-    async fn get_status(&self, _team_id: &str) -> RedeployResult<RedeployStatusList> {
-        todo!()
+impl From<RegaliaDeployment> for RedeployStatus {
+    fn from(value: RegaliaDeployment) -> Self {
+        use RegaliaDeploymentEventType::*;
+        let team_id = value.team_code.clone();
+        let problem_code = value.problem_code.clone();
+        let is_redeploying = matches!(value.latest_event, DeploymentEventTypeCreating);
+        let events = {
+            let mut events = value.events.iter().collect::<Vec<_>>();
+            events.sort_by(|a, b| a.occurred_at.cmp(&b.occurred_at));
+            events.reverse();
+            events
+        };
+        let last_redeploy_started_at = events
+            .iter()
+            .find_map(|e| matches!(e.typ, DeploymentEventTypeCreating).then(|| e.occurred_at));
+        let last_redeploy_completed_at = events
+            .iter()
+            .find_map(|e| matches!(e.typ, DeploymentEventTypeFinished).then(|| e.occurred_at));
+        Self {
+            team_id,
+            problem_code,
+            is_redeploying,
+            last_redeploy_started_at,
+            last_redeploy_completed_at,
+        }
     }
 }
