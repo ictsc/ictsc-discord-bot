@@ -145,7 +145,32 @@ impl ProblemService for Regalia {
 impl RedeployService for Regalia {
     #[tracing::instrument(skip_all, fields(target = ?target))]
     async fn redeploy(&self, target: &RedeployTarget) -> RedeployResult<RedeployJob> {
-        todo!()
+        let team_code = target.team_id.clone();
+        let problem_code = target.problem_id.clone();
+        let response = self
+            .client
+            .post(format!(
+                "{}admin.v1.DeploymentService/Deploy",
+                self.config.baseurl
+            ))
+            .json(&RegaliaPostDeployRequest {
+                team_code,
+                problem_code,
+            })
+            .send()
+            .await
+            .map_err(|e| RedeployError::Unexpected(Box::new(e)))?;
+        match response.status() {
+            reqwest::StatusCode::OK => Ok(response
+                .json::<RegaliaPostDeployResponse>()
+                .await
+                .map_err(|e| RedeployError::Unexpected(Box::new(e)))?
+                .deployment
+                .into()),
+            _ => Err(RedeployError::Unexpected(Box::new(
+                response.error_for_status().unwrap_err(),
+            ))),
+        }
     }
 
     #[tracing::instrument(skip_all)]
@@ -300,11 +325,26 @@ struct RegaliaPostListDeploymentsResponse {
     deployments: Vec<RegaliaDeployment>,
 }
 
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct RegaliaPostDeployRequest {
+    team_code: String,
+    problem_code: String,
+}
+
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct RegaliaPostDeployResponse {
+    deployment: RegaliaDeployment,
+}
+
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct RegaliaDeployment {
     team_code: String,
     problem_code: String,
+    #[allow(dead_code)]
     revision: i64,
     latest_event: RegaliaDeploymentEventType,
     #[serde(default)]
@@ -355,6 +395,16 @@ impl From<RegaliaProblem> for Problem {
         Self {
             code: value.code,
             name: value.title,
+        }
+    }
+}
+
+impl From<RegaliaDeployment> for RedeployJob {
+    fn from(value: RegaliaDeployment) -> Self {
+        Self {
+            id: "".to_string(),
+            team_id: value.team_code,
+            problem_code: value.problem_code,
         }
     }
 }
