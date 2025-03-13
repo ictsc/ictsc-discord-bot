@@ -332,7 +332,6 @@ struct RegaliaPostDeployRequest {
     problem_code: String,
 }
 
-
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct RegaliaPostDeployResponse {
@@ -414,23 +413,37 @@ impl From<RegaliaDeployment> for RedeployStatus {
         use RegaliaDeploymentEventType::*;
         let team_id = value.team_code.clone();
         let problem_code = value.problem_code.clone();
-        let is_redeploying = matches!(value.latest_event, DeploymentEventTypeCreating);
         let events = {
             let mut events = value.events.iter().collect::<Vec<_>>();
             events.sort_by(|a, b| a.occurred_at.cmp(&b.occurred_at));
             events.reverse();
             events
         };
+        if matches!(
+            value.latest_event,
+            DeploymentEventTypeError | DeploymentEventTypeUnspecified
+        ) {
+            return Self {
+                team_id,
+                problem_code,
+                is_redeploying: false,
+                last_redeploy_started_at: None,
+                last_redeploy_completed_at: None,
+            };
+        }
         let last_redeploy_started_at = events
             .iter()
             .find_map(|e| matches!(e.typ, DeploymentEventTypeCreating).then(|| e.occurred_at));
         let last_redeploy_completed_at = events
             .iter()
+            .take_while(|e| {
+                e.occurred_at > last_redeploy_started_at.unwrap_or(DateTime::UNIX_EPOCH)
+            })
             .find_map(|e| matches!(e.typ, DeploymentEventTypeFinished).then(|| e.occurred_at));
         Self {
             team_id,
             problem_code,
-            is_redeploying,
+            is_redeploying: last_redeploy_completed_at.is_none(),
             last_redeploy_started_at,
             last_redeploy_completed_at,
         }
