@@ -121,6 +121,13 @@ async fn main() {
             tracing::info!("Received SIGTERM, shutting down");
             std::process::exit(0);
         });
+        let mut sig = tokio::signal::unix::signal(tokio::signal::unix::SignalKind::interrupt())
+            .expect("failed to register signal handler");
+        tokio::spawn(async move {
+            sig.recv().await;
+            tracing::info!("Received SIGINT, shutting down");
+            std::process::exit(0);
+        });
     }
 
 
