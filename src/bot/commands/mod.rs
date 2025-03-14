@@ -91,7 +91,7 @@ impl Bot {
             "ask" => self.handle_ask_command(interaction).await,
             "join" => self.handle_join_command(interaction).await,
             "ping" => self.handle_ping_command(interaction).await,
-            "redeploy" => self.handle_redeploy_command(ctx, interaction).await,
+            // "redeploy" => self.handle_redeploy_command(ctx, interaction).await,
             "sync" => self.handle_sync_command(interaction).await,
             _ => Err(anyhow::anyhow!("unknown command: {}", name)),
         };
