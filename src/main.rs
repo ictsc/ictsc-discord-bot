@@ -112,6 +112,18 @@ async fn sync(bot: &Bot) -> Result<()> {
 async fn main() {
     tracing_subscriber::fmt::init();
 
+    #[cfg(unix)]
+    {
+        let mut sig = tokio::signal::unix::signal(tokio::signal::unix::SignalKind::terminate())
+            .expect("failed to register signal handler");
+        tokio::spawn(async move {
+            sig.recv().await;
+            tracing::info!("Received SIGTERM, shutting down");
+            std::process::exit(0);
+        });
+    }
+
+
     let args: Arguments = Arguments::parse();
     let config = match Configuration::load(args.config) {
         Ok(config) => config,
