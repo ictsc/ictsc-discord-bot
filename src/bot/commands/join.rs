@@ -30,7 +30,7 @@ type JoinCommandResult<'t, T> = std::result::Result<T, JoinCommandError<'t>>;
 impl Bot {
     pub fn create_join_command() -> CreateCommand {
         CreateCommand::new("join")
-            .description("チームに参加します。")
+            .description("チームに参加します。（本戦では使用しません。）")
             .add_option(
                 CreateCommandOption::new(
                     CommandOptionType::String,
@@ -45,12 +45,12 @@ impl Bot {
     pub async fn handle_join_command(&self, interaction: &CommandInteraction) -> Result<()> {
         let role_name = match self.validate_join_command(interaction) {
             Ok(role_name) => role_name,
-            Err(err) => {
+            Err(_err) => {
                 self.respond(
                     interaction,
                     CreateInteractionResponseMessage::new()
                         .ephemeral(true)
-                        .content(err.to_string()),
+                        .content("このコマンドは現在利用できません。"),
                 )
                 .await?;
                 return Ok(());
@@ -123,20 +123,18 @@ impl Bot {
         let sender_member_role_id_set = HashSet::from_iter(sender_member.roles.clone());
 
         let target_role_id_set: HashSet<_> = self
-            .find_roles_by_name_cached(&role_name)
+            .find_roles_by_name_cached(role_name)
             .await?
             .iter()
             .map(|role| role.id)
             .collect();
 
         let role_ids_granted: Vec<_> = target_role_id_set
-            .difference(&sender_member_role_id_set)
-            .map(|id| id.clone())
+            .difference(&sender_member_role_id_set).copied()
             .collect();
 
         let role_ids_revoked: Vec<_> = sender_member_role_id_set
-            .difference(&target_role_id_set)
-            .map(|id| id.clone())
+            .difference(&target_role_id_set).copied()
             .collect();
 
         self.grant_roles(&mut sender_member, role_ids_granted)

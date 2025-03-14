@@ -2,12 +2,16 @@ use anyhow::Result;
 use bot::config::Configuration;
 use bot::config::RedeployNotifiersConfiguration;
 use bot::config::RedeployServiceConfiguration;
+use bot::services::contestant::{ContestantService, FakeContestantService};
+use bot::services::problem::{ProblemService, StaticProblemService};
 use bot::services::redeploy::DiscordRedeployNotifier;
 use bot::services::redeploy::FakeRedeployService;
 use bot::services::redeploy::RState;
 use bot::services::redeploy::RStateConfig;
 use bot::services::redeploy::RedeployNotifier;
 use bot::services::redeploy::RedeployService;
+use bot::services::regalia::{Regalia, RegaliaConfig};
+use bot::services::team::{StaticTeamService, TeamService};
 use bot::Bot;
 use clap::Parser;
 use clap::Subcommand;
@@ -41,6 +45,10 @@ fn build_redeploy_service(
             password: rstate.password.clone(),
             problems: config.problems.clone(),
         })?),
+        RedeployServiceConfiguration::Regalia(regalia) => Box::new(Regalia::new(RegaliaConfig {
+            baseurl: regalia.baseurl.clone(),
+            token: regalia.token.clone(),
+        })?),
         RedeployServiceConfiguration::Fake => Box::new(FakeRedeployService),
     })
 }
@@ -62,6 +70,38 @@ async fn build_redeploy_notifiers(
     Ok(notifiers)
 }
 
+fn build_contestant_service(
+    config: &Configuration,
+) -> Result<Box<dyn ContestantService + Send + Sync>> {
+    Ok(match &config.redeploy.service {
+        RedeployServiceConfiguration::Regalia(regalia) => Box::new(Regalia::new(RegaliaConfig {
+            baseurl: regalia.baseurl.clone(),
+            token: regalia.token.clone(),
+        })?),
+        _ => Box::new(FakeContestantService),
+    })
+}
+
+fn build_team_service(config: &Configuration) -> Result<Box<dyn TeamService + Send + Sync>> {
+    Ok(match &config.redeploy.service {
+        RedeployServiceConfiguration::Regalia(regalia) => Box::new(Regalia::new(RegaliaConfig {
+            baseurl: regalia.baseurl.clone(),
+            token: regalia.token.clone(),
+        })?),
+        _ => Box::new(StaticTeamService::new(config.teams.clone())),
+    })
+}
+
+fn build_problem_service(config: &Configuration) -> Result<Box<dyn ProblemService + Send + Sync>> {
+    Ok(match &config.redeploy.service {
+        RedeployServiceConfiguration::Regalia(regalia) => Box::new(Regalia::new(RegaliaConfig {
+            baseurl: regalia.baseurl.clone(),
+            token: regalia.token.clone(),
+        })?),
+        _ => Box::new(StaticProblemService::new(config.problems.clone())),
+    })
+}
+
 async fn sync(bot: &Bot) -> Result<()> {
     bot.sync_roles().await?;
     bot.sync_channels().await?;
@@ -72,11 +112,38 @@ async fn sync(bot: &Bot) -> Result<()> {
 async fn main() {
     tracing_subscriber::fmt::init();
 
+    #[cfg(unix)]
+    {
+        let mut sig = tokio::signal::unix::signal(tokio::signal::unix::SignalKind::terminate())
+            .expect("failed to register signal handler");
+        tokio::spawn(async move {
+            sig.recv().await;
+            tracing::info!("Received SIGTERM, shutting down");
+            std::process::exit(0);
+        });
+        let mut sig = tokio::signal::unix::signal(tokio::signal::unix::SignalKind::interrupt())
+            .expect("failed to register signal handler");
+        tokio::spawn(async move {
+            sig.recv().await;
+            tracing::info!("Received SIGINT, shutting down");
+            std::process::exit(0);
+        });
+    }
+
+
     let args: Arguments = Arguments::parse();
     let config = match Configuration::load(args.config) {
         Ok(config) => config,
         Err(err) => {
             tracing::error!(?err, "couldn't read config file");
+            return;
+        },
+    };
+
+    let contestant_service = match build_contestant_service(&config) {
+        Ok(service) => service,
+        Err(err) => {
+            tracing::error!(?err, "couldn't instantiate contestants service");
             return;
         },
     };
@@ -97,15 +164,36 @@ async fn main() {
         },
     };
 
+    let team_service = match build_team_service(&config) {
+        Ok(service) => service,
+        Err(err) => {
+            tracing::error!(?err, "couldn't instantiate teams service");
+            return;
+        },
+    };
+
+    let teams = team_service.get_teams().await.unwrap();
+
+    let problem_service = match build_problem_service(&config) {
+        Ok(service) => service,
+        Err(err) => {
+            tracing::error!(?err, "couldn't instantiate problems service");
+            return;
+        },
+    };
+
+    let problems = problem_service.get_problems().await.unwrap();
+
     let bot = Bot::new(
         config.discord.token,
         config.discord.application_id,
         config.discord.guild_id,
         config.staff.password,
-        config.teams,
-        config.problems,
+        teams,
+        problems,
         redeploy_service,
         redeploy_notifiers,
+        contestant_service,
         config.discord.configure_channel_topics,
     );
 

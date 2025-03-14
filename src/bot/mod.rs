@@ -14,6 +14,7 @@ use tokio::sync::RwLock;
 
 use crate::models::Problem;
 use crate::models::Team;
+use crate::services::contestant::ContestantService;
 use crate::services::redeploy::RedeployNotifier;
 use crate::services::redeploy::RedeployService;
 
@@ -28,6 +29,7 @@ pub struct Bot {
 
     redeploy_service: Box<dyn RedeployService + Send + Sync>,
     redeploy_notifiers: Vec<Box<dyn RedeployNotifier + Send + Sync>>,
+    contestant_service: Box<dyn ContestantService + Send + Sync>,
 
     configure_channel_topics: bool,
 
@@ -44,6 +46,7 @@ impl Bot {
         problems: Vec<Problem>,
         redeploy_service: Box<dyn RedeployService + Send + Sync>,
         redeploy_notifiers: Vec<Box<dyn RedeployNotifier + Send + Sync>>,
+        contestant_service: Box<dyn ContestantService + Send + Sync>,
         configure_channel_topics: bool,
     ) -> Self {
         let application_id = ApplicationId::new(application_id);
@@ -60,6 +63,7 @@ impl Bot {
             problems,
             redeploy_service,
             redeploy_notifiers,
+            contestant_service,
             configure_channel_topics,
             role_cache: RwLock::new(None),
         }
@@ -122,11 +126,8 @@ impl EventHandler for Bot {
 
     #[tracing::instrument(skip_all)]
     async fn interaction_create(&self, ctx: Context, interaction: Interaction) {
-        match interaction {
-            Interaction::Command(interaction) => {
-                self.handle_application_command(&ctx, &interaction).await
-            },
-            _ => {},
+        if let Interaction::Command(interaction) = interaction {
+            self.handle_application_command(&ctx, &interaction).await
         };
     }
 }

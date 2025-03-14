@@ -1,3 +1,4 @@
+use crate::models::Problem;
 use anyhow::Result;
 use async_trait::async_trait;
 use chrono::DateTime;
@@ -13,8 +14,6 @@ use serenity::all::ExecuteWebhook;
 use serenity::http::Http;
 use serenity::model::webhook::Webhook;
 
-use crate::models::Problem;
-
 #[derive(Debug, Clone)]
 pub struct RedeployJob {
     pub id: String,
@@ -22,7 +21,7 @@ pub struct RedeployJob {
     pub problem_code: String,
 }
 
-type RedeployStatusList = Vec<RedeployStatus>;
+pub type RedeployStatusList = Vec<RedeployStatus>;
 
 #[derive(Debug, Clone)]
 pub struct RedeployStatus {
@@ -39,7 +38,7 @@ pub struct RedeployStatus {
     pub last_redeploy_completed_at: Option<DateTime<Utc>>,
 }
 
-type RedeployResult<T> = Result<T, RedeployError>;
+pub type RedeployResult<T> = Result<T, RedeployError>;
 
 #[async_trait]
 pub trait RedeployService {
@@ -201,6 +200,7 @@ impl RedeployService for RState {
         Ok(statuses)
     }
 }
+
 
 pub struct FakeRedeployService;
 

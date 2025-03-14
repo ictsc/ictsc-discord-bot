@@ -137,19 +137,16 @@ impl Bot {
     }
 
     async fn get_team_for(&self, user: &User) -> RedeployCommandResult<Team> {
-        let member = self.get_member(&user).await?;
+        let member = self.get_member(user).await?;
 
         for role_id in member.roles {
             let role = self.find_roles_by_id_cached(role_id).await.unwrap();
-            match role {
-                Some(role) => {
-                    for team in &self.teams {
-                        if role.name == team.role_name {
-                            return Ok(team.clone());
-                        }
+            if let Some(role) = role {
+                for team in &self.teams {
+                    if role.name == team.role_name {
+                        return Ok(team.clone());
                     }
-                },
-                None => (),
+                }
             }
         }
 
