@@ -1,13 +1,15 @@
 use std::fs::File;
 use std::path::Path;
 
+use anyhow::Ok;
 use anyhow::Result;
 use serde::Deserialize;
+use validator::Validate;
 
 use crate::models::Problem;
 use crate::models::Team;
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Validate)]
 pub struct Configuration {
     pub staff: StaffConfiguration,
     pub discord: DiscordConfiguration,
@@ -16,6 +18,7 @@ pub struct Configuration {
     pub redeploy: RedeployConfiguration,
 
     #[serde(default)]
+    #[validate(nested)]
     pub teams: Vec<Team>,
 
     #[serde(default)]
@@ -25,7 +28,9 @@ pub struct Configuration {
 impl Configuration {
     pub fn load<P: AsRef<Path>>(path: P) -> Result<Configuration> {
         let file = File::open(path)?;
-        Ok(serde_yaml::from_reader(file)?)
+        let config: Configuration = serde_yaml::from_reader(file)?;
+        config.validate()?;
+        Ok(config)
     }
 }
 

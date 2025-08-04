@@ -23,3 +23,4 @@ thiserror = "1.0.30"
 tokio = { version = "1.0", features = ["macros", "rt-multi-thread"] }
 tracing = "0.1.30"
 tracing-subscriber = "0.3.8"
+validator = { version = "0.20", features = ["derive"] }
