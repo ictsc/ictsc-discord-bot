@@ -105,6 +105,7 @@ async fn main() {
         config.teams,
         config.problems,
         config.discord.create_voice_channels,
+        config.discord.disabled_commands,
         redeploy_service,
         redeploy_notifiers,
     );

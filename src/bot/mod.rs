@@ -27,6 +27,7 @@ pub struct Bot {
     problems: Vec<Problem>,
 
     create_voice_channels: bool,
+    disabled_commands: Vec<String>,
 
     redeploy_service: Box<dyn RedeployService + Send + Sync>,
     redeploy_notifiers: Vec<Box<dyn RedeployNotifier + Send + Sync>>,
@@ -43,6 +44,7 @@ impl Bot {
         teams: Vec<Team>,
         problems: Vec<Problem>,
         create_voice_channels: bool,
+        disabled_commands: Vec<String>,
         redeploy_service: Box<dyn RedeployService + Send + Sync>,
         redeploy_notifiers: Vec<Box<dyn RedeployNotifier + Send + Sync>>,
     ) -> Self {
@@ -59,6 +61,7 @@ impl Bot {
             teams,
             problems,
             create_voice_channels,
+            disabled_commands,
             redeploy_service,
             redeploy_notifiers,
             role_cache: RwLock::new(None),

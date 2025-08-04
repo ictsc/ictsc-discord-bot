@@ -4,6 +4,8 @@ mod join;
 mod ping;
 mod redeploy;
 
+use std::collections::HashMap;
+
 use anyhow::Result;
 use serenity::client::Context;
 
@@ -11,30 +13,75 @@ use crate::bot::*;
 
 impl Bot {
     pub async fn sync_global_application_commands(&self) -> Result<()> {
-        tracing::debug!("Syncing ping command");
-        Command::create_global_command(&self.discord_client, Bot::create_ping_command()).await?;
+        let desired = HashMap::from([
+            (String::from("ping"), Bot::create_ping_command()),
+            (String::from("join"), Bot::create_join_command()),
+        ]);
 
-        tracing::debug!("Syncing join command");
-        Command::create_global_command(&self.discord_client, Bot::create_join_command()).await?;
+        let current = self.discord_client.get_global_commands().await?;
+
+        for command in current {
+            if !desired.contains_key(&command.name) {
+                self.discord_client
+                    .delete_global_command(command.id)
+                    .await?;
+                tracing::debug!(?command, "deleted global command");
+            } else if self.disabled_commands.contains(&command.name) {
+                self.discord_client
+                    .delete_global_command(command.id)
+                    .await?;
+                tracing::debug!(?command, "deleted disabled global command");
+            }
+        }
+
+        for (name, builder) in desired {
+            if self.disabled_commands.contains(&name) {
+                tracing::debug!(command = ?name, "skipping disabled command");
+                continue;
+            }
+            tracing::debug!(command = ?name, "Syncing command");
+            Command::create_global_command(&self.discord_client, builder).await?;
+        }
 
         Ok(())
     }
 
     pub async fn sync_guild_application_commands(&self) -> Result<()> {
-        tracing::debug!("sync archive command");
-        self.guild_id
-            .create_command(&self.discord_client, Bot::create_archive_command())
+        let desired = HashMap::from([
+            (String::from("archive"), Bot::create_archive_command()),
+            (String::from("ask"), Bot::create_ask_command()),
+            (String::from("redeploy"), Bot::create_redeploy_command()),
+        ]);
+
+        let current = self
+            .discord_client
+            .get_guild_commands(self.guild_id)
             .await?;
 
-        tracing::debug!("sync ask command");
-        self.guild_id
-            .create_command(&self.discord_client, Bot::create_ask_command())
-            .await?;
+        for command in current {
+            if !desired.contains_key(&command.name) {
+                self.discord_client
+                    .delete_guild_command(self.guild_id, command.id)
+                    .await?;
+                tracing::debug!(?command, "deleted guild command");
+            } else if self.disabled_commands.contains(&command.name) {
+                self.discord_client
+                    .delete_guild_command(self.guild_id, command.id)
+                    .await?;
+                tracing::debug!(?command, "deleted disabled guild command");
+            }
+        }
 
-        tracing::debug!("sync redeploy command");
-        self.guild_id
-            .create_command(&self.discord_client, Bot::create_redeploy_command())
-            .await?;
+        for (name, builder) in desired {
+            if self.disabled_commands.contains(&name) {
+                tracing::debug!(command = ?name, "skipping disabled command");
+                continue;
+            }
+            tracing::debug!(command = ?name, "Syncing command");
+            self.guild_id
+                .create_command(&self.discord_client, builder)
+                .await?;
+        }
 
         Ok(())
     }

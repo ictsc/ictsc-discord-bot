@@ -39,6 +39,9 @@ pub struct DiscordConfiguration {
     pub guild_id: u64,
 
     #[serde(default)]
+    pub disabled_commands: Vec<String>,
+
+    #[serde(default)]
     pub create_voice_channels: bool,
 }
 
