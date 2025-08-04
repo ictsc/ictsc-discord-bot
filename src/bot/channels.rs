@@ -8,7 +8,7 @@ use crate::bot::helpers::channels::GuildChannelDefinitionBuilder;
 use crate::bot::Bot;
 use crate::models::Team;
 
-static STAFF_CATEGORY_NAME: &str = "ICTSC2024 Staff";
+static STAFF_CATEGORY_NAME: &str = "ICTSC2025 Staff";
 
 // Discordの使い方を案内するread-onlyなチャンネル
 static HELP_CHANNEL_NAME: &str = "help";
