@@ -6,7 +6,6 @@ use serenity::model::prelude::*;
 use crate::bot::helpers::channels::GuildChannelDefinition;
 use crate::bot::helpers::channels::GuildChannelDefinitionBuilder;
 use crate::bot::Bot;
-use crate::models::Team;
 
 static STAFF_CATEGORY_NAME: &str = "ICTSC2025 Staff";
 
@@ -24,25 +23,6 @@ static SELF_INTRODUCE_CHANNEL_NAME: &str = "自己紹介";
 
 static TEXT_CHANNEL_NAME_SUFFIX: &str = "text";
 static VOICE_CHANNEL_NAME_SUFFIX: &str = "voice";
-
-impl Bot {
-    fn generate_team_channel_topic(team: &Team) -> String {
-        format!(
-            "**__踏み台サーバ__**
-
-ホスト名: {team_id}.bastion.ictsc.net
-ユーザ名: user
-パスワード: {invitation_code}
-
-**__スコアサーバ__**
-
-ユーザ登録URL: https://scoreserver.ictsc.net/signUp?invitation_code={invitation_code}&user_group_id={user_group_id}",
-            team_id = team.id,
-            invitation_code = team.invitation_code,
-            user_group_id = team.user_group_id,
-        )
-    }
-}
 
 impl Bot {
     #[tracing::instrument(skip_all)]
@@ -157,15 +137,10 @@ impl Bot {
                 .get_permission_overwrites_for_team_channel(team)
                 .await?;
 
-            let topic = match self.configure_channel_topics {
-                true => Some(Self::generate_team_channel_topic(team)),
-                false => Some(String::new()),
-            };
             channels.push(
                 GuildChannelDefinitionBuilder::default()
                     .name(format!("{}-{}", team.id, TEXT_CHANNEL_NAME_SUFFIX))
                     .kind(ChannelType::Text)
-                    .topic(topic)
                     .category(Some(team_category_id))
                     .permissions(permissions_for_team_channel.clone())
                     .build()?,

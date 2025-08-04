@@ -106,7 +106,6 @@ async fn main() {
         config.problems,
         redeploy_service,
         redeploy_notifiers,
-        config.discord.configure_channel_topics,
     );
 
     let result = match args.command {

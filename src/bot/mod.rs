@@ -29,8 +29,6 @@ pub struct Bot {
     redeploy_service: Box<dyn RedeployService + Send + Sync>,
     redeploy_notifiers: Vec<Box<dyn RedeployNotifier + Send + Sync>>,
 
-    configure_channel_topics: bool,
-
     role_cache: RwLock<Option<Vec<Role>>>,
 }
 
@@ -44,7 +42,6 @@ impl Bot {
         problems: Vec<Problem>,
         redeploy_service: Box<dyn RedeployService + Send + Sync>,
         redeploy_notifiers: Vec<Box<dyn RedeployNotifier + Send + Sync>>,
-        configure_channel_topics: bool,
     ) -> Self {
         let application_id = ApplicationId::new(application_id);
         let guild_id = GuildId::new(guild_id);
@@ -60,7 +57,6 @@ impl Bot {
             problems,
             redeploy_service,
             redeploy_notifiers,
-            configure_channel_topics,
             role_cache: RwLock::new(None),
         }
     }
