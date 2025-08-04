@@ -119,13 +119,15 @@ impl Bot {
                 .build()?,
         );
 
-        channels.push(
-            GuildChannelDefinitionBuilder::default()
-                .name(format!("staff-{}", VOICE_CHANNEL_NAME_SUFFIX))
-                .kind(ChannelType::Voice)
-                .category(Some(staff_category_id))
-                .build()?,
-        );
+        if self.create_voice_channels {
+            channels.push(
+                GuildChannelDefinitionBuilder::default()
+                    .name(format!("staff-{}", VOICE_CHANNEL_NAME_SUFFIX))
+                    .kind(ChannelType::Voice)
+                    .category(Some(staff_category_id))
+                    .build()?,
+            );
+        }
 
         // Define team channels
         for team in &self.teams {
@@ -146,14 +148,16 @@ impl Bot {
                     .build()?,
             );
 
-            channels.push(
-                GuildChannelDefinitionBuilder::default()
-                    .name(format!("{}-{}", team.id, VOICE_CHANNEL_NAME_SUFFIX))
-                    .kind(ChannelType::Voice)
-                    .category(Some(team_category_id))
-                    .permissions(permissions_for_team_channel.clone())
-                    .build()?,
-            );
+            if self.create_voice_channels {
+                channels.push(
+                    GuildChannelDefinitionBuilder::default()
+                        .name(format!("{}-{}", team.id, VOICE_CHANNEL_NAME_SUFFIX))
+                        .kind(ChannelType::Voice)
+                        .category(Some(team_category_id))
+                        .permissions(permissions_for_team_channel.clone())
+                        .build()?,
+                );
+            }
         }
 
         self._sync_channels(&[ChannelType::Text, ChannelType::Voice], channels)

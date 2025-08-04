@@ -37,6 +37,9 @@ pub struct DiscordConfiguration {
     pub token: String,
     pub application_id: u64,
     pub guild_id: u64,
+
+    #[serde(default)]
+    pub create_voice_channels: bool,
 }
 
 #[derive(Debug, Deserialize)]

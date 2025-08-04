@@ -104,6 +104,7 @@ async fn main() {
         config.staff.password,
         config.teams,
         config.problems,
+        config.discord.create_voice_channels,
         redeploy_service,
         redeploy_notifiers,
     );

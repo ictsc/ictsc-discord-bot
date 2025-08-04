@@ -26,6 +26,8 @@ pub struct Bot {
     teams: Vec<Team>,
     problems: Vec<Problem>,
 
+    create_voice_channels: bool,
+
     redeploy_service: Box<dyn RedeployService + Send + Sync>,
     redeploy_notifiers: Vec<Box<dyn RedeployNotifier + Send + Sync>>,
 
@@ -40,6 +42,7 @@ impl Bot {
         infra_password: String,
         teams: Vec<Team>,
         problems: Vec<Problem>,
+        create_voice_channels: bool,
         redeploy_service: Box<dyn RedeployService + Send + Sync>,
         redeploy_notifiers: Vec<Box<dyn RedeployNotifier + Send + Sync>>,
     ) -> Self {
@@ -55,6 +58,7 @@ impl Bot {
             infra_password,
             teams,
             problems,
+            create_voice_channels,
             redeploy_service,
             redeploy_notifiers,
             role_cache: RwLock::new(None),
