@@ -11,6 +11,8 @@ use crate::models::Team;
 pub struct Configuration {
     pub staff: StaffConfiguration,
     pub discord: DiscordConfiguration,
+
+    #[serde(default)]
     pub redeploy: RedeployConfiguration,
 
     #[serde(default)]
@@ -50,6 +52,15 @@ pub struct RedeployConfiguration {
     #[serde(flatten)]
     pub service: RedeployServiceConfiguration,
     pub notifiers: Vec<RedeployNotifiersConfiguration>,
+}
+
+impl Default for RedeployConfiguration {
+    fn default() -> Self {
+        RedeployConfiguration {
+            service: RedeployServiceConfiguration::Fake,
+            notifiers: vec![],
+        }
+    }
 }
 
 #[derive(Debug, Deserialize)]
