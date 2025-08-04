@@ -1,0 +1,58 @@
+---
+# Staffに関する設定項目
+staff:
+  # Staff向けパスワード
+  password: staff password
+
+# Discordに関する設定項目
+# 事前にDiscord Botを作成し、予選サーバにインストールしておく必要がある。
+discord:
+  # Bot Token: Developers portal > Bot > Tokenより取得可能
+  token: xxxx
+  # Application ID: Developers portal > General Information > Application IDより取得可能
+  application_id: 0
+  # Guild ID: 予選サーバのServer ID
+  guild_id: 0
+  # 無効化するコマンドのリスト
+  # 一次予選の場合、ping, redeployは無効にしておく必要がある
+  disabled_commands: [ping, redeploy]
+  # ボイスチャンネルを自動生成するかどうか
+  # create_voice_channels: false
+
+teams:
+- id: team1
+  # チームメンバーに付与するロール名（チーム名）
+  role_name: ICTSC Team 1
+  # /join コマンド等で使用する招待コード（openssl rand -hex 24）
+  # 事前に全チーム向けに配布しておく必要がある。
+  invitation_code: hogefugapiyo
+
+---
+# staffについては、一次予選向けの設定と同様。
+
+# Discordに関する設定項目
+# 事前にDiscord Botを作成し、予選サーバにインストールしておく必要がある。
+discord:
+  # 無効化するコマンドのリスト
+  # 二次予選の場合、ping, redeployは無効にしておく必要がある
+  disabled_commands: [ping]
+
+# teamについては、一次予選向けの設定と同様。
+
+# 再展開システムに関する設定項目
+recreate:
+  rstate:
+    # rstateが動作しているURL
+    baseurl: https://example.com
+    # rstateにアクセスするための認証情報
+    username: hoge
+    password: hoge
+  # 再展開を通知するための設定
+  notifiers:
+    - discord:
+        webhook_url: https://example.com/webhook
+
+# 問題に関する設定項目
+problems:
+- code: ABC
+  name: デフォルトルートが消えちゃった！
