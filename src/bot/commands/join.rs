@@ -16,8 +16,8 @@ use crate::bot::Bot;
 enum JoinCommandError<'a> {
     #[error("このコマンドはDM以外から呼び出すことはできません。")]
     CalledFromGuildChannelError,
-    #[error("招待コード `{0}` に対応するチームはありません。招待コードを再度お確かめください。")]
-    InvalidInvitationCodeError(&'a str),
+    #[error("`{0}` に対応するチームはありません。チームコードを再度お確かめください。")]
+    InvalidTeamCodeError(&'a str),
     #[error("ICTSC Discordチャンネルにまだ参加していません。参加した後に再度お試しください。")]
     UserNotInGuildError,
 
@@ -32,12 +32,8 @@ impl Bot {
         CreateCommand::new("join")
             .description("チームに参加します。")
             .add_option(
-                CreateCommandOption::new(
-                    CommandOptionType::String,
-                    "invitation_code",
-                    "招待コード",
-                )
-                .required(true),
+                CreateCommandOption::new(CommandOptionType::String, "team_code", "チームコード")
+                    .required(true),
             )
     }
 
@@ -82,25 +78,23 @@ impl Bot {
             return Err(JoinCommandError::CalledFromGuildChannelError);
         }
 
-        let invitation_code = self
-            .get_option_as_str(&interaction.data.options, "invitation_code")
+        let team_code = self
+            .get_option_as_str(&interaction.data.options, "team_code")
             .unwrap();
 
-        self.find_role_name_by_invitation_code(invitation_code)
-            .ok_or(JoinCommandError::InvalidInvitationCodeError(
-                invitation_code,
-            ))
+        self.find_role_name_by_team_code(team_code)
+            .ok_or(JoinCommandError::InvalidTeamCodeError(team_code))
     }
 
-    fn find_role_name_by_invitation_code(&self, invitation_code: &str) -> Option<&str> {
+    fn find_role_name_by_team_code(&self, team_code: &str) -> Option<&str> {
         // インフラパスが指定された場合、staff権限を付与する。
-        if invitation_code == self.infra_password {
+        if team_code == self.infra_password {
             return Some(roles::STAFF_ROLE_NAME);
         }
 
-        // チームに割り当てられた招待コードの場合、チーム権限を付与する。
+        // チームに割り当てられたチームコードの場合、チーム権限を付与する。
         for team in &self.teams {
-            if team.invitation_code == invitation_code {
+            if team.team_code == team_code {
                 return Some(&team.role_name);
             }
         }

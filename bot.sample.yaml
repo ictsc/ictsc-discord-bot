@@ -23,9 +23,9 @@ teams:
 - id: team1
   # チームメンバーに付与するロール名（チーム名）
   role_name: ICTSC Team 1
-  # /join コマンド等で使用する招待コード（openssl rand -hex 24）
+  # /join コマンド等で使用するチームコード（openssl rand -hex 24）
   # 事前に全チーム向けに配布しておく必要がある。
-  invitation_code: hogefugapiyo
+  team_code: hogefugapiyo
 
 ---
 # staffについては、一次予選向けの設定と同様。

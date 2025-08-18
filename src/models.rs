@@ -6,7 +6,7 @@ pub struct Team {
     #[validate(custom(function = "validate_team_id"))]
     pub id: String,
     pub role_name: String,
-    pub invitation_code: String,
+    pub team_code: String,
 }
 
 // Custom validation function for team ID
