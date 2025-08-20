@@ -12,8 +12,11 @@ static STAFF_CATEGORY_NAME: &str = "ICTSC2025 Staff";
 // Discordの使い方を案内するread-onlyなチャンネル
 static HELP_CHANNEL_NAME: &str = "help";
 
-// 協賛企業からのメッセージ等アナウンスを流すread-onlyなチャンネル
+// 協議開始等のアナウンスを流すread-onlyなチャンネル
 static ANNOUNCE_CHANNEL_NAME: &str = "announce";
+
+// プラチナスポンサーの方々からのメッセージを流すread-onlyなチャンネル
+static PLATINUM_SPONSORS_NAME: &str = "platinum-sponsors";
 
 // 参加者が自由に読み書きできるチャンネル
 static RANDOM_CHANNEL_NAME: &str = "random";
@@ -79,6 +82,14 @@ impl Bot {
         channels.push(
             GuildChannelDefinitionBuilder::default()
                 .name(ANNOUNCE_CHANNEL_NAME.to_string())
+                .kind(ChannelType::Text)
+                .permissions(permissions_for_announce_channel.clone())
+                .build()?,
+        );
+
+        channels.push(
+            GuildChannelDefinitionBuilder::default()
+                .name(PLATINUM_SPONSORS_NAME.to_string())
                 .kind(ChannelType::Text)
                 .permissions(permissions_for_announce_channel)
                 .build()?,
