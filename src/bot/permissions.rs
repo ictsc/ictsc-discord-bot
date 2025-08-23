@@ -48,6 +48,8 @@ impl Bot {
             | Permissions::USE_VAD
             | Permissions::USE_APPLICATION_COMMANDS
             | Permissions::SEND_MESSAGES_IN_THREADS
+            | Permissions::CREATE_PUBLIC_THREADS
+            | Permissions::CREATE_PRIVATE_THREADS
     }
 
     // team channelでstaffが誤爆しないための権限
