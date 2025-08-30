@@ -1,45 +1,92 @@
-# ictsc-discord-bot
+# ICTSC Discord Bot
 
-```
-USAGE:
-    bot --filename <CONFIG> <SUBCOMMAND>
+ICTSCコンテストサーバー管理用のDiscord Bot。チーム管理、チャンネル作成、問題再展開機能を提供します。
 
-OPTIONS:
-    -f, --filename <CONFIG>
-    -h, --help                 Print help information
-    -V, --version              Print version information
+## 機能
 
-SUBCOMMANDS:
-    create-channels
-    create-roles
-    delete-channels
-    delete-commands
-    delete-roles
-    help               Print this message or the help of the given subcommand(s)
-    start
-```
+- チーム管理とロール割り当て
+- チームと問題用のチャンネル自動作成
+- チーム交流用スラッシュコマンド
+- RStateとの問題再展開連携
+- スタッフ権限管理
 
-## Build
+## 利用可能なコマンド
 
-- needs docker
+### グローバルコマンド
+- `/ping` - シンプルなpingコマンド
+- `/join <team_code>` - チームコードを使用してチームに参加
 
-```
+### ギルドコマンド
+- `/archive` - チャンネルをアーカイブ
+- `/ask` - スタッフに質問
+- `/redeploy` - 問題の再展開（スタッフのみ）
+
+## ビルド
+
+Dockerが必要です：
+
+```bash
 make build
 ```
 
-## Run bot daemon
+## 設定
 
-- needs docker
+サンプル設定をコピー：
 
+```bash
+cp bot.sample.yaml bot.yaml
 ```
-cp bot.yaml.example bot.yaml
-make run
+
+`bot.yaml` を編集してDiscord Botの認証情報とコンテスト設定を入力してください。
+
+## 実行
+
+### Botデーモンの開始
+
+```bash
+make start
 ```
 
-## Run oneshot command
+### ロールとチャンネルの同期
 
+```bash
+make sync
 ```
-cp bot.yaml.example bot.yaml
+
+### Botの停止
+
+```bash
+make stop
+```
+
+### ログの確認
+
+```bash
+make logs
+```
+
+### クリーンアップ（全ロール、チャンネル、コマンドを削除）
+
+```bash
+make flush
+```
+
+## 開発
+
+### コードフォーマット
+
+```bash
+make fmt
+```
+
+### ローカルビルド
+
+```bash
 cargo build --release
-./target/release/bot <subcommand>
+```
+
+### ローカル実行
+
+```bash
+./target/release/bot -f bot.yaml <subcommand>
 ```
