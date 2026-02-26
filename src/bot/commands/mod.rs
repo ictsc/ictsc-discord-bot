@@ -140,13 +140,14 @@ impl Bot {
             let create_invite = CreateInvite::new()
                 .max_age(0)
                 .max_uses(0)
-                .temporary(false); // 一時的な招待ではない
+                .temporary(false)
+                .role_ids([role_id]);
             if let Some((_, channel)) = channels
                 .iter()
                 .find(|(_, channel)| channel.name == channel_name)
             {
                 let invite = channel
-                    .create_invite(&self.discord_client, create_invite.role_ids(&[role_id]))
+                    .create_invite(&self.discord_client, create_invite)
                     .await?;
                 tracing::info!(?invite, role_name = ?role_name, "Created invite for team");
                 println!("Invite URL for team {}: {}", team.id, invite.url());
