@@ -138,7 +138,7 @@ impl Bot {
                 crate::bot::channels::TEXT_CHANNEL_NAME_SUFFIX
             );
             let create_invite = CreateInvite::new()
-                .max_age(0)
+                .max_age(86400 * 7) // 7 days
                 .max_uses(0)
                 .temporary(false)
                 .role_ids([role_id]);
@@ -149,8 +149,8 @@ impl Bot {
                 let invite = channel
                     .create_invite(&self.discord_client, create_invite)
                     .await?;
-                tracing::info!(?invite, role_name = ?role_name, "Created invite for team");
-                println!("Invite URL for team {}: {}", team.id, invite.url());
+                let url = invite.url();
+                println!("{}: {}", team.role_name, url);
             } else {
                 tracing::warn!(channel_name = ?channel_name, "Channel for team not found, skipping invite creation");
             }
