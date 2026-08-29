@@ -1,0 +1,4 @@
+[submodule "ext/serenity"]
+	path = ext/serenity
+	url = https://github.com/nishinoyama/serenity
+	branch = feat/invite_with_role

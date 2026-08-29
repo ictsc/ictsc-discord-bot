@@ -29,6 +29,7 @@ enum Commands {
     DeleteRoles,
     DeleteChannels,
     DeleteCommands,
+    CreateInvites,
 }
 
 fn build_redeploy_service(
@@ -116,6 +117,7 @@ async fn main() {
         Commands::DeleteRoles => bot.delete_roles().await,
         Commands::DeleteChannels => bot.delete_channels().await,
         Commands::DeleteCommands => bot.delete_commands().await,
+        Commands::CreateInvites => bot.create_invites().await,
     };
 
     if let Err(reason) = result {

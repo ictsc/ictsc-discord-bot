@@ -7,7 +7,7 @@ mod redeploy;
 use std::collections::HashMap;
 
 use anyhow::Result;
-use serenity::client::Context;
+use serenity::{all::CreateInvite, client::Context};
 
 use crate::bot::*;
 
@@ -111,6 +111,50 @@ impl Bot {
                 .await?;
         }
 
+        Ok(())
+    }
+
+    #[tracing::instrument(skip_all)]
+    pub async fn create_invites(&self) -> Result<()> {
+        // Implementation for creating invites
+        let channels = self.guild_id.channels(&self.discord_client).await?;
+        for team in &self.teams {
+            let role_name = &team.role_name;
+            let role_id = self
+                .get_roles()
+                .await?
+                .iter()
+                .find(|role| role.name == *role_name)
+                .map(|role| role.id);
+            if role_id.is_none() {
+                tracing::warn!(role_name = ?role_name, "Role for team not found, skipping invite creation");
+                continue;
+            }
+            let role_id = role_id.unwrap();
+
+            let channel_name = format!(
+                "{}-{}",
+                team.id,
+                crate::bot::channels::TEXT_CHANNEL_NAME_SUFFIX
+            );
+            let create_invite = CreateInvite::new()
+                .max_age(86400 * 7) // 7 days
+                .max_uses(0)
+                .temporary(false)
+                .role_ids([role_id]);
+            if let Some((_, channel)) = channels
+                .iter()
+                .find(|(_, channel)| channel.name == channel_name)
+            {
+                let invite = channel
+                    .create_invite(&self.discord_client, create_invite)
+                    .await?;
+                let url = invite.url();
+                println!("{}: {}", team.role_name, url);
+            } else {
+                tracing::warn!(channel_name = ?channel_name, "Channel for team not found, skipping invite creation");
+            }
+        }
         Ok(())
     }
 }

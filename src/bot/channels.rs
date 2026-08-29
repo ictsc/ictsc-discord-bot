@@ -21,7 +21,7 @@ static PLATINUM_SPONSORS_NAME: &str = "platinum-sponsors";
 // 参加者が自由に読み書きできるチャンネル
 static RANDOM_CHANNEL_NAME: &str = "random";
 
-static TEXT_CHANNEL_NAME_SUFFIX: &str = "text";
+pub(crate) static TEXT_CHANNEL_NAME_SUFFIX: &str = "text";
 static VOICE_CHANNEL_NAME_SUFFIX: &str = "voice";
 
 impl Bot {
