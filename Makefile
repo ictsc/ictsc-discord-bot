@@ -17,7 +17,7 @@ build:
 
 .PHONY: start
 start:
-	docker run -d --name $(NAME) $(DOCKER_ARGS) $(IMAGE) -f /bot.yaml start
+	docker run --rm -d --name $(NAME) $(DOCKER_ARGS) $(IMAGE) -f /bot.yaml start
 
 .PHONY: stop
 stop:
@@ -25,13 +25,13 @@ stop:
 
 .PHONY: sync
 sync: bot.yaml
-	docker run -it $(DOCKER_ARGS) $(IMAGE) -f /bot.yaml $@
+	docker run --rm -it $(DOCKER_ARGS) $(IMAGE) -f /bot.yaml $@
 
 .PHONY: flush
 flush:
-	docker run -it $(DOCKER_ARGS) $(IMAGE) -f /bot.yaml delete-channels
-	docker run -it $(DOCKER_ARGS) $(IMAGE) -f /bot.yaml delete-roles
-	docker run -it $(DOCKER_ARGS) $(IMAGE) -f /bot.yaml delete-commands
+	docker run --rm -it $(DOCKER_ARGS) $(IMAGE) -f /bot.yaml delete-channels
+	docker run --rm -it $(DOCKER_ARGS) $(IMAGE) -f /bot.yaml delete-roles
+	docker run --rm -it $(DOCKER_ARGS) $(IMAGE) -f /bot.yaml delete-commands
 
 .PHONY: logs
 logs:
